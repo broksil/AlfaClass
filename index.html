@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -258,7 +258,6 @@
     box-shadow: var(--shadow-card);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    animation: cardIn 0.4s ease both;
   }
   .day-card:active { transform: scale(0.98); }
   .day-card.today-card {
@@ -274,9 +273,21 @@
 .card-tasks-preview {
   display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px;
 }
-  @keyframes cardIn {
+  .anim-fade { animation: cardFade 0.4s ease both; }
+  .anim-next { animation: cardNext 0.4s ease both; }
+  .anim-prev { animation: cardPrev 0.4s ease both; }
+
+  @keyframes cardFade {
     from { opacity: 0; transform: translateY(16px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes cardNext {
+    from { opacity: 0; transform: translateX(-40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes cardPrev {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
   }
 
   .day-header {
@@ -562,6 +573,16 @@
     width: 0;
   }
 
+  /* ── PULL TO REFRESH ── */
+  #ptr-indicator {
+    height: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+  }
+  .ptr-icon { display: inline-block; transition: transform 0.3s ease; margin-left: 8px; font-size: 18px; color: var(--accent2); }
+  .ptr-icon.flip { transform: rotate(180deg); }
+  .ptr-icon.spin { animation: spin 0.7s linear infinite; }
+
   /* ── TOAST / IN-APP NOTIFICATION ── */
   #toast-container {
     position: fixed; top: calc(70px + var(--safe-top)); left: 16px; right: 16px;
@@ -696,7 +717,6 @@
           <div id="user-role">—</div>
         </div>
         <button class="btn-logout" id="btn-logout">خروج</button>
-      </div>
     </div>
   </header>
 
@@ -707,6 +727,10 @@
   </div>
 
   <main id="main-content">
+    <div id="ptr-indicator">
+      <span class="ptr-icon" id="ptr-icon">↓</span>
+      <span id="ptr-text">اسحب للتحديث...</span>
+    </div>
     <div class="section-header">
       <div class="week-nav">
         <button class="btn-nav" id="btn-prev">→</button>
@@ -946,7 +970,7 @@ function loadSession() {
       isAdmin: localStorage.getItem('isAdmin') === 'true',
       isSuperAdmin: localStorage.getItem('isSuperAdmin') === 'true'
     };
-    updateHeaderUI();
+    updateHeaderUI(true); // تمرير true لتخطي رسم الأيام هنا
   }
 }
 
@@ -969,7 +993,7 @@ function clearSession() {
   currentUser = null;
 }
 
-function updateHeaderUI() {
+function updateHeaderUI(skipRender = false) {
   const loginBtn = document.getElementById('btn-open-login');
   const userInfoEl = document.getElementById('user-info');
   const userNameEl = document.getElementById('user-name');
@@ -989,7 +1013,7 @@ function updateHeaderUI() {
     userNameEl.style.color = '';
     userRoleEl.textContent = '—';
   }
-  renderDays();
+  if (!skipRender) renderDays();
 }
 
 // ── LOGIN ──
@@ -1034,13 +1058,13 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 
 // ── WEEK NAVIGATION ──
 document.getElementById('btn-prev').addEventListener('click', () => { 
-  if (weekOffset > 0) { weekOffset--; renderDays(); } 
+  if (weekOffset > 0) { weekOffset--; renderDays('prev'); } 
 });
-document.getElementById('btn-next').addEventListener('click', () => { weekOffset++; renderDays(); });
-document.getElementById('btn-today').addEventListener('click', () => { weekOffset = 0; renderDays(); });
-document.getElementById('btn-next-week').addEventListener('click', () => { weekOffset = 1; renderDays(); });
+document.getElementById('btn-next').addEventListener('click', () => { weekOffset++; renderDays('next'); });
+document.getElementById('btn-today').addEventListener('click', () => { weekOffset = 0; renderDays('fade'); });
+document.getElementById('btn-next-week').addEventListener('click', () => { weekOffset = 1; renderDays('fade'); });
 
-function renderDays() {
+function renderDays(anim = 'fade') {
   if (weekOffset < 0) weekOffset = 0; // منع العودة للأسابيع السابقة
 
   const days = getWeekDays(weekOffset);
@@ -1097,7 +1121,7 @@ function renderDays() {
 
   days.forEach((day, idx) => {
     const card = document.createElement('div');
-    card.className = 'day-card' + (day.isToday ? ' today-card' : '');
+    card.className = `day-card anim-${anim}` + (day.isToday ? ' today-card' : '');
     card.dataset.dayId = day.id;
     card.style.animationDelay = `${idx * 0.05}s`;
 
@@ -1142,21 +1166,47 @@ function subscribeToData(dayIds) {
     dayIds.forEach(id => postsByDay[id] = []);
 
     snap.docChanges().forEach(change => {
+      const data = change.doc.data();
+      const postId = change.doc.id;
+
       if (change.type === 'added') {
-        const data = change.doc.data();
-        const postId = change.doc.id;
-        if (!seenPostIds.has(postId) && data.dayId && dayIds.includes(data.dayId)) {
+        if (!seenPostIds.has(postId)) {
           seenPostIds.add(postId);
           localStorage.setItem('seenPosts', JSON.stringify([...seenPostIds].slice(-200)));
-          // Don't notify for posts older than 5 minutes
+          
           const age = Date.now() - (data.createdAt?.toMillis?.() || 0);
           if (age < 5 * 60 * 1000) {
-            addNotification(data);
-            sendBrowserNotif(data);
+            notifCount++;
+            const badge = document.getElementById('notif-badge');
+            badge.textContent = notifCount > 9 ? '9+' : notifCount;
+            badge.classList.add('show');
+            showToastNotif({ id: postId, text: `تم نشر ${data.type} - ${data.subject}`, dayId: data.dayId });
+            sendBrowserNotif({ ...data, id: postId });
           }
         }
+
+        // إضافة الإشعار للقائمة إذا لم يكن موجوداً مسبقاً
+        if (!notifications.find(n => n.id === postId)) {
+          notifications.push({
+            id: postId,
+            text: `تم نشر ${data.type} - ${data.subject}`,
+            dayId: data.dayId,
+            time: data.createdAt?.toMillis?.() || Date.now()
+          });
+        }
+      } else if (change.type === 'modified') {
+        const index = notifications.findIndex(n => n.id === postId);
+        if (index !== -1) {
+          notifications[index].text = `تم تعديل ${data.type} - ${data.subject}`;
+        }
+      } else if (change.type === 'removed') {
+        notifications = notifications.filter(n => n.id !== postId);
       }
     });
+
+    // ترتيب الإشعارات من الأحدث للأقدم وتحديث الواجهة
+    notifications.sort((a, b) => b.time - a.time);
+    renderNotifPanel();
 
     snap.forEach(d => {
       const data = { ...d.data(), id: d.id };
@@ -1252,7 +1302,11 @@ function buildMediaHTML(post) {
       html += `<video class="media-thumb" src="${item.url}" controls preload="none" style="background:#000"></video>`;
     } else {
       const name = item.name || 'ملف';
-      html += `<a class="media-file-link" href="${item.url}" target="_blank" download>📎 ${sanitizeText(name)}</a>`;
+      let dlUrl = item.url;
+      if (dlUrl.includes('/upload/')) {
+        dlUrl = dlUrl.replace('/upload/', '/upload/fl_attachment/');
+      }
+      html += `<a class="media-file-link" href="${dlUrl}" target="_blank" download="${sanitizeText(name)}">📎 ${sanitizeText(name)}</a>`;
     }
   });
   html += '</div>';
@@ -1518,23 +1572,6 @@ function clearUploadStatus() {
 }
 
 // ── NOTIFICATIONS ──
-function addNotification(data) {
-  const n = {
-    id: data.id || Date.now(),
-    text: `تم نشر ${data.type} - ${data.subject}`,
-    dayId: data.dayId,
-    time: new Date()
-  };
-  notifications.unshift(n);
-  if (notifications.length > 20) notifications.pop();
-  notifCount++;
-  const badge = document.getElementById('notif-badge');
-  badge.textContent = notifCount > 9 ? '9+' : notifCount;
-  badge.classList.add('show');
-  showToastNotif(n);
-  renderNotifPanel();
-}
-
 function showToastNotif(n) {
   const msg = `${n.text} في ${formatDayName(n.dayId)}`;
   showToast('🔔','إشعار جديد', msg, () => jumpToDay(n.dayId));
@@ -1563,13 +1600,21 @@ function renderNotifPanel() {
 }
 
 function jumpToDay(dayId) {
-  // set week offset to show this day
-  const today = new Date();
-  const todayStr = formatDate(today);
-  if (dayId >= todayStr) {
-    weekOffset = 0;
-    renderDays();
+  const daysWeek0 = getWeekDays(0).map(d => d.id);
+  const daysWeek1 = getWeekDays(1).map(d => d.id);
+  
+  if (daysWeek1.includes(dayId)) {
+    if (weekOffset !== 1) {
+      weekOffset = 1;
+      renderDays();
+    }
+  } else if (daysWeek0.includes(dayId)) {
+    if (weekOffset !== 0) {
+      weekOffset = 0;
+      renderDays();
+    }
   }
+  
   setTimeout(() => {
     const card = document.querySelector(`[data-day-id="${dayId}"]`);
     if (card) {
@@ -1668,14 +1713,64 @@ window.closeLightbox = function() {
   document.body.style.overflow = '';
 };
 
-// ── SWIPE NAVIGATION ──
+// ── PULL TO REFRESH & SWIPE ──
 let touchStartX = 0;
-document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+let touchStartY = 0;
+let isPulling = false;
+const ptrIndicator = document.getElementById('ptr-indicator');
+const ptrIcon = document.getElementById('ptr-icon');
+const ptrText = document.getElementById('ptr-text');
+
+document.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+  isPulling = window.scrollY <= 10;
+  if (isPulling && ptrIndicator) {
+    ptrIndicator.style.transition = 'none';
+  }
+}, {passive:true});
+
+document.addEventListener('touchmove', e => {
+  if (!isPulling || !ptrIndicator) return;
+  const dy = e.changedTouches[0].screenY - touchStartY;
+  const dx = e.changedTouches[0].screenX - touchStartX;
+  
+  if (dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+    ptrIndicator.style.height = dy + 'px';
+    if (dy > 70) {
+      ptrIcon.classList.add('flip');
+      ptrText.textContent = 'أفلت للتحديث';
+    } else {
+      ptrIcon.classList.remove('flip');
+      ptrText.textContent = 'اسحب للتحديث...';
+    }
+  }
+}, {passive:true});
+
 document.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].screenX - touchStartX;
-  if (Math.abs(dx) > 60) {
-    if (dx > 0) { if (weekOffset > 0) { weekOffset--; renderDays(); } }
-    else { weekOffset++; renderDays(); }
+  const dy = e.changedTouches[0].screenY - touchStartY;
+  
+  if (ptrIndicator) ptrIndicator.style.transition = 'height 0.3s ease';
+  
+  if (isPulling && dy > 70 && Math.abs(dy) > Math.abs(dx)) {
+    if (ptrIndicator) ptrIndicator.style.height = '60px';
+    if (ptrIcon) {
+      ptrIcon.className = 'ptr-icon spin';
+      ptrIcon.textContent = '↻';
+    }
+    if (ptrText) ptrText.textContent = 'جاري التحديث...';
+    showToast('🔄', 'تحديث', 'جاري تحديث البيانات...');
+    setTimeout(() => window.location.reload(), 600);
+    return;
+  }
+  
+  if (ptrIndicator) ptrIndicator.style.height = '0';
+  isPulling = false;
+  
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0) { weekOffset++; renderDays('next'); }
+    else { if (weekOffset > 0) { weekOffset--; renderDays('prev'); } }
   }
 }, {passive:true});
 
@@ -1696,16 +1791,12 @@ function init() {
     weekOffset = 1;
   }
   
-  renderDays();
+  renderDays('fade');
   scheduleMidnightCleanup();
   autoDeleteExpiredPosts();
   requestNotifPermission();
 }
 
-init();
-</script>
-</body>
-</html>
 init();
 </script>
 </body>
