@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ألفاكلاس">
 <title>ألفاكلاس</title>
 <link rel="icon" href="صور/ألفاكلاس.png">
+<link rel="apple-touch-icon" href="صور/ألفاكلاس.png">
 <link rel="manifest" href="#" id="manifest-link">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
@@ -446,6 +447,7 @@
     display: none; align-items: flex-end; justify-content: center;
     padding: 16px;
     padding-bottom: calc(16px + var(--safe-bottom));
+    overscroll-behavior: none;
   }
   .modal-overlay.open { display: flex; }
 
@@ -460,6 +462,7 @@
     box-shadow: 0 -8px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
     animation: modalIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   @keyframes modalIn {
     from { opacity: 0; transform: translateY(60px) scale(0.96); }
@@ -572,16 +575,6 @@
     transition: width 0.3s;
     width: 0;
   }
-
-  /* ── PULL TO REFRESH ── */
-  #ptr-indicator {
-    height: 0; overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700; color: var(--text-secondary);
-  }
-  .ptr-icon { display: inline-block; transition: transform 0.3s ease; margin-left: 8px; font-size: 18px; color: var(--accent2); }
-  .ptr-icon.flip { transform: rotate(180deg); }
-  .ptr-icon.spin { animation: spin 0.7s linear infinite; }
 
   /* ── TOAST / IN-APP NOTIFICATION ── */
   #toast-container {
@@ -727,10 +720,6 @@
   </div>
 
   <main id="main-content">
-    <div id="ptr-indicator">
-      <span class="ptr-icon" id="ptr-icon">↓</span>
-      <span id="ptr-text">اسحب للتحديث...</span>
-    </div>
     <div class="section-header">
       <div class="week-nav">
         <button class="btn-nav" id="btn-prev">→</button>
@@ -821,8 +810,9 @@
       <label class="form-label">صور</label>
       <div class="upload-zone" onclick="document.getElementById('up-images').click()">
         <div class="upload-icon">🖼️</div>
-        <div>اضغط لإضافة صور</div>
+        <div>اضغط لإضافة صور</div>is)" onclck="event.topPropagation(
         <input type="file" id="up-images" accept="image/*" multiple onchange="handleFileSelect('images',this)">
+        <input type="file" id="up-images" accept="image/*" multiple onchange="handleFileSelect('images',this)" onclick="event.stopPropagation()">
       </div>
       <div class="upload-preview" id="prev-images"></div>
     </div>
@@ -830,19 +820,21 @@
     <div class="form-group">
       <label class="form-label">فيديوهات</label>
       <div class="upload-zone" onclick="document.getElementById('up-videos').click()">
-        <div class="upload-icon">🎬</div>
+        <div class="upload-icon">🎬</div>is)" onclck="event.topPropagation(
         <div>اضغط لإضافة فيديوهات</div>
         <input type="file" id="up-videos" accept="video/*" multiple onchange="handleFileSelect('videos',this)">
+        <input type="file" id="up-videos" accept="video/*" multiple onchange="handleFileSelect('videos',this)" onclick="event.stopPropagation()">
       </div>
       <div class="upload-preview" id="prev-videos"></div>
     </div>
 
     <div class="form-group">
       <label class="form-label">ملفات</label>
-      <div class="upload-zone" onclick="document.getElementById('up-files').click()">
+      <div class="upload-zone" onclick="document.getElementById('up-files').click()"> onclick="event.stopPropagation()"
         <div class="upload-icon">📎</div>
         <div>اضغط لإضافة ملفات</div>
         <input type="file" id="up-files" multiple onchange="handleFileSelect('files',this)">
+        <input type="file" id="up-files" multiple onchange="handleFileSelect('files',this)" onclick="event.stopPropagation()">
       </div>
       <div class="upload-preview" id="prev-files"></div>
     </div>
@@ -928,11 +920,11 @@ function getWeekDays(offset = 0) {
     if (ndDow === 5) continue; // skip Friday
     const dateStr = formatDate(nd);
     days.push({
-      id: dateStr,
+        id: dateStr,
       name: dayNames[ndDow] || ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][ndDow],
       date: `${nd.getDate()} ${monthNames[nd.getMonth()]}`,
       isToday: dateStr === todayDateStr,
-      isPast: nd < new Date(todayDateStr)
+      isPast: dateStr < todayDateStr
     });
   }
   
@@ -1340,6 +1332,35 @@ async function incrementView(dayId) {
   }
 }
 
+// ── DRAFT SYSTEM ──
+function saveDraft() {
+  if (document.getElementById('pub-edit-id').value) return; // لا تحفظ مسودة في حالة تعديل منشور سابق
+  const draft = {
+    type: document.getElementById('pub-type').value,
+    typeCustom: document.getElementById('pub-type-custom').value,
+    subject: document.getElementById('pub-subject').value,
+    subjectCustom: document.getElementById('pub-subject-custom').value,
+    note: document.getElementById('pub-note').value
+  };
+  localStorage.setItem('publishDraft', JSON.stringify(draft));
+}
+
+function loadDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem('publishDraft'));
+    if (!draft) return;
+    if (draft.type) { document.getElementById('pub-type').value = draft.type; handleTypeChange(); }
+    if (draft.typeCustom) document.getElementById('pub-type-custom').value = draft.typeCustom;
+    if (draft.subject) { document.getElementById('pub-subject').value = draft.subject; handleSubjectChange(); }
+    if (draft.subjectCustom) document.getElementById('pub-subject-custom').value = draft.subjectCustom;
+    if (draft.note) document.getElementById('pub-note').value = draft.note;
+  } catch(e) {}
+}
+
+function clearDraft() {
+  localStorage.removeItem('publishDraft');
+}
+
 // ── PUBLISH ──
 window.openPublishModal = function(dayId) {
   if (!currentUser?.isAdmin) return;
@@ -1358,6 +1379,7 @@ window.openPublishModal = function(dayId) {
   });
   pendingFiles = { images:[], videos:[], files:[] };
   clearUploadStatus();
+  loadDraft();
   openModal('publish-modal');
 };
 
@@ -1447,6 +1469,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     } else {
       await addDoc(collection(db, 'posts'), postData);
       showToast('✅','نشر','تم نشر التحضير بنجاح');
+      clearDraft();
     }
     closeModal('publish-modal');
   } catch (e) {
@@ -1686,13 +1709,21 @@ window.openModal = function(id) {
   if (!overlay) return;
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
 };
 window.closeModal = function(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
   const box = overlay.querySelector('.modal-box');
-  if (box) { box.classList.add('closing'); box.addEventListener('animationend', () => { box.classList.remove('closing'); overlay.classList.remove('open'); document.body.style.overflow = ''; }, {once:true}); }
-  else { overlay.classList.remove('open'); document.body.style.overflow = ''; }
+  const cleanup = () => {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  };
+  if (box) {
+    box.classList.add('closing');
+    box.addEventListener('animationend', () => { box.classList.remove('closing'); cleanup(); }, {once:true});
+  } else { cleanup(); }
 };
 window.handleModalOverlayClick = function(e, id) {
   if (e.target.id === id) closeModal(id);
@@ -1707,66 +1738,26 @@ window.openLightbox = function(url) {
   document.getElementById('lightbox-img').src = url;
   document.getElementById('lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
 };
 window.closeLightbox = function() {
   document.getElementById('lightbox').classList.remove('open');
   document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
 };
 
-// ── PULL TO REFRESH & SWIPE ──
+// ── HORIZONTAL SWIPE NAVIGATION ──
 let touchStartX = 0;
 let touchStartY = 0;
-let isPulling = false;
-const ptrIndicator = document.getElementById('ptr-indicator');
-const ptrIcon = document.getElementById('ptr-icon');
-const ptrText = document.getElementById('ptr-text');
 
 document.addEventListener('touchstart', e => {
   touchStartX = e.changedTouches[0].screenX;
   touchStartY = e.changedTouches[0].screenY;
-  isPulling = window.scrollY <= 10;
-  if (isPulling && ptrIndicator) {
-    ptrIndicator.style.transition = 'none';
-  }
-}, {passive:true});
-
-document.addEventListener('touchmove', e => {
-  if (!isPulling || !ptrIndicator) return;
-  const dy = e.changedTouches[0].screenY - touchStartY;
-  const dx = e.changedTouches[0].screenX - touchStartX;
-  
-  if (dy > 0 && Math.abs(dy) > Math.abs(dx)) {
-    ptrIndicator.style.height = dy + 'px';
-    if (dy > 70) {
-      ptrIcon.classList.add('flip');
-      ptrText.textContent = 'أفلت للتحديث';
-    } else {
-      ptrIcon.classList.remove('flip');
-      ptrText.textContent = 'اسحب للتحديث...';
-    }
-  }
 }, {passive:true});
 
 document.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].screenX - touchStartX;
   const dy = e.changedTouches[0].screenY - touchStartY;
-  
-  if (ptrIndicator) ptrIndicator.style.transition = 'height 0.3s ease';
-  
-  if (isPulling && dy > 70 && Math.abs(dy) > Math.abs(dx)) {
-    if (ptrIndicator) ptrIndicator.style.height = '60px';
-    if (ptrIcon) {
-      ptrIcon.className = 'ptr-icon spin';
-      ptrIcon.textContent = '↻';
-    }
-    if (ptrText) ptrText.textContent = 'جاري التحديث...';
-    showToast('🔄', 'تحديث', 'جاري تحديث البيانات...');
-    setTimeout(() => window.location.reload(), 600);
-    return;
-  }
-  
-  if (ptrIndicator) ptrIndicator.style.height = '0';
-  isPulling = false;
   
   if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
     if (dx > 0) { weekOffset++; renderDays('next'); }
@@ -1786,6 +1777,9 @@ function init() {
 
   loadSession();
   
+  document.getElementById('publish-box').addEventListener('input', saveDraft);
+  document.getElementById('publish-box').addEventListener('change', saveDraft);
+  
   // الانتقال للأسبوع القادم تلقائياً إذا انتهت أيام الأسبوع الحالي
   if (getWeekDays(0).length === 0) {
     weekOffset = 1;
@@ -1800,4 +1794,5 @@ function init() {
 init();
 </script>
 </body>
+</html>
 </html>
