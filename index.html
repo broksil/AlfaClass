@@ -756,6 +756,7 @@
     <div class="form-group">
       <label class="form-label">نوع التحضير</label>
       <select class="form-select" id="pub-type" onchange="handleTypeChange()">
+        <option value="" disabled selected hidden>اختر نوع التحضير...</option>
         <option value="تقرير">تقرير</option>
         <option value="كويز">كويز</option>
         <option value="ميد">ميد</option>
@@ -772,11 +773,13 @@
     <div class="form-group">
       <label class="form-label">المادة</label>
       <select class="form-select" id="pub-subject" onchange="handleSubjectChange()">
+        <option value="" disabled selected hidden>اختر المادة...</option>
         <option value="أساسيات حاسوب">أساسيات حاسوب</option>
         <option value="رياضيات مالية">رياضيات مالية</option>
         <option value="محاسبة مالية">محاسبة مالية</option>
         <option value="تشريعات">تشريعات</option>
         <option value="حقوق إنسان">حقوق إنسان</option>
+        <option value="قراءات">قراءات</option>
         <option value="آخر">آخر</option>
       </select>
     </div>
@@ -1291,8 +1294,8 @@ window.openPublishModal = function(dayId) {
   document.getElementById('publish-modal-title').textContent = '📝 نشر تحضير';
   document.getElementById('btn-do-publish').textContent = '🚀 نشر';
   // reset form
-  document.getElementById('pub-type').value = 'تقرير';
-  document.getElementById('pub-subject').value = 'أساسيات حاسوب';
+  document.getElementById('pub-type').value = '';
+  document.getElementById('pub-subject').value = '';
   document.getElementById('pub-note').value = '';
   document.getElementById('type-custom-wrap').classList.add('hidden');
   document.getElementById('subject-custom-wrap').classList.add('hidden');
@@ -1323,7 +1326,7 @@ window.openEditModal = function(postId) {
     document.getElementById('type-custom-wrap').classList.remove('hidden');
     document.getElementById('pub-type-custom').value = post.type;
   }
-  document.getElementById('pub-subject').value = ['أساسيات حاسوب','رياضيات مالية','محاسبة مالية','تشريعات','حقوق إنسان','آخر'].includes(post.subject) ? post.subject : 'آخر';
+  document.getElementById('pub-subject').value = ['أساسيات حاسوب','رياضيات مالية','محاسبة مالية','تشريعات','حقوق إنسان','قراءات','آخر'].includes(post.subject) ? post.subject : 'آخر';
   if (document.getElementById('pub-subject').value === 'آخر') {
     document.getElementById('subject-custom-wrap').classList.remove('hidden');
     document.getElementById('pub-subject-custom').value = post.subject;
@@ -1699,6 +1702,10 @@ function init() {
   requestNotifPermission();
 }
 
+init();
+</script>
+</body>
+</html>
 init();
 </script>
 </body>
