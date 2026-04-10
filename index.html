@@ -810,33 +810,10 @@
       <label class="form-label">صور</label>
       <div class="upload-zone" onclick="document.getElementById('up-images').click()">
         <div class="upload-icon">🖼️</div>
-        <div>اضغط لإضافة صور</div>is)" onclck="event.topPropagation(
-        <input type="file" id="up-images" accept="image/*" multiple onchange="handleFileSelect('images',this)">
+        <div>اضغط لإضافة صور</div>
         <input type="file" id="up-images" accept="image/*" multiple onchange="handleFileSelect('images',this)" onclick="event.stopPropagation()">
       </div>
       <div class="upload-preview" id="prev-images"></div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">فيديوهات</label>
-      <div class="upload-zone" onclick="document.getElementById('up-videos').click()">
-        <div class="upload-icon">🎬</div>is)" onclck="event.topPropagation(
-        <div>اضغط لإضافة فيديوهات</div>
-        <input type="file" id="up-videos" accept="video/*" multiple onchange="handleFileSelect('videos',this)">
-        <input type="file" id="up-videos" accept="video/*" multiple onchange="handleFileSelect('videos',this)" onclick="event.stopPropagation()">
-      </div>
-      <div class="upload-preview" id="prev-videos"></div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">ملفات</label>
-      <div class="upload-zone" onclick="document.getElementById('up-files').click()"> onclick="event.stopPropagation()"
-        <div class="upload-icon">📎</div>
-        <div>اضغط لإضافة ملفات</div>
-        <input type="file" id="up-files" multiple onchange="handleFileSelect('files',this)">
-        <input type="file" id="up-files" multiple onchange="handleFileSelect('files',this)" onclick="event.stopPropagation()">
-      </div>
-      <div class="upload-preview" id="prev-files"></div>
     </div>
 
     <div class="progress-bar" id="upload-progress-bar">
@@ -886,7 +863,7 @@ const ADMINS = [
 let currentUser = null;
 let weekOffset = 0;
 let openDayId = null;
-let pendingFiles = { images: [], videos: [], files: [] };
+let pendingFiles = { images: [] };
 let notifications = [];
 let notifCount = 0;
 let unsubPosts = null;
@@ -1374,10 +1351,8 @@ window.openPublishModal = function(dayId) {
   document.getElementById('pub-note').value = '';
   document.getElementById('type-custom-wrap').classList.add('hidden');
   document.getElementById('subject-custom-wrap').classList.add('hidden');
-  ['images','videos','files'].forEach(t => {
-    document.getElementById(`prev-${t}`).innerHTML = '';
-  });
-  pendingFiles = { images:[], videos:[], files:[] };
+  document.getElementById('prev-images').innerHTML = '';
+  pendingFiles = { images:[] };
   clearUploadStatus();
   loadDraft();
   openModal('publish-modal');
@@ -1408,10 +1383,8 @@ window.openEditModal = function(postId) {
     document.getElementById('pub-subject-custom').value = post.subject;
   }
   document.getElementById('pub-note').value = post.note || '';
-  ['images','videos','files'].forEach(t => {
-    document.getElementById(`prev-${t}`).innerHTML = '';
-  });
-  pendingFiles = { images:[], videos:[], files:[] };
+  document.getElementById('prev-images').innerHTML = '';
+  pendingFiles = { images:[] };
   clearUploadStatus();
   openModal('publish-modal');
 };
@@ -1435,9 +1408,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
   try {
     // Upload files
     const allFiles = [
-      ...pendingFiles.images.map(f => ({file:f, type:'image'})),
-      ...pendingFiles.videos.map(f => ({file:f, type:'video'})),
-      ...pendingFiles.files.map(f  => ({file:f, type:'file'}))
+      ...pendingFiles.images.map(f => ({file:f, type:'image'}))
     ];
     const mediaUrls = [];
 
@@ -1554,8 +1525,6 @@ function renderPreviews(type) {
       const img = document.createElement('img');
       img.src = URL.createObjectURL(file);
       item.appendChild(img);
-    } else {
-      item.innerHTML = `<span style="font-size:22px">${type==='videos'?'🎬':'📎'}</span>`;
     }
     const rm = document.createElement('div');
     rm.className = 'remove-file';
