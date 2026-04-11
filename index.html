@@ -867,7 +867,7 @@ let pendingFiles = { images: [] };
 let notifications = [];
 let notifCount = 0;
 let unsubPosts = null;
-let unsubViews = null;
+let unsubViewsList = [];
 let seenPostIds = new Set(JSON.parse(localStorage.getItem('seenPosts') || '[]'));
 let currentPosts = {};
 
@@ -1127,9 +1127,13 @@ function renderDays(anim = 'fade') {
 // ── FIREBASE SUBSCRIBE ──
 function subscribeToData(dayIds) {
   if (unsubPosts) unsubPosts();
+  unsubViewsList.forEach(unsub => unsub());
+  unsubViewsList = [];
+
   if (dayIds.length === 0) return;
 
-  const q = query(collection(db, 'posts'), orderBy('createdAt', 'asc'));
+  // استدعاء المنشورات للأيام المعروضة حالياً فقط لتسريع الاستجابة بشكل هائل
+  const q = query(collection(db, 'posts'), where('dayId', 'in', dayIds));
   unsubPosts = onSnapshot(q, (snap) => {
     const postsByDay = {};
     dayIds.forEach(id => postsByDay[id] = []);
@@ -1177,8 +1181,12 @@ function subscribeToData(dayIds) {
     notifications.sort((a, b) => b.time - a.time);
     renderNotifPanel();
 
-    snap.forEach(d => {
-      const data = { ...d.data(), id: d.id };
+    // ترتيب البيانات محلياً لتجنب الحاجة لفهرس (Index) معقد في فايربيس
+    const allFetchedPosts = [];
+    snap.forEach(d => allFetchedPosts.push({ ...d.data(), id: d.id }));
+    allFetchedPosts.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+
+    allFetchedPosts.forEach(data => {
       if (data.dayId && postsByDay[data.dayId] !== undefined) {
         postsByDay[data.dayId].push(data);
       }
@@ -1191,10 +1199,11 @@ function subscribeToData(dayIds) {
   // Subscribe to views
   dayIds.forEach(dayId => {
     const viewsRef = doc(db, 'views', dayId);
-    onSnapshot(viewsRef, (snap) => {
+    const unsub = onSnapshot(viewsRef, (snap) => {
       const el = document.querySelector(`#views-${dayId} span`);
       if (el) el.textContent = snap.exists() ? (snap.data().count || 0) : 0;
     });
+    unsubViewsList.push(unsub);
   });
 }
 
@@ -1485,13 +1494,10 @@ function extractPublicId(url) {
 // ── AUTO DELETE EXPIRED POSTS ──
 async function autoDeleteExpiredPosts() {
   const todayStr = formatDate(new Date());
-  const q = query(collection(db, 'posts'));
+  const q = query(collection(db, 'posts'), where('dayId', '<', todayStr));
   const snap = await getDocs(q);
   snap.forEach(async d => {
-    const data = d.data();
-    if (data.dayId && data.dayId < todayStr) {
-      await deleteDoc(doc(db, 'posts', d.id));
-    }
+    await deleteDoc(doc(db, 'posts', d.id));
   });
 }
 
