@@ -10,7 +10,7 @@
 <title>ألفاكلاس</title>
 <link rel="icon" href="صور/ألفاكلاس.png">
 <link rel="apple-touch-icon" href="صور/ألفاكلاس.png">
-<link rel="manifest" href="#" id="manifest-link">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <style>
@@ -41,6 +41,7 @@
     --c-quiz: #f59e0b;
     --c-mid: #f97316;
     --c-final: #ef4444;
+    --c-exam: #ec4899;
     --c-hw: #22c55e;
     --c-prep: #a855f7;
     --c-other: #6b7280;
@@ -185,6 +186,21 @@
   .btn-login:active { transform: scale(0.95); }
   .btn-login .icon { font-size: 16px; }
 
+  .btn-install {
+    display: flex; align-items: center; gap: 5px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13px; font-weight: 700;
+    color: #fff;
+    transition: all 0.2s;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+  }
+  .btn-install:active { transform: scale(0.95); }
+
   #user-info {
     display: none;
     align-items: center; gap: 8px;
@@ -208,6 +224,16 @@
     color: #ef4444;
     transition: all 0.2s;
     white-space: nowrap;
+  }
+
+  .author-badge {
+    height: 16px;
+    width: 16px;
+    vertical-align: sub;
+    margin-right: 4px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-block;
   }
 
   /* ── MAIN ── */
@@ -347,6 +373,7 @@
   .post-item[data-type="كويز"] { border-color: var(--c-quiz); }
   .post-item[data-type="ميد"] { border-color: var(--c-mid); }
   .post-item[data-type="فاينل"] { border-color: var(--c-final); }
+  .post-item[data-type="امتحان"] { border-color: var(--c-exam); }
   .post-item[data-type="واجب"] { border-color: var(--c-hw); }
   .post-item[data-type="تحضير"] { border-color: var(--c-prep); }
 
@@ -362,12 +389,33 @@
   .post-type-badge[data-type="كويز"] { color: var(--c-quiz); background: rgba(245,158,11,0.12); }
   .post-type-badge[data-type="ميد"] { color: var(--c-mid); background: rgba(249,115,22,0.12); }
   .post-type-badge[data-type="فاينل"] { color: var(--c-final); background: rgba(239,68,68,0.12); }
+  .post-type-badge[data-type="امتحان"] { color: var(--c-exam); background: rgba(236,72,153,0.12); }
   .post-type-badge[data-type="واجب"] { color: var(--c-hw); background: rgba(34,197,94,0.12); }
   .post-type-badge[data-type="تحضير"] { color: var(--c-prep); background: rgba(168,85,247,0.12); }
+
+  .offline-badge {
+    float: left;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 7px;
+    font-size: 10px; font-weight: 700;
+    background: rgba(245, 158, 11, 0.15); color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    animation: pulseOpacity 1.5s infinite;
+  }
+  @keyframes pulseOpacity { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
   .post-subject { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
   .post-note { font-size: 13px; color: var(--text-secondary); line-height: 1.6; word-break: break-word; }
   .post-note a.link { color: #60a5fa; text-decoration: underline; }
+  .youtube-embed { 
+    width: 100%; 
+    aspect-ratio: 16 / 9; 
+    border-radius: 12px; 
+    margin-top: 10px; 
+    border: 1px solid rgba(255,255,255,0.08); 
+    background: #000; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+  }
 
   .post-media { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .media-thumb {
@@ -614,12 +662,32 @@
   /* ── LIGHTBOX ── */
   #lightbox {
     position: fixed; inset: 0; z-index: 900;
-    background: rgba(0,0,0,0.93);
+    background: rgba(0,0,0,0.95);
     display: none; align-items: center; justify-content: center;
-    cursor: pointer;
   }
   #lightbox.open { display: flex; }
-  #lightbox img { max-width: 95vw; max-height: 90dvh; border-radius: 12px; object-fit: contain; }
+  .lightbox-header {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 16px; display: flex; justify-content: space-between; align-items: center;
+    z-index: 901; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+  }
+  .lightbox-counter { color: #fff; font-size: 15px; font-weight: 700; direction: ltr; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  .lightbox-actions { display: flex; gap: 12px; }
+  .lightbox-btn {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; text-decoration: none;
+    backdrop-filter: blur(5px); transition: all 0.2s;
+  }
+  .lightbox-btn:active { transform: scale(0.9); }
+  #lightbox img { max-width: 100vw; max-height: 100dvh; object-fit: contain; transform-origin: center; touch-action: none; }
+
+  .lb-anim { animation: lbFadeIn 0.25s ease-out; }
+  @keyframes lbFadeIn {
+    from { opacity: 0; filter: blur(5px); }
+    to { opacity: 1; filter: blur(0); }
+  }
 
   /* ── NOTIFICATION PANEL ── */
   #notif-panel {
@@ -675,13 +743,41 @@
   /* Utils */
   .hidden { display: none !important; }
   .text-center { text-align: center; }
+
+  /* ── IOS PROMPT ── */
+  #ios-install-prompt {
+    position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 16px; right: 16px;
+    z-index: 1000; background: rgba(20,20,45,0.95);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: none; flex-direction: column; gap: 10px;
+    animation: modalIn 0.4s ease both;
+  }
+  #ios-install-prompt.show { display: flex; }
+  .ios-prompt-header { display: flex; justify-content: space-between; align-items: center; }
+  .ios-prompt-title { font-size: 14px; font-weight: 700; }
+  .ios-prompt-close { background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; padding: 0 5px; }
+  .ios-prompt-body { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* ── ANDROID PROMPT ── */
+  #android-install-prompt {
+    position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 16px; right: 16px;
+    z-index: 1000; background: rgba(20,20,45,0.95);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    display: none; flex-direction: column; gap: 10px;
+    animation: modalIn 0.4s ease both;
+  }
+  #android-install-prompt.show { display: flex; }
 </style>
 </head>
 <body>
 
 <!-- LOADING SCREEN -->
 <div id="loading-screen">
-  <div class="loading-verse">وَقُل رَّبِّ زِدْنِي عِلْمًا</div>
+  <div class="loading-verse">وقل ربي زدني علماً</div>
   <div class="loading-bar"><div class="loading-bar-inner"></div></div>
 </div>
 
@@ -694,6 +790,9 @@
       <div class="header-name">ألفاكلاس</div>
     </div>
     <div class="header-actions">
+      <!-- Install App Button -->
+      <button class="btn-install" id="btn-install" style="display: none;" title="تثبيت التطبيق">⬇️ تثبيت</button>
+      
       <!-- Notification bell -->
       <button class="btn-notif" id="btn-notif" title="الإشعارات">
         🔔
@@ -710,6 +809,7 @@
           <div id="user-role">—</div>
         </div>
         <button class="btn-logout" id="btn-logout">خروج</button>
+      </div>
     </div>
   </header>
 
@@ -743,7 +843,14 @@
 
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
-  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-header" onclick="event.stopPropagation()">
+    <span class="lightbox-counter" id="lightbox-counter"></span>
+    <div class="lightbox-actions">
+      <a id="lightbox-download" href="#" download="صورة" class="lightbox-btn" title="تحميل">⬇️</a>
+      <button onclick="closeLightbox()" class="lightbox-btn" title="إغلاق">✖</button>
+    </div>
+  </div>
+  <img id="lightbox-img" src="" alt="صورة مكبرة" onclick="event.stopPropagation()">
 </div>
 
 <!-- ── LOGIN MODAL ── -->
@@ -774,6 +881,7 @@
         <option value="كويز">كويز</option>
         <option value="ميد">ميد</option>
         <option value="فاينل">فاينل</option>
+        <option value="امتحان">امتحان</option>
         <option value="واجب">واجب</option>
         <option value="تحضير">تحضير</option>
         <option value="آخر">آخر</option>
@@ -828,12 +936,45 @@
   </div>
 </div>
 
+<!-- ── VIEWERS MODAL ── -->
+<div class="modal-overlay" id="viewers-modal" onclick="handleModalOverlayClick(event,'viewers-modal')">
+  <div class="modal-box" id="viewers-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👁 قائمة المشاهدات</div>
+    <div id="viewers-list-content" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;"></div>
+    <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:16px;color:var(--text-secondary)" onclick="closeModal('viewers-modal')">إغلاق</button>
+  </div>
+</div>
+
+<!-- iOS Install Prompt -->
+<div id="ios-install-prompt">
+  <div class="ios-prompt-header">
+    <div class="ios-prompt-title">📱 تثبيت التطبيق (آيفون)</div>
+    <button class="ios-prompt-close" id="ios-prompt-close">&times;</button>
+  </div>
+  <div class="ios-prompt-body">
+    للوصول السريع للمنصة، اضغط على زر المشاركة (المربع ذو السهم للأعلى) في المتصفح، ثم اختر <b style="color:#fff;">"إضافة إلى الصفحة الرئيسية" ➕</b>.
+  </div>
+</div>
+
+<!-- Android/Desktop Install Prompt -->
+<div id="android-install-prompt">
+  <div class="ios-prompt-header">
+    <div class="ios-prompt-title">📱 تثبيت التطبيق</div>
+    <button class="ios-prompt-close" id="android-prompt-close">&times;</button>
+  </div>
+  <div class="ios-prompt-body">
+    قم بتثبيت تطبيق ألفاكلاس على جهازك للوصول السريع وتلقي الإشعارات بسهولة.
+    <button class="btn-submit" id="btn-prompt-install" style="margin-top: 12px; padding: 10px; font-size: 14px;">⬇️ تثبيت الآن</button>
+  </div>
+</div>
+
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore, collection, onSnapshot, addDoc, query, orderBy,
-  updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc
+  updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // ── FIREBASE INIT ──
@@ -847,16 +988,61 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ── ENABLE OFFLINE PERSISTENCE (IndexedDB) ──
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn('تخزين البيانات محلياً يعمل في تبويب واحد فقط.');
+  } else if (err.code == 'unimplemented') {
+    console.warn('المتصفح لا يدعم التخزين المحلي IndexedDB.');
+  }
+});
+
 // ── CLOUDINARY ──
 const CLOUD_NAME = "dnblfxhcs";
 const UPLOAD_PRESET = "alfaclass_upload";
 
 // ── ADMINS (codes hashed in comparison only) ──
 const ADMINS = [
-  { name: "باقر محمد زامل",          role: "المساعد", code: "81472",  color: "#ff6b6b", superAdmin: true },
-  { name: "رضا فلاح حسن",             role: "الممثل",  code: "0660",   color: "#c0392b" },
-  { name: "اساور احمد عباس",          role: "طالبة",   code: "66066",  color: "#ff69b4" },
-  { name: "حيدر محمد عبد الرحيم علي", role: "طالب",    code: "9901",   color: "#00bfff" }
+  // المشرفين (يمكنهم النشر)
+  { name: "باقر محمد زامل",          role: "المساعد", code: "81472", color: "#ff6b6b", isAdmin: true, superAdmin: true },
+  { name: "رضا فلاح حسن",             role: "الممثل",  code: "33444", color: "#c0392b", isAdmin: true },
+  { name: "حيدر محمد عبد الرحيم علي", role: "طالب",  code: "40004", color: "#00bfff", isAdmin: true, icon: "صور/حيدر.png" },
+  { name: "أساور أحمد عباس",          role: "طالبة", code: "30003", color: "#ff69b4", isAdmin: true },
+  
+  // الطلاب (لا يمكنهم النشر - للعرض فقط)
+  { name: "أديان علي محمود",          role: "طالبة", code: "12121", color: "#d946ef", isAdmin: false },
+  { name: "أساور أحمد عباس",          role: "طالبة", code: "30003", color: "#ff69b4", isAdmin: false },
+  { name: "أساور حازم محمد",          role: "طالبة", code: "45454", color: "#ec4899", isAdmin: false },
+  { name: "أمير عبد الرسول",          role: "طالب",  code: "11222", color: "#3b82f6", isAdmin: false },
+  { name: "أمير فيصل غازي",           role: "طالب",  code: "70007", color: "#0ea5e9", isAdmin: false },
+  { name: "آية أحمد طالب",            role: "طالبة", code: "26262", color: "#8b5cf6", isAdmin: false },
+  { name: "بلسم سالم محمد",           role: "طالبة", code: "89898", color: "#d946ef", isAdmin: false },
+  { name: "تبارك أحمد لفتة",          role: "طالبة", code: "20002", color: "#ec4899", isAdmin: false },
+  { name: "حسين غانم بدر",            role: "طالب",  code: "67676", color: "#14b8a6", isAdmin: false },
+  { name: "حسين محمد باني",           role: "طالب",  code: "33773", color: "#3b82f6", isAdmin: false },
+  { name: "حوراء سعد محسن",           role: "طالبة", code: "50005", color: "#8b5cf6", isAdmin: false },
+  { name: "حوراء عباس لطيف",          role: "طالبة", code: "34343", color: "#d946ef", isAdmin: false },
+  { name: "حيدر عبد المرتضى",         role: "طالب",  code: "99119", color: "#0ea5e9", isAdmin: false },
+  { name: "رسل خلدون أنور",           role: "طالبة", code: "77888", color: "#ec4899", isAdmin: false },
+  { name: "رفل أمجد حافظ",            role: "طالبة", code: "15151", color: "#d946ef", isAdmin: false },
+  { name: "رقية محمد عبد الخضر",      role: "طالبة", code: "60006", color: "#8b5cf6", isAdmin: false },
+  { name: "رنا عصام سايه مير",        role: "طالبة", code: "22333", color: "#ec4899", isAdmin: false },
+  { name: "زبيدة أحمد عبد الخالق",    role: "طالبة", code: "59595", color: "#d946ef", isAdmin: false },
+  { name: "زهراء حيدر عبد الرزاق",    role: "طالبة", code: "80008", color: "#8b5cf6", isAdmin: false },
+  { name: "زهراء علي راضي",           role: "طالبة", code: "48484", color: "#ec4899", isAdmin: false },
+  { name: "زهراء محمد حسن",           role: "طالبة", code: "11551", color: "#d946ef", isAdmin: false },
+  { name: "زمن ياس خضر",              role: "طالبة", code: "37373", color: "#8b5cf6", isAdmin: false },
+  { name: "زينب قاسم محمد",           role: "طالبة", code: "88999", color: "#ec4899", isAdmin: false },
+  { name: "زينب ناصر عزيز",           role: "طالبة", code: "90009", color: "#d946ef", isAdmin: false },
+  { name: "سجاد صادق جعفر",           role: "طالب",  code: "23232", color: "#3b82f6", isAdmin: false },
+  { name: "سيف قاسم عريان",           role: "طالب",  code: "44555", color: "#0ea5e9", isAdmin: false },
+  { name: "شمس علي عبد المطلب",       role: "طالبة", code: "51545", color: "#8b5cf6", isAdmin: false },
+  { name: "شهد حامد جبار",            role: "طالبة", code: "10001", color: "#ec4899", isAdmin: false },
+  { name: "شيرين أحمد محمد",          role: "طالبة", code: "66777", color: "#d946ef", isAdmin: false },
+  { name: "شيرين سمير كاظم",          role: "طالبة", code: "22662", color: "#8b5cf6", isAdmin: false },
+  { name: "شيماء أسعد كريم",          role: "طالبة", code: "78787", color: "#ec4899", isAdmin: false },
+  { name: "علي طيف سعد",              role: "طالب",  code: "55995", color: "#14b8a6", isAdmin: false },
+  { name: "علياء علاء عبد الله",      role: "طالبة", code: "44884", color: "#d946ef", isAdmin: false }
 ];
 
 // ── STATE ──
@@ -870,6 +1056,10 @@ let unsubPosts = null;
 let unsubViewsList = [];
 let seenPostIds = new Set(JSON.parse(localStorage.getItem('seenPosts') || '[]'));
 let currentPosts = {};
+let localOfflinePosts = [];
+let editingMediaUrls = [];
+const notifSound = new Audio('https://actions.google.com/sounds/v1/ui/pop.ogg');
+const syncSound = new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime_02.ogg');
 
 // ── HELPERS ──
 function getWeekDays(offset = 0) {
@@ -924,8 +1114,14 @@ function formatNote(text) {
   let safe = sanitizeText(text);
   // hidden link: (url)(label)
   safe = safe.replace(/\((https?:\/\/[^)]+)\)\(([^)]+)\)/g, '<a href="$1" target="_blank" rel="noopener" class="link">$2</a>');
-  // plain url
-  safe = safe.replace(/(^|[^"'])(https?:\/\/[^\s<"')]+)/g, '$1<a href="$2" target="_blank" rel="noopener" class="link">$2</a>');
+  // plain url & YouTube embed
+  safe = safe.replace(/(^|[^"'])(https?:\/\/[^\s<"')]+)/g, (match, prefix, url) => {
+    const ytMatch = url.match(/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+    if (ytMatch && ytMatch[1]) {
+      return `${prefix}<iframe class="youtube-embed" src="https://www.youtube.com/embed/${ytMatch[1]}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+    }
+    return `${prefix}<a href="${url}" target="_blank" rel="noopener" class="link">${url}</a>`;
+  });
   return safe;
 }
 
@@ -936,6 +1132,7 @@ function loadSession() {
       name: localStorage.getItem('name'),
       role: localStorage.getItem('role'),
       color: localStorage.getItem('color'),
+      icon: localStorage.getItem('icon') || '',
       isAdmin: localStorage.getItem('isAdmin') === 'true',
       isSuperAdmin: localStorage.getItem('isSuperAdmin') === 'true'
     };
@@ -948,6 +1145,7 @@ function saveSession(user) {
   localStorage.setItem('name', user.name);
   localStorage.setItem('role', user.role);
   localStorage.setItem('color', user.color);
+  localStorage.setItem('icon', user.icon || '');
   localStorage.setItem('isAdmin', user.isAdmin ? 'true' : 'false');
   localStorage.setItem('isSuperAdmin', user.isSuperAdmin ? 'true' : 'false');
 }
@@ -957,6 +1155,7 @@ function clearSession() {
   localStorage.removeItem('name');
   localStorage.removeItem('role');
   localStorage.removeItem('color');
+  localStorage.removeItem('icon');
   localStorage.removeItem('isAdmin');
   localStorage.removeItem('isSuperAdmin');
   currentUser = null;
@@ -971,14 +1170,15 @@ function updateHeaderUI(skipRender = false) {
   if (currentUser) {
     loginBtn.style.display = 'none';
     userInfoEl.classList.add('show');
-    userNameEl.textContent = currentUser.name;
+    const iconHtml = currentUser.icon ? `<img src="${currentUser.icon}" class="author-badge" alt="شعار">` : '';
+    userNameEl.innerHTML = sanitizeText(currentUser.name) + iconHtml;
     userNameEl.style.color = currentUser.color;
     userRoleEl.textContent = `(${currentUser.role})`;
     document.getElementById('btn-notif').style.display = 'flex';
   } else {
     loginBtn.style.display = 'flex';
     userInfoEl.classList.remove('show');
-    userNameEl.textContent = '—';
+    userNameEl.innerHTML = '—';
     userNameEl.style.color = '';
     userRoleEl.textContent = '—';
   }
@@ -990,14 +1190,15 @@ function doLogin() {
   const code = document.getElementById('login-code').value.trim();
   if (!code) { showToast('⚠️','خطأ','أدخل الرمز أولاً'); return; }
   
-  const admin = ADMINS.find(a => a.code === code);
-  if (admin) {
+  const user = ADMINS.find(a => a.code === code);
+  if (user) {
     currentUser = {
-      name: admin.name,
-      role: admin.role,
-      color: admin.color,
-      isAdmin: true,
-      isSuperAdmin: !!admin.superAdmin
+      name: user.name,
+      role: user.role,
+      color: user.color,
+      icon: user.icon || '',
+      isAdmin: !!user.isAdmin,
+      isSuperAdmin: !!user.superAdmin
     };
   } else {
     // Unknown code = student viewer
@@ -1005,6 +1206,7 @@ function doLogin() {
       name: 'زائر',
       role: 'طالب',
       color: '#a0a0b0',
+      icon: '',
       isAdmin: false,
       isSuperAdmin: false
     };
@@ -1014,7 +1216,7 @@ function doLogin() {
   updateHeaderUI();
   closeModal('login-modal');
   document.getElementById('login-code').value = '';
-  if (admin) showToast('✅','مرحباً',`${currentUser.name} (${currentUser.role})`);
+  if (user) showToast('✅','مرحباً',`${currentUser.name} (${currentUser.role})`);
   requestNotifPermission();
 }
 
@@ -1106,7 +1308,7 @@ function renderDays(anim = 'fade') {
         <div>
           <div class="day-name">${day.name}</div>
           <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:4px">
-            <span class="views-badge" id="views-${day.id}">👁 <span>0</span></span>
+            <span class="views-badge" id="views-${day.id}" onclick="openViewersModal(event, '${day.id}')">👁 <span>0</span></span>
           </div>
         </div>
       </div>
@@ -1155,6 +1357,7 @@ function subscribeToData(dayIds) {
             badge.classList.add('show');
             showToastNotif({ id: postId, text: `تم نشر ${data.type} - ${data.subject}`, dayId: data.dayId });
             sendBrowserNotif({ ...data, id: postId });
+            playNotifSound();
           }
         }
 
@@ -1184,7 +1387,12 @@ function subscribeToData(dayIds) {
     // ترتيب البيانات محلياً لتجنب الحاجة لفهرس (Index) معقد في فايربيس
     const allFetchedPosts = [];
     snap.forEach(d => allFetchedPosts.push({ ...d.data(), id: d.id }));
-    allFetchedPosts.sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+    
+    allFetchedPosts.sort((a, b) => {
+      const tA = a.createdAt?.toMillis?.() || a.createdAt?.getTime?.() || Number(a.createdAt) || 0;
+      const tB = b.createdAt?.toMillis?.() || b.createdAt?.getTime?.() || Number(b.createdAt) || 0;
+      return tA - tB;
+    });
 
     allFetchedPosts.forEach(data => {
       if (data.dayId && postsByDay[data.dayId] !== undefined) {
@@ -1193,7 +1401,11 @@ function subscribeToData(dayIds) {
     });
 
     currentPosts = postsByDay;
-    dayIds.forEach(id => renderPostsForDay(id, postsByDay[id] || []));
+    dayIds.forEach(id => {
+      const fPosts = postsByDay[id] || [];
+      const oPosts = localOfflinePosts.filter(p => p.dayId === id).map(p => ({...p, isOffline: true}));
+      renderPostsForDay(id, [...fPosts, ...oPosts]);
+    });
   });
 
   // Subscribe to views
@@ -1201,7 +1413,19 @@ function subscribeToData(dayIds) {
     const viewsRef = doc(db, 'views', dayId);
     const unsub = onSnapshot(viewsRef, (snap) => {
       const el = document.querySelector(`#views-${dayId} span`);
-      if (el) el.textContent = snap.exists() ? (snap.data().count || 0) : 0;
+      const badge = document.getElementById(`views-${dayId}`);
+      if (el && badge) {
+        if (snap.exists()) {
+          const data = snap.data();
+          const viewers = data.viewers || {};
+          const vCount = Object.keys(viewers).length;
+          el.textContent = vCount > 0 ? vCount : (data.count || 0);
+          badge.dataset.viewers = JSON.stringify(viewers);
+        } else {
+          el.textContent = 0;
+          badge.dataset.viewers = '{}';
+        }
+      }
     });
     unsubViewsList.push(unsub);
   });
@@ -1250,18 +1474,21 @@ function renderPostsForDay(dayId, posts) {
 
     const mediaHTML = buildMediaHTML(post);
     const noteHTML = post.note ? `<div class="post-note">${formatNote(post.note)}</div>` : '';
+    const postIcon = post.authorIcon ? post.authorIcon : (post.author === 'حيدر محمد عبد الرحيم علي' ? 'صور/حيدر.png' : '');
+    const authorIconHTML = postIcon ? `<img src="${postIcon}" class="author-badge" alt="شعار">` : '';
     const adminActions = currentUser?.isAdmin ? `
       <div class="post-actions">
-        <button class="btn-edit" onclick="openEditModal('${post.id}')">✏️ تعديل</button>
-        <button class="btn-delete" onclick="deletePost('${post.id}', ${JSON.stringify(post.mediaUrls || []).replace(/"/g,'&quot;')})">🗑️ حذف</button>
+        ${!post.isOffline ? `<button class="btn-edit" onclick="openEditModal('${post.id}')">✏️ تعديل</button>` : ''}
+        <button class="btn-delete" onclick="${post.isOffline ? `deleteOfflinePostHandler(${post.id})` : `deletePost('${post.id}', ${JSON.stringify(post.mediaUrls || []).replace(/"/g,'&quot;')})`}">🗑️ حذف</button>
       </div>` : '';
 
     item.innerHTML = `
       <span class="post-type-badge" data-type="${sanitizeText(post.type || '')}">${sanitizeText(post.type || '')}</span>
+      ${post.isOffline ? '<span class="offline-badge" title="بانتظار توفر الإنترنت للرفع">⏳ قيد الانتظار</span>' : ''}
       <div class="post-subject">${sanitizeText(post.subject || '')}</div>
       ${noteHTML}
       ${mediaHTML}
-      <div class="post-author">بواسطة: <span style="color:${post.authorColor || '#aaa'}">${sanitizeText(post.author || '')}</span></div>
+      <div class="post-author">بواسطة: <span style="color:${post.authorColor || '#aaa'}">${sanitizeText(post.author || '')}${authorIconHTML}</span></div>
       ${adminActions}
     `;
     container.appendChild(item);
@@ -1269,13 +1496,36 @@ function renderPostsForDay(dayId, posts) {
 }
 
 function buildMediaHTML(post) {
+  // عرض معاينة للصور في المنشورات المخزنة محلياً (بدون نت)
+  if (post.isOffline && post.files && post.files.length > 0) {
+    let html = '<div class="post-media">';
+    const imgUrls = post.files.filter(f => f.type && f.type.startsWith('image/')).map(f => URL.createObjectURL(f));
+    let imgIndex = 0;
+    post.files.forEach(file => {
+      if (file.type && file.type.startsWith('image/')) {
+        const url = imgUrls[imgIndex];
+        const safeUrls = JSON.stringify(imgUrls).replace(/"/g, '&quot;');
+        html += `<img class="media-thumb" src="${url}" loading="lazy" onclick="openLightbox(${safeUrls}, ${imgIndex})" alt="صورة">`;
+        imgIndex++;
+      } else {
+        html += `<span class="media-file-link" style="cursor:default">📎 ${sanitizeText(file.name || 'ملف')}</span>`;
+      }
+    });
+    html += '</div>';
+    return html;
+  }
+
   const urls = post.mediaUrls || [];
   if (!urls.length) return '';
   let html = '<div class="post-media">';
+  const imgUrls = urls.filter(u => u.type === 'image').map(u => u.url);
+  let imgIndex = 0;
   urls.forEach(item => {
     if (!item?.url) return;
     if (item.type === 'image') {
-      html += `<img class="media-thumb" src="${item.url}" loading="lazy" onclick="openLightbox('${item.url}')" alt="صورة">`;
+      const safeUrls = JSON.stringify(imgUrls).replace(/"/g, '&quot;');
+      html += `<img class="media-thumb" src="${item.url}" loading="lazy" onclick="openLightbox(${safeUrls}, ${imgIndex})" alt="صورة">`;
+      imgIndex++;
     } else if (item.type === 'video') {
       html += `<video class="media-thumb" src="${item.url}" controls preload="none" style="background:#000"></video>`;
     } else {
@@ -1309,14 +1559,52 @@ window.toggleDay = function(dayId) {
 };
 
 async function incrementView(dayId) {
+  if (!currentUser || currentUser.name === 'زائر') return; // تسجيل دخول المسجلين فقط
   const ref = doc(db, 'views', dayId);
   const snap = await getDoc(ref);
+  const now = Date.now();
   if (snap.exists()) {
-    await updateDoc(ref, { count: increment(1) });
+    const data = snap.data();
+    const viewers = data.viewers || {};
+    viewers[currentUser.name] = now; // إضافة أو تحديث توقيت المشاهدة
+    await updateDoc(ref, { viewers });
   } else {
-    await setDoc(ref, { count: 1, dayId });
+    await setDoc(ref, { viewers: { [currentUser.name]: now }, dayId });
   }
 }
+
+window.openViewersModal = function(e, dayId) {
+  e.stopPropagation(); // منع فتح تفاصيل اليوم عند الضغط على زر العين
+  if (!currentUser?.isAdmin) {
+    toggleDay(dayId); // فتح بطاقة اليوم للطلاب العاديين
+    return;
+  }
+  const badge = document.getElementById(`views-${dayId}`);
+  if (!badge) return;
+  
+  const viewersStr = badge.dataset.viewers || '{}';
+  const viewers = JSON.parse(viewersStr);
+  const listEl = document.getElementById('viewers-list-content');
+  
+  listEl.innerHTML = '';
+  const entries = Object.entries(viewers);
+  
+  if (entries.length === 0) {
+    listEl.innerHTML = '<div class="day-empty">لا توجد مشاهدات مسجلة بالأسماء</div>';
+  } else {
+    entries.sort((a, b) => b[1] - a[1]); // ترتيب من الأحدث للأقدم
+    entries.forEach(([name, time]) => {
+      const date = new Date(time);
+      const timeStr = date.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute:'2-digit' }) + ' - ' + date.toLocaleDateString('ar-IQ', { month:'short', day:'numeric' });
+      const item = document.createElement('div');
+      item.className = 'notif-item';
+      item.style.display = 'flex'; item.style.justifyContent = 'space-between'; item.style.alignItems = 'center';
+      item.innerHTML = `<span style="font-weight:bold">${sanitizeText(name)}</span><span style="color:var(--text-secondary);font-size:11px">${timeStr}</span>`;
+      listEl.appendChild(item);
+    });
+  }
+  openModal('viewers-modal');
+};
 
 // ── DRAFT SYSTEM ──
 function saveDraft() {
@@ -1362,6 +1650,7 @@ window.openPublishModal = function(dayId) {
   document.getElementById('subject-custom-wrap').classList.add('hidden');
   document.getElementById('prev-images').innerHTML = '';
   pendingFiles = { images:[] };
+  editingMediaUrls = [];
   clearUploadStatus();
   loadDraft();
   openModal('publish-modal');
@@ -1377,11 +1666,12 @@ window.openEditModal = function(postId) {
   });
   if (!post) return;
 
+  editingMediaUrls = post.mediaUrls || [];
   document.getElementById('pub-day-id').value = post.dayId;
   document.getElementById('pub-edit-id').value = postId;
   document.getElementById('publish-modal-title').textContent = '✏️ تعديل منشور';
   document.getElementById('btn-do-publish').textContent = '💾 حفظ';
-  document.getElementById('pub-type').value = ['تقرير','كويز','ميد','فاينل','واجب','تحضير','آخر'].includes(post.type) ? post.type : 'آخر';
+  document.getElementById('pub-type').value = ['تقرير','كويز','ميد','فاينل','امتحان','واجب','تحضير','آخر'].includes(post.type) ? post.type : 'آخر';
   if (document.getElementById('pub-type').value === 'آخر') {
     document.getElementById('type-custom-wrap').classList.remove('hidden');
     document.getElementById('pub-type-custom').value = post.type;
@@ -1398,6 +1688,138 @@ window.openEditModal = function(postId) {
   openModal('publish-modal');
 };
 
+// ── OFFLINE QUEUE (IndexedDB) ──
+function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('AlfaClassOfflineDB', 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore('offlinePosts', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function saveOfflinePost(postData) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('offlinePosts', 'readwrite');
+    tx.objectStore('offlinePosts').add(postData);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+async function getOfflinePosts() {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('offlinePosts', 'readonly');
+    const req = tx.objectStore('offlinePosts').getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function deleteOfflinePost(id) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('offlinePosts', 'readwrite');
+    tx.objectStore('offlinePosts').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+async function refreshOfflinePosts() {
+  try {
+    localOfflinePosts = await getOfflinePosts();
+    const dayIds = getWeekDays(weekOffset).map(d=>d.id);
+    dayIds.forEach(id => {
+      const fPosts = currentPosts[id] || [];
+      const oPosts = localOfflinePosts.filter(p => p.dayId === id).map(p => ({...p, isOffline: true}));
+      renderPostsForDay(id, [...fPosts, ...oPosts]);
+    });
+  } catch(e) { console.error('Failed to load offline posts', e); }
+}
+
+window.deleteOfflinePostHandler = async function(id) {
+  if (!confirm('هل تريد حذف هذا المنشور المعلق؟')) return;
+  await deleteOfflinePost(id);
+  refreshOfflinePosts();
+  showToast('🗑️', 'حذف', 'تم حذف المنشور المعلق');
+};
+
+async function processPublish(data, isBackgroundSync = false) {
+  const { type, subject, note, dayId, editId, files, author, authorColor, authorIcon, createdAt } = data;
+  
+  const mediaUrls = [...(data.existingMediaUrls || [])];
+  if (files && files.length > 0) {
+    if (!isBackgroundSync) document.getElementById('upload-progress-bar').classList.add('show');
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!isBackgroundSync) setUploadStatus(`⬆️ جارٍ رفع: ${file.name}`);
+      const url = await uploadToCloudinary(file);
+      mediaUrls.push({ url, type: 'image', name: file.name, publicId: extractPublicId(url) });
+      if (!isBackgroundSync) {
+        const pct = Math.round(((i+1)/files.length)*100);
+        document.getElementById('upload-progress-fill').style.width = pct + '%';
+      }
+    }
+    if (!isBackgroundSync) {
+      document.getElementById('upload-progress-bar').classList.remove('show');
+      document.getElementById('upload-progress-fill').style.width = '0';
+    }
+  }
+
+  const postData = {
+    type, subject, note, dayId,
+    mediaUrls,
+    author, authorColor, authorIcon,
+    createdAt: new Date(createdAt)
+  };
+
+  if (editId) {
+    await updateDoc(doc(db, 'posts', editId), postData);
+    if (!isBackgroundSync) showToast('✅','تعديل','تم تعديل المنشور بنجاح');
+  } else {
+    await addDoc(collection(db, 'posts'), postData);
+    if (!isBackgroundSync) {
+      showToast('✅','نشر','تم نشر التحضير بنجاح');
+      clearDraft();
+    }
+  }
+}
+
+async function syncOfflinePosts() {
+  const offlinePosts = await getOfflinePosts();
+  if (offlinePosts.length === 0) return;
+
+  showToast('🔄', 'مزامنة', 'جارٍ نشر المنشورات المحفوظة أثناء انقطاع الإنترنت...');
+  let successCount = 0;
+  
+  for (const post of offlinePosts) {
+    try {
+      await processPublish(post, true);
+      await deleteOfflinePost(post.id);
+      showToast('✅', 'نشر تلقائي', `تم نشر: ${post.type} - ${post.subject}`);
+      successCount++;
+    } catch (err) {
+      console.error('Failed to sync offline post', err);
+      showToast('❌', 'خطأ مزامنة', `فشل نشر: ${post.type}`);
+    }
+  }
+  
+  if (successCount > 0) {
+    playSyncSound();
+  }
+  refreshOfflinePosts();
+}
+
+window.addEventListener('online', syncOfflinePosts);
+if (navigator.onLine) {
+  setTimeout(syncOfflinePosts, 3000); // محاولة المزامنة عند فتح التطبيق
+}
+
 document.getElementById('btn-do-publish').addEventListener('click', async () => {
   const btn = document.getElementById('btn-do-publish');
   const dayId = document.getElementById('pub-day-id').value;
@@ -1411,46 +1833,32 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 
   if (!type || !subject) { showToast('⚠️','خطأ','أكمل الحقول المطلوبة'); return; }
 
+  // تجهيز البيانات
+  const allFiles = [...pendingFiles.images];
+  const dataPayload = {
+    type, subject, note, dayId, editId, files: allFiles,
+    existingMediaUrls: editingMediaUrls,
+    author: currentUser.name,
+    authorColor: currentUser.color,
+    authorIcon: currentUser.icon || '',
+    createdAt: Date.now()
+  };
+
+  // إذا لم يكن هناك إنترنت، نحفظ محلياً ونغلق النافذة
+  if (!navigator.onLine) {
+    await saveOfflinePost(dataPayload);
+    showToast('📡', 'وضع عدم الاتصال', 'تم حفظ المنشور وسيتم نشره تلقائياً عند عودة الإنترنت.');
+    closeModal('publish-modal');
+    clearDraft();
+    refreshOfflinePosts();
+    return;
+  }
+
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
 
   try {
-    // Upload files
-    const allFiles = [
-      ...pendingFiles.images.map(f => ({file:f, type:'image'}))
-    ];
-    const mediaUrls = [];
-
-    if (allFiles.length > 0) {
-      document.getElementById('upload-progress-bar').classList.add('show');
-      for (let i = 0; i < allFiles.length; i++) {
-        const {file, type: ftype} = allFiles[i];
-        setUploadStatus(`⬆️ جارٍ رفع: ${file.name}`);
-        const url = await uploadToCloudinary(file);
-        mediaUrls.push({ url, type: ftype, name: file.name, publicId: extractPublicId(url) });
-        const pct = Math.round(((i+1)/allFiles.length)*100);
-        document.getElementById('upload-progress-fill').style.width = pct + '%';
-      }
-      document.getElementById('upload-progress-bar').classList.remove('show');
-      document.getElementById('upload-progress-fill').style.width = '0';
-    }
-
-    const postData = {
-      type, subject, note, dayId,
-      mediaUrls,
-      author: currentUser.name,
-      authorColor: currentUser.color,
-      createdAt: new Date()
-    };
-
-    if (editId) {
-      await updateDoc(doc(db, 'posts', editId), postData);
-      showToast('✅','تعديل','تم تعديل المنشور بنجاح');
-    } else {
-      await addDoc(collection(db, 'posts'), postData);
-      showToast('✅','نشر','تم نشر التحضير بنجاح');
-      clearDraft();
-    }
+    await processPublish(dataPayload, false);
     closeModal('publish-modal');
   } catch (e) {
     console.error(e);
@@ -1567,6 +1975,16 @@ function clearUploadStatus() {
   document.getElementById('upload-status-list').innerHTML = '';
   document.getElementById('upload-progress-bar').classList.remove('show');
   document.getElementById('upload-progress-fill').style.width = '0';
+}
+
+function playNotifSound() {
+  notifSound.currentTime = 0;
+  notifSound.play().catch(e => console.warn('منع المتصفح تشغيل الصوت تلقائياً بسبب سياسة التفاعل'));
+}
+
+function playSyncSound() {
+  syncSound.currentTime = 0;
+  syncSound.play().catch(e => console.warn('منع المتصفح تشغيل الصوت تلقائياً بسبب سياسة التفاعل'));
 }
 
 // ── NOTIFICATIONS ──
@@ -1709,17 +2127,114 @@ document.getElementById('btn-do-login').addEventListener('click', doLogin);
 document.getElementById('login-code').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
 
 // ── LIGHTBOX ──
-window.openLightbox = function(url) {
-  document.getElementById('lightbox-img').src = url;
+let lbUrls = [];
+let lbIndex = 0;
+
+window.openLightbox = function(urls, index) {
+  lbUrls = Array.isArray(urls) ? urls : [urls];
+  lbIndex = index || 0;
+  updateLightboxUI();
   document.getElementById('lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
   document.documentElement.style.overflow = 'hidden';
 };
+
+function updateLightboxUI() {
+  const url = lbUrls[lbIndex];
+  const imgEl = document.getElementById('lightbox-img');
+  imgEl.classList.remove('lb-anim');
+  void imgEl.offsetWidth; // إجبار المتصفح على إعادة رسم العنصر لتشغيل التأثير مجدداً
+  imgEl.src = url;
+  imgEl.classList.add('lb-anim');
+  document.getElementById('lightbox-counter').textContent = `${lbIndex + 1} / ${lbUrls.length}`;
+  
+  let dlUrl = url;
+  if (dlUrl.includes('/upload/')) {
+    dlUrl = dlUrl.replace('/upload/', '/upload/fl_attachment/'); // فرض التحميل المباشر لروابط كلاوديناري
+  }
+  document.getElementById('lightbox-download').href = dlUrl;
+
+  if (typeof resetLightboxZoom === 'function') resetLightboxZoom();
+}
+
+window.nextLightboxImage = function(e) {
+  if(e) e.stopPropagation();
+  if(lbUrls.length <= 1) return;
+  lbIndex = (lbIndex + 1) % lbUrls.length;
+  updateLightboxUI();
+};
+
+window.prevLightboxImage = function(e) {
+  if(e) e.stopPropagation();
+  if(lbUrls.length <= 1) return;
+  lbIndex = (lbIndex - 1 + lbUrls.length) % lbUrls.length;
+  updateLightboxUI();
+};
+
 window.closeLightbox = function() {
   document.getElementById('lightbox').classList.remove('open');
   document.body.style.overflow = '';
   document.documentElement.style.overflow = '';
+  resetLightboxZoom();
 };
+
+// ── LIGHTBOX PINCH TO ZOOM ──
+let lbScale = 1, lbPointX = 0, lbPointY = 0, lbStartDistance = 0, lbStartScale = 1, lbStartX = 0, lbStartY = 0;
+const lbImgEl = document.getElementById('lightbox-img');
+
+window.resetLightboxZoom = function() {
+  lbScale = 1; lbPointX = 0; lbPointY = 0;
+  if (lbImgEl) {
+    lbImgEl.style.transition = 'transform 0.2s ease';
+    lbImgEl.style.transform = `translate(0px, 0px) scale(1)`;
+  }
+};
+
+lbImgEl.addEventListener('touchstart', (e) => {
+  lbImgEl.style.transition = 'none';
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    lbStartDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+    lbStartScale = lbScale;
+  } else if (e.touches.length === 1 && lbScale > 1) {
+    e.preventDefault();
+    lbStartX = e.touches[0].pageX - lbPointX;
+    lbStartY = e.touches[0].pageY - lbPointY;
+  }
+}, { passive: false });
+
+lbImgEl.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const currentDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+    lbScale = Math.max(1, Math.min(lbStartScale * (currentDistance / lbStartDistance), 5));
+    lbImgEl.style.transform = `translate(${lbPointX}px, ${lbPointY}px) scale(${lbScale})`;
+  } else if (e.touches.length === 1 && lbScale > 1) {
+    e.preventDefault();
+    lbPointX = e.touches[0].pageX - lbStartX;
+    lbPointY = e.touches[0].pageY - lbStartY;
+    lbImgEl.style.transform = `translate(${lbPointX}px, ${lbPointY}px) scale(${lbScale})`;
+  }
+}, { passive: false });
+
+let lbLastTap = 0;
+lbImgEl.addEventListener('touchend', (e) => {
+  const currentTime = new Date().getTime();
+  const tapLength = currentTime - lbLastTap;
+  if (tapLength < 300 && tapLength > 0) {
+    e.preventDefault(); // منع المتصفح من التقريب الافتراضي المزدوج
+    if (lbScale > 1) {
+      resetLightboxZoom();
+    } else {
+      lbScale = 2.5; // نسبة التكبير عند النقر المزدوج
+      lbImgEl.style.transition = 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+      lbImgEl.style.transform = `translate(0px, 0px) scale(${lbScale})`;
+    }
+  } else if (lbScale <= 1) {
+    resetLightboxZoom();
+  }
+  lbLastTap = currentTime;
+}, { passive: false });
 
 // ── HORIZONTAL SWIPE NAVIGATION ──
 let touchStartX = 0;
@@ -1734,6 +2249,16 @@ document.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].screenX - touchStartX;
   const dy = e.changedTouches[0].screenY - touchStartY;
   
+  // إذا كان عارض الصور مفتوحاً، استخدم السحب للتبديل بين الصور فقط
+  if (document.getElementById('lightbox').classList.contains('open')) {
+    if (typeof lbScale !== 'undefined' && lbScale > 1) return; // منع التبديل إذا كانت الصورة مكبرة
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 0) prevLightboxImage(); // السحب لليمين (الصورة السابقة في العربية)
+      else nextLightboxImage(); // السحب لليسار (الصورة التالية)
+    }
+    return;
+  }
+
   if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
     if (dx > 0) { weekOffset++; renderDays('next'); }
     else { if (weekOffset > 0) { weekOffset--; renderDays('prev'); } }
@@ -1764,10 +2289,83 @@ function init() {
   scheduleMidnightCleanup();
   autoDeleteExpiredPosts();
   requestNotifPermission();
+  refreshOfflinePosts();
 }
 
 init();
+
+// ── SERVICE WORKER REGISTRATION (PWA) ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('تم تسجيل Service Worker بنجاح', reg))
+      .catch(err => console.log('فشل تسجيل Service Worker', err));
+  });
+}
+
+// ── PWA INSTALLATION ──
+let deferredPrompt;
+const installBtn = document.getElementById('btn-install');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); // منع المتصفح من إظهار رسالته الافتراضية المزعجة
+  deferredPrompt = e; // حفظ الحدث لاستخدامه عند الضغط على الزر
+  installBtn.style.display = 'flex'; // إظهار زر التثبيت
+
+  // إظهار النافذة المنبثقة السفلية إذا لم يقم بإغلاقها مسبقاً
+  if (!localStorage.getItem('androidPromptDismissed')) {
+    setTimeout(() => {
+      const androidPrompt = document.getElementById('android-install-prompt');
+      if (androidPrompt) androidPrompt.classList.add('show');
+    }, 3500); // تظهر بعد 3.5 ثوانٍ من التحميل
+  }
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt(); // إظهار نافذة التثبيت الخاصة بالنظام
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    installBtn.style.display = 'none'; // إخفاء الزر بعد موافقة المستخدم
+  }
+  deferredPrompt = null;
+});
+
+document.getElementById('btn-prompt-install')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('android-install-prompt').classList.remove('show');
+    installBtn.style.display = 'none';
+  }
+  deferredPrompt = null;
+});
+
+document.getElementById('android-prompt-close')?.addEventListener('click', () => {
+  document.getElementById('android-install-prompt').classList.remove('show');
+  localStorage.setItem('androidPromptDismissed', 'true');
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none'; // إخفاء الزر إذا تم التثبيت بنجاح بطريقة أخرى
+  document.getElementById('android-install-prompt')?.classList.remove('show');
+});
+
+// ── IOS INSTALL PROMPT ──
+const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+if (isIos && !isStandalone && !localStorage.getItem('iosPromptDismissed')) {
+  setTimeout(() => {
+    const iosPrompt = document.getElementById('ios-install-prompt');
+    if (iosPrompt) iosPrompt.classList.add('show');
+    document.getElementById('ios-prompt-close')?.addEventListener('click', () => {
+      if (iosPrompt) iosPrompt.classList.remove('show');
+      localStorage.setItem('iosPromptDismissed', 'true');
+    });
+  }, 3500); // إظهار بعد 3.5 ثوانٍ من التحميل
+}
 </script>
 </body>
-</html>
 </html>

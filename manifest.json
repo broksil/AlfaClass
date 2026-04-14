@@ -1,0 +1,21 @@
+{
+  "name": "ألفاكلاس",
+  "short_name": "ألفاكلاس",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#080818",
+  "theme_color": "#0a0a1a",
+  "description": "منصة ويب طلابية",
+  "icons": [
+    {
+      "src": "صور/ألفاكلاس.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "صور/ألفاكلاس.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
