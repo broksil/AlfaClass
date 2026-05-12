@@ -1421,12 +1421,21 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 });
 
 // ── WEEK NAVIGATION ──
-document.getElementById('btn-prev').addEventListener('click', () => { 
-  if (weekOffset > 0) { weekOffset--; renderDays('prev'); } 
+document.getElementById('btn-prev').addEventListener('click', () => {
+  if (weekOffset > 0) {
+    if (window.location.hash !== '#view') history.pushState(null, null, '#view');
+    weekOffset--; renderDays('prev');
+  }
 });
-document.getElementById('btn-next').addEventListener('click', () => { weekOffset++; renderDays('next'); });
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (window.location.hash !== '#view') history.pushState(null, null, '#view');
+  weekOffset++; renderDays('next');
+});
 document.getElementById('btn-today').addEventListener('click', () => { weekOffset = 0; renderDays('fade'); });
-document.getElementById('btn-next-week').addEventListener('click', () => { weekOffset = 1; renderDays('fade'); });
+document.getElementById('btn-next-week').addEventListener('click', () => {
+  if (window.location.hash !== '#view') history.pushState(null, null, '#view');
+  weekOffset = 1; renderDays('fade');
+});
 
 function renderDays(anim = 'fade') {
   if (weekOffset < 0) weekOffset = 0; // منع العودة للأسابيع السابقة
@@ -2095,6 +2104,7 @@ window.toggleDay = function(dayId) {
   // close all
   document.querySelectorAll('.day-detail.open').forEach(el => el.classList.remove('open'));
   if (!isOpen) {
+        if (window.location.hash !== '#view') history.pushState(null, null, '#view');
     detail.classList.add('open');
     openDayId = dayId;
     // increment view
@@ -2664,6 +2674,7 @@ function renderNotifPanel() {
 }
 
 function jumpToDay(dayId) {
+  if (window.location.hash !== '#view') history.pushState(null, null, '#view');
   let targetOffset = null;
   
   // البحث عن الأسبوع الذي يحتوي على هذا اليوم (نبحث في الأسبوع الحالي ولغاية 10 أسابيع قادمة)
@@ -2705,6 +2716,7 @@ document.getElementById('btn-notif').addEventListener('click', (e) => {
   const panel = document.getElementById('notif-panel');
   panel.classList.toggle('open');
   if (panel.classList.contains('open')) {
+        if (window.location.hash !== '#view') history.pushState(null, null, '#view');
     notifCount = 0;
     document.getElementById('notif-badge').classList.remove('show');
   }
@@ -2764,6 +2776,7 @@ window.showToast = function(icon, title, desc, onclick) {
 window.openModal = function(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
+  if (window.location.hash !== '#view') history.pushState(null, null, '#view');
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
   document.documentElement.style.overflow = 'hidden';
@@ -2803,6 +2816,7 @@ window.openLightbox = function(urls, index) {
   lbUrls = Array.isArray(urls) ? urls : [urls];
   lbIndex = index || 0;
   updateLightboxUI();
+  if (window.location.hash !== '#view') history.pushState(null, null, '#view');
   document.getElementById('lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
   document.documentElement.style.overflow = 'hidden';
@@ -2994,6 +3008,8 @@ window.toggleAlfachat = function() {
   const win = document.getElementById('alfachat-window');
   win.classList.toggle('open');
   if (win.classList.contains('open')) {
+    if (window.location.hash !== '#view') history.pushState(null, null, '#view');
+
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     
@@ -3484,6 +3500,33 @@ window.deleteChatMessage = async function(id) {
      showToast('❌', 'خطأ', 'فشل حذف الرسالة');
   }
 }
+
+// ── BACK BUTTON SUPPORT (PWA) ──
+window.addEventListener('popstate', () => {
+  if (window.location.hash !== '#view') {
+    document.querySelectorAll('.modal-overlay.open').forEach(el => {
+      if (typeof closeModal === 'function') closeModal(el.id);
+    });
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox && lightbox.classList.contains('open')) {
+      if (typeof closeLightbox === 'function') closeLightbox();
+    }
+    const chatWin = document.getElementById('alfachat-window');
+    if (chatWin && chatWin.classList.contains('open')) {
+      if (typeof toggleAlfachat === 'function') toggleAlfachat();
+    }
+        
+        document.querySelectorAll('.day-detail.open').forEach(el => el.classList.remove('open'));
+        if (typeof openDayId !== 'undefined') openDayId = null;
+        
+        if (typeof closeNotifPanel === 'function') closeNotifPanel();
+        
+        if (typeof weekOffset !== 'undefined' && weekOffset !== 0) {
+          weekOffset = 0;
+          if (typeof renderDays === 'function') renderDays('fade');
+        }
+  }
+});
 
 // ── INIT ──
 function init() {
