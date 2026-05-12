@@ -815,8 +815,25 @@
     border-top-left-radius: 4px;
   }
   .chat-sender { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
-  .chat-msg { padding: 10px 14px; border-radius: 18px; position: relative; font-size: 14px; line-height: 1.5; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.2s; }
+  .chat-msg { padding: 10px 14px; border-radius: 18px; position: relative; font-size: 14px; line-height: 1.5; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.2s; z-index: 1; }
   .chat-text { white-space: pre-wrap; word-break: break-word; }
+  .chat-swipe-icon {
+    position: absolute;
+    left: -5px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--text-primary);
+    opacity: 0;
+    transform: translateY(-50%) scale(0.5);
+    z-index: 0;
+    pointer-events: none;
+  }
   .chat-msg-wrap.mine .chat-msg { background: linear-gradient(135deg, var(--accent), #4f46e5); color: #fff; border-bottom-right-radius: 4px; border-bottom-left-radius: 18px; }
   .chat-msg-wrap.theirs .chat-msg { background: rgba(255,255,255,0.08); color: var(--text-primary); border-bottom-left-radius: 4px; border-bottom-right-radius: 18px; }
   
@@ -3119,37 +3136,25 @@ function subscribeToAlfachat() {
   alfachatUnsub = onSnapshot(q, (snap) => {
     let hasNewIncomingMessage = false;
     let latestNewMsg = null;
+    let needsFullRender = false;
+
     snap.docChanges().forEach(change => {
       if (change.type === 'added') {
+        needsFullRender = true;
         const msg = change.doc.data();
         const myName = currentUser ? currentUser.name : null;
         if (msg.senderName !== myName && (Date.now() - msg.createdAt < 10000)) {
           hasNewIncomingMessage = true;
           latestNewMsg = msg;
         }
+      } else if (change.type === 'removed') {
+        needsFullRender = true;
       }
     });
 
-    if (hasNewIncomingMessage && latestNewMsg) {
-      playChatSound();
-      const isChatOpen = document.getElementById('alfachat-window')?.classList.contains('open');
-      if (!isChatOpen) {
-        showToast('💬', `رسالة من ${latestNewMsg.senderName}`, latestNewMsg.text ? latestNewMsg.text : 'أرسل مرفقاً', toggleAlfachat);
-        const fab = document.getElementById('alfachat-fab');
-        if (fab && !fab.querySelector('.chat-badge')) {
-          fab.innerHTML += '<div class="chat-badge" style="position:absolute;top:0;right:0;width:14px;height:14px;background:#ef4444;border-radius:50%;border:2px solid var(--bg-primary);animation:pulseOpacity 1.5s infinite;"></div>';
-        }
-      }
-    }
-
-    chatMessagesEl.innerHTML = '';
-    if (snap.empty) {
-      chatMessagesEl.innerHTML = '<div class="text-center" style="color:var(--text-muted);font-size:12px;margin-top:20px;">لا توجد رسائل حديثة. كُن أول من يرسل! 👋</div>';
-      return;
-    }
-
     const messages = [];
     const unreadMsgIds = [];
+    
     snap.forEach(docSnap => {
       const msg = docSnap.data();
       msg.id = docSnap.id;
@@ -3172,44 +3177,71 @@ function subscribeToAlfachat() {
       }
     });
 
-    let lastDateString = null;
-
-    const fragment = document.createDocumentFragment();
-    messages.forEach((msg, index) => {
-        const prevMsg = messages[index - 1];
-        const nextMsg = messages[index + 1];
-
-        const msgDateString = new Date(msg.createdAt).toDateString();
-        
-        const isSameDayAsPrev = prevMsg && new Date(prevMsg.createdAt).toDateString() === msgDateString;
-        const isSameDayAsNext = nextMsg && new Date(nextMsg.createdAt).toDateString() === msgDateString;
-
-        const isContinuation = prevMsg && 
-                               prevMsg.senderName === msg.senderName &&
-                               (msg.createdAt - prevMsg.createdAt < 5 * 60 * 1000) &&
-                               isSameDayAsPrev;
-
-        const isLastInGroup = !nextMsg || 
-                              nextMsg.senderName !== msg.senderName ||
-                              (nextMsg.createdAt - msg.createdAt >= 5 * 60 * 1000) ||
-                              !isSameDayAsNext;
-
-        if (msgDateString !== lastDateString) {
-            const sepWrap = document.createElement('div');
-            sepWrap.className = 'chat-date-separator';
-            sepWrap.innerHTML = `<span>${formatChatDate(msg.createdAt)}</span>`;
-            fragment.appendChild(sepWrap);
-            lastDateString = msgDateString;
+    if (hasNewIncomingMessage && latestNewMsg) {
+      playChatSound();
+      const isChatOpen = document.getElementById('alfachat-window')?.classList.contains('open');
+      if (!isChatOpen) {
+        showToast('💬', `رسالة من ${latestNewMsg.senderName}`, latestNewMsg.text ? latestNewMsg.text : 'أرسل مرفقاً', toggleAlfachat);
+        const fab = document.getElementById('alfachat-fab');
+        if (fab && !fab.querySelector('.chat-badge')) {
+          fab.innerHTML += '<div class="chat-badge" style="position:absolute;top:0;right:0;width:14px;height:14px;background:#ef4444;border-radius:50%;border:2px solid var(--bg-primary);animation:pulseOpacity 1.5s infinite;"></div>';
         }
+      }
+    }
 
-        renderChatMessage(msg, fragment, isContinuation, isLastInGroup);
-    });
-    chatMessagesEl.appendChild(fragment);
+    if (needsFullRender) {
+      chatMessagesEl.innerHTML = '';
+      if (snap.empty) {
+        chatMessagesEl.innerHTML = '<div class="text-center" style="color:var(--text-muted);font-size:12px;margin-top:20px;">لا توجد رسائل حديثة. كُن أول من يرسل! 👋</div>';
+      } else {
+        let lastDateString = null;
+        const fragment = document.createDocumentFragment();
+        messages.forEach((msg, index) => {
+            const prevMsg = messages[index - 1];
+            const nextMsg = messages[index + 1];
+
+            const msgDateString = new Date(msg.createdAt).toDateString();
+            
+            const isSameDayAsPrev = prevMsg && new Date(prevMsg.createdAt).toDateString() === msgDateString;
+            const isSameDayAsNext = nextMsg && new Date(nextMsg.createdAt).toDateString() === msgDateString;
+
+            const isContinuation = prevMsg && 
+                                   prevMsg.senderName === msg.senderName &&
+                                   (msg.createdAt - prevMsg.createdAt < 5 * 60 * 1000) &&
+                                   isSameDayAsPrev;
+
+            const isLastInGroup = !nextMsg || 
+                                  nextMsg.senderName !== msg.senderName ||
+                                  (nextMsg.createdAt - msg.createdAt >= 5 * 60 * 1000) ||
+                                  !isSameDayAsNext;
+
+            if (msgDateString !== lastDateString) {
+                const sepWrap = document.createElement('div');
+                sepWrap.className = 'chat-date-separator';
+                sepWrap.innerHTML = `<span>${formatChatDate(msg.createdAt)}</span>`;
+                fragment.appendChild(sepWrap);
+                lastDateString = msgDateString;
+            }
+
+            renderChatMessage(msg, fragment, isContinuation, isLastInGroup);
+        });
+        chatMessagesEl.appendChild(fragment);
+      }
+    } else {
+      // تحديث الرسائل المعدّلة أو المقروءة فقط في الشاشة دون إعادة رسم المحادثة بالكامل
+      snap.docChanges().forEach(change => {
+        if (change.type === 'modified') {
+          updateMessageInDOM(change.doc.id, change.doc.data());
+        }
+      });
+    }
     
     // النزول لأسفل المحادثة تلقائياً عند استلام رسائل
     const isChatOpen = document.getElementById('alfachat-window')?.classList.contains('open');
     if (isChatOpen) {
-      setTimeout(() => { chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight; }, 100);
+      if (needsFullRender) {
+        setTimeout(() => { chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight; }, 100);
+      }
       unreadMsgIds.forEach(item => {
         updateDoc(doc(db, 'alfachats', item.id), {
           readBy: arrayUnion(item.readerName)
@@ -3262,6 +3294,40 @@ window.markChatMessagesAsRead = function() {
   }
 }
 
+window.updateMessageInDOM = function(id, data) {
+  const msgEl = document.getElementById(`chat-msg-${id}`);
+  if (!msgEl) return;
+  
+  if (data.edited) {
+     const textEl = msgEl.querySelector('.chat-text');
+     if (textEl) textEl.innerHTML = formatChatText(data.text);
+     const timeEl = msgEl.querySelector('.chat-time');
+     if (timeEl && !timeEl.innerHTML.includes('(معدلة)')) {
+        timeEl.innerHTML += '<span style="font-size:9px; opacity:0.6;"> (معدلة)</span>';
+     }
+  }
+  
+  const isMine = data.senderName === currentUser?.name;
+  if (isMine) {
+    const readers = data.readBy || [];
+    const statusEl = msgEl.querySelector('.chat-msg-status');
+    if (statusEl) {
+       const isRead = readers.length > 0;
+       statusEl.textContent = isRead ? '✓✓' : '✓';
+       if (isRead) {
+          statusEl.classList.add('read');
+          statusEl.style.cursor = 'pointer';
+          const readByJson = encodeURIComponent(JSON.stringify(readers));
+          statusEl.setAttribute('onclick', `showReadByModal(event, '${readByJson}')`);
+       } else {
+          statusEl.classList.remove('read');
+          statusEl.style.cursor = '';
+          statusEl.removeAttribute('onclick');
+       }
+    }
+  }
+};
+
 function renderChatMessage(msg, container, isContinuation = false, isLastInGroup = true) {
   const isMine = msg.senderName === currentUser?.name;
   
@@ -3270,6 +3336,12 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
   if (isContinuation) {
     wrap.classList.add('grouped');
   }
+  
+  // إضافة البيانات اللازمة لعملية السحب للرد (Swipe to reply)
+  wrap.dataset.id = msg.id;
+  wrap.dataset.sender = encodeURIComponent(msg.senderName || '');
+  wrap.dataset.text = encodeURIComponent(msg.text || 'صورة 🖼️');
+
   // إظهار وإخفاء خيارات الرسالة عند النقر عليها (مهم للموبايل) مع إغلاق القوائم الأخرى
   wrap.onclick = (e) => {
     e.stopPropagation();
@@ -3364,6 +3436,7 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
   const msgBubbleClass = isLastInGroup ? '' : 'not-last-in-group';
 
   wrap.innerHTML = `
+    <div class="chat-swipe-icon">↩️</div>
     <div class="chat-msg ${msgBubbleClass}" id="chat-msg-${msg.id}">
       ${senderHtml}
       ${replyHtml}
@@ -3585,6 +3658,107 @@ window.deleteChatMessage = async function(id) {
   }
 }
 
+// ── SWIPE TO REPLY LOGIC ──
+function initChatSwipeToReply() {
+  let chatSwipeStartX = 0;
+  let chatSwipeStartY = 0;
+  let chatSwipedElement = null;
+  let chatSwipedMsgNode = null;
+  let chatSwipeIcon = null;
+  let chatSwipeValid = false;
+  const chatContainer = document.getElementById('chat-messages');
+  if (!chatContainer) return;
+
+  chatContainer.addEventListener('touchstart', (e) => {
+    const wrap = e.target.closest('.chat-msg-wrap');
+    if (!wrap) return;
+    chatSwipedElement = wrap;
+    chatSwipedMsgNode = wrap.querySelector('.chat-msg');
+    chatSwipeIcon = wrap.querySelector('.chat-swipe-icon');
+    chatSwipeStartX = e.touches[0].clientX;
+    chatSwipeStartY = e.touches[0].clientY;
+    chatSwipeValid = true;
+    if (chatSwipedMsgNode) {
+      chatSwipedMsgNode.style.transition = 'none';
+    }
+    if (chatSwipeIcon && chatSwipedMsgNode) {
+      chatSwipeIcon.style.transition = 'none';
+      // محاذاة أيقونة الرد في منتصف فقاعة الرسالة عمودياً
+      const topPos = chatSwipedMsgNode.offsetTop + (chatSwipedMsgNode.offsetHeight / 2);
+      chatSwipeIcon.style.top = topPos + 'px';
+    }
+  }, {passive: true});
+
+  chatContainer.addEventListener('touchmove', (e) => {
+    if (!chatSwipeValid || !chatSwipedElement || !chatSwipedMsgNode) return;
+    const deltaX = e.touches[0].clientX - chatSwipeStartX;
+    const deltaY = e.touches[0].clientY - chatSwipeStartY;
+    if (Math.abs(deltaY) > 15 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      chatSwipeValid = false;
+      chatSwipedMsgNode.style.transform = 'translateX(0)';
+      if (chatSwipeIcon) {
+        chatSwipeIcon.style.opacity = '0';
+        chatSwipeIcon.style.transform = 'translateY(-50%) scale(0.5)';
+      }
+      return;
+    }
+    if (deltaX > 0 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      const pull = Math.min(deltaX * 0.4, 60); // تأثير السحب بوجود مقاومة ليكون سلساً
+      chatSwipedMsgNode.style.transform = `translateX(${pull}px)`;
+      
+      if (chatSwipeIcon) {
+        let progress = deltaX / 50; // مسافة 50 بكسل مطلوبة للتفعيل
+        if (progress > 1) progress = 1;
+        
+        chatSwipeIcon.style.opacity = progress;
+        const scale = 0.5 + (0.5 * progress);
+        
+        if (deltaX >= 50) {
+          chatSwipeIcon.style.transform = `translateY(-50%) scale(1.1)`;
+          chatSwipeIcon.style.background = 'var(--accent)';
+          chatSwipeIcon.style.color = '#fff';
+          // اهتزاز خفيف للموبايل عند الوصول للنقطة المطلوبة للرد
+          if (!chatSwipedElement.dataset.haptic) {
+            if (navigator.vibrate) navigator.vibrate(50);
+            chatSwipedElement.dataset.haptic = 'true';
+          }
+        } else {
+          chatSwipeIcon.style.transform = `translateY(-50%) scale(${scale})`;
+          chatSwipeIcon.style.background = 'rgba(255, 255, 255, 0.1)';
+          chatSwipeIcon.style.color = 'var(--text-primary)';
+          delete chatSwipedElement.dataset.haptic;
+        }
+      }
+    }
+  }, {passive: true});
+
+  chatContainer.addEventListener('touchend', (e) => {
+    if (!chatSwipedElement || !chatSwipedMsgNode) return;
+    const deltaX = e.changedTouches[0].clientX - chatSwipeStartX;
+    chatSwipedMsgNode.style.transition = 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    chatSwipedMsgNode.style.transform = 'translateX(0)';
+    
+    if (chatSwipeIcon) {
+      chatSwipeIcon.style.transition = 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      chatSwipeIcon.style.opacity = '0';
+      chatSwipeIcon.style.transform = 'translateY(-50%) scale(0.5)';
+      delete chatSwipedElement.dataset.haptic;
+    }
+
+    if (chatSwipeValid && deltaX >= 50) {
+      const id = chatSwipedElement.dataset.id;
+      const sender = decodeURIComponent(chatSwipedElement.dataset.sender);
+      const text = decodeURIComponent(chatSwipedElement.dataset.text);
+      if (currentUser) setChatReply(id, sender, text);
+      else showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول للرد على الرسائل');
+    }
+    chatSwipedElement = null;
+    chatSwipedMsgNode = null;
+    chatSwipeIcon = null;
+    chatSwipeValid = false;
+  });
+}
+
 // ── BACK BUTTON SUPPORT (PWA) ──
 window.addEventListener('popstate', () => {
   if (window.location.hash !== '#view') {
@@ -3639,6 +3813,7 @@ function init() {
   refreshOfflinePosts();
   
   subscribeToAlfachat();
+  initChatSwipeToReply();
 
   // التوجيه التلقائي في حال تم فتح التطبيق من الإشعار
   const hash = window.location.hash;
@@ -3679,7 +3854,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   deferredPrompt = e; // حفظ الحدث لاستخدامه عند الضغط على الزر
   installBtn.style.display = 'flex'; // إظهار زر التثبيت
 
-  // إظهار النافذة المنبثقة السفلية إذا لم يقم بإغلاقها مسبقاً
+  // إظهار النافذة المنبثقة السفلية إذا لم يقم بإغلاقها مسب��اً
   if (!localStorage.getItem('androidPromptDismissed')) {
     setTimeout(() => {
       const androidPrompt = document.getElementById('android-install-prompt');
