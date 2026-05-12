@@ -816,7 +816,7 @@
   }
   .chat-sender { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
   .chat-msg { padding: 10px 14px; border-radius: 18px; position: relative; font-size: 14px; line-height: 1.5; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.2s; }
-  .chat-text { white-space: pre-wrap; }
+  .chat-text { white-space: pre-wrap; word-break: break-word; }
   .chat-msg-wrap.mine .chat-msg { background: linear-gradient(135deg, var(--accent), #4f46e5); color: #fff; border-bottom-right-radius: 4px; border-bottom-left-radius: 18px; }
   .chat-msg-wrap.theirs .chat-msg { background: rgba(255,255,255,0.08); color: var(--text-primary); border-bottom-left-radius: 4px; border-bottom-right-radius: 18px; }
   
@@ -855,7 +855,7 @@
   .chat-input-row { display: flex; align-items: center; gap: 8px; }
   .chat-attach-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-secondary); transition: 0.2s; }
   .chat-attach-btn:active { transform: scale(0.8); }
-  .chat-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 20px; padding: 12px 16px; color: var(--text-primary); font-family: var(--font); outline: none; font-size: 14px; }
+  .chat-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 20px; padding: 12px 16px; color: var(--text-primary); font-family: var(--font); outline: none; font-size: 14px; resize: none; overflow: hidden; max-height: 120px; line-height: 1.5; }
   .chat-input:focus { border-color: var(--accent); background: rgba(255,255,255,0.09); }
   .chat-send-btn { background: linear-gradient(135deg, var(--accent), #4f46e5); border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 18px; box-shadow: 0 4px 15px var(--accent-glow); transition: 0.2s; }
   .chat-send-btn:active { transform: scale(0.9); }
@@ -1123,7 +1123,7 @@
     <div class="chat-input-row">
       <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()">📎</button>
       <input type="file" id="chat-file-input" hidden accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple onchange="handleChatImageUpload(this)">
-      <input type="text" id="chat-input" class="chat-input" placeholder="اكتب رسالتك هنا..." autocomplete="nope" oninput="handleChatTyping()" onkeypress="if(event.key==='Enter') sendChatMessage()">
+      <textarea id="chat-input" class="chat-input" placeholder="اكتب رسالتك هنا..." rows="1" autocomplete="nope" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="handleChatTyping(); autoResizeChatInput(this);" onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendChatMessage(); }"></textarea>
       <button class="chat-send-btn" onclick="sendChatMessage()">🚀</button>
     </div>
   </div>
@@ -3321,6 +3321,17 @@ window.scrollToChatMsg = function(id) {
    }
 }
 
+// دالة التمدد التلقائي للحقل
+window.autoResizeChatInput = function(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  if (el.scrollHeight > 120) {
+    el.style.overflowY = 'auto';
+  } else {
+    el.style.overflowY = 'hidden';
+  }
+};
+
 window.sendChatMessage = async function() {
   if (!currentUser) return;
   const inputEl = document.getElementById('chat-input');
@@ -3347,6 +3358,7 @@ window.sendChatMessage = async function() {
 
   // مسح الحقل وإلغاء السياق فوراً بمجرد بدء الإرسال (لتحسين سرعة الاستجابة)
   inputEl.value = '';
+  inputEl.style.height = 'auto';
   cancelChatContext();
 
   const progEl = document.getElementById('chat-upload-progress');
@@ -3390,6 +3402,7 @@ window.sendChatMessage = async function() {
     showToast('❌', 'خطأ', 'فشل إرسال الرسالة، تأكد من اتصالك بالإنترنت');
     // إعادة النص للحقل في حال فشل الإرسال
     inputEl.value = msgText;
+    autoResizeChatInput(inputEl);
     pendingChatFiles = filesToUpload;
     chatEditContext = editCtx;
     chatReplyContext = replyCtx;
@@ -3471,6 +3484,7 @@ window.setChatEdit = function(id, text) {
   document.getElementById('chat-input').value = text;
   setChatContext('edit', null, 'تعديل الرسالة');
   document.getElementById('chat-input').focus();
+  autoResizeChatInput(document.getElementById('chat-input'));
 }
 
 function setChatContext(type, name, text) {
@@ -3489,7 +3503,11 @@ window.cancelChatContext = function() {
   pendingChatFiles = [];
   document.getElementById('chat-context-banner').classList.remove('show');
   renderChatAttachmentPreview();
-  if (wasEditing) document.getElementById('chat-input').value = '';
+  if (wasEditing) {
+    const inputEl = document.getElementById('chat-input');
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+  }
 }
 
 window.deleteChatMessage = async function(id) {
@@ -3651,4 +3669,5 @@ if (isIos && !isStandalone && !localStorage.getItem('iosPromptDismissed')) {
 }
 </script>
 </body>
+</html>
 </html>
