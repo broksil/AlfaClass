@@ -110,7 +110,7 @@
     background: linear-gradient(90deg, var(--accent), var(--accent2));
     border-radius: 99px;
     box-shadow: 0 0 15px var(--accent-glow);
-    animation: loadBar 2s ease forwards;
+    animation: loadBar 1s ease forwards;
   }
   @keyframes loadBar { to { width: 100%; } }
 
@@ -1148,7 +1148,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
-  getFirestore, collection, onSnapshot, addDoc, query, orderBy,
+  getFirestore, collection, onSnapshot, addDoc, query, orderBy, limitToLast,
   updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
@@ -1551,6 +1551,7 @@ function renderDays(anim = 'fade') {
     return;
   }
 
+  const fragment = document.createDocumentFragment();
   days.forEach((day, idx) => {
     const card = document.createElement('div');
     card.className = `day-card anim-${anim}` + (day.isToday ? ' today-card' : '');
@@ -1580,8 +1581,9 @@ function renderDays(anim = 'fade') {
         ${currentUser?.isAdmin ? `<button class="btn-publish" onclick="openPublishModal('${day.id}')">+ نشر تحضير</button>` : ''}
       </div>
     `;
-    list.appendChild(card);
+    fragment.appendChild(card);
   });
+  list.appendChild(fragment);
 
   // Subscribe to posts for visible days
   subscribeToData(days.map(d=>d.id));
@@ -1740,6 +1742,7 @@ function renderPostsForDay(dayId, posts) {
   }
 
   container.innerHTML = '';
+  const fragment = document.createDocumentFragment();
   posts.forEach(post => {
     const item = document.createElement('div');
     item.className = 'post-item';
@@ -1770,8 +1773,9 @@ function renderPostsForDay(dayId, posts) {
       <div class="post-author">بواسطة: <span style="color:${post.authorColor || '#aaa'}">${sanitizeText(post.author || '')}${authorIconHTML}</span></div>
       ${actionsHtml}
     `;
-    container.appendChild(item);
+    fragment.appendChild(item);
   });
+  container.appendChild(fragment);
 }
 
 function buildMediaHTML(post) {
@@ -3108,7 +3112,8 @@ function subscribeToAlfachat() {
   const q = query(
     collection(db, 'alfachats'),
     where('createdAt', '>=', sevenDaysAgo),
-    orderBy('createdAt', 'asc')
+    orderBy('createdAt', 'asc'),
+    limitToLast(150)
   );
 
   alfachatUnsub = onSnapshot(q, (snap) => {
@@ -3169,6 +3174,7 @@ function subscribeToAlfachat() {
 
     let lastDateString = null;
 
+    const fragment = document.createDocumentFragment();
     messages.forEach((msg, index) => {
         const prevMsg = messages[index - 1];
         const nextMsg = messages[index + 1];
@@ -3192,12 +3198,13 @@ function subscribeToAlfachat() {
             const sepWrap = document.createElement('div');
             sepWrap.className = 'chat-date-separator';
             sepWrap.innerHTML = `<span>${formatChatDate(msg.createdAt)}</span>`;
-            chatMessagesEl.appendChild(sepWrap);
+            fragment.appendChild(sepWrap);
             lastDateString = msgDateString;
         }
 
-        renderChatMessage(msg, chatMessagesEl, isContinuation, isLastInGroup);
+        renderChatMessage(msg, fragment, isContinuation, isLastInGroup);
     });
+    chatMessagesEl.appendChild(fragment);
     
     // النزول لأسفل المحادثة تلقائياً عند استلام رسائل
     const isChatOpen = document.getElementById('alfachat-window')?.classList.contains('open');
@@ -3613,7 +3620,7 @@ function init() {
     document.getElementById('app').style.display = 'flex';
     document.getElementById('app').style.flexDirection = 'column';
     setTimeout(() => document.getElementById('loading-screen').remove(), 700);
-  }, 2200);
+  }, 1200);
 
   loadSession();
   
