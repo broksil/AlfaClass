@@ -3,7 +3,8 @@ const DYNAMIC_CACHE = 'alfaclass-images-v1';
 const urlsToCache = [
   './',
   './index.html',
-  './صور/ألفاكلاس.png'
+  './صور/ألفاكلاس.png',
+  './صور/غلاف موقع.png'
 ];
 
 // تنصيب Service Worker وتخزين الملفات الأساسية
@@ -13,6 +14,22 @@ self.addEventListener('install', event => {
       .then(cache => {
         return cache.addAll(urlsToCache);
       })
+  );
+});
+
+// تنظيف الملفات القديمة من الكاش عند تحديث Service Worker
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME, DYNAMIC_CACHE];
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (!cacheWhitelist.includes(cacheName)) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 });
 
@@ -41,10 +58,19 @@ self.addEventListener('fetch', event => {
       })
     );
   } else {
-    // التعامل مع باقي الملفات الأساسية
+    // التعامل مع باقي الملفات الأساسية باستراتيجية (Network First) لضمان حصول المستخدم على التحديثات
     event.respondWith(
-      caches.match(req).then(response => {
-        return response || fetch(req).catch(() => new Response('Offline', { status: 503 }));
+      fetch(req).then(fetchRes => {
+        // حفظ نسخة في الكاش فقط إذا كان الطلب من نوع GET لمنع أخطاء الرفع
+        if (req.method === 'GET') {
+          const resClone = fetchRes.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
+        }
+        return fetchRes;
+      }).catch(() => {
+        return caches.match(req).then(response => {
+          return response || new Response('Offline', { status: 503 });
+        });
       })
     );
   }
