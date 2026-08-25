@@ -8,17 +8,17 @@
   "description": "منصة ويب طلابية",
   "icons": [
     {
-      "src": "صور/logo.png",
+      "src": "صوره/alf.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "صور/logo.png",
+      "src": "صوره/alf.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "صور/logo.png",
+      "src": "صوره/alf.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"
