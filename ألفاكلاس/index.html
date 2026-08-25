@@ -854,6 +854,8 @@ const db = getFirestore(app);
 // ── CLOUDINARY ──
 const CLOUD_NAME = "dnblfxhcs";
 const UPLOAD_PRESET = "alfaclass_upload";
+const LARGE_UPLOAD_THRESHOLD = 9 * 1024 * 1024;
+const UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024;
 
 // ── ADMINS (codes hashed in comparison only) ──
 const ADMINS = [
@@ -1394,7 +1396,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     closeModal('publish-modal');
   } catch (e) {
     console.error(e);
-    showToast('❌','خطأ','فشل النشر، حاول مجدداً');
+    showToast('❌','خطأ', e.message || 'فشل النشر، حاول مجدداً');
   } finally {
     btn.disabled = false;
     btn.innerHTML = editId ? '💾 حفظ' : '🚀 نشر';
@@ -1415,13 +1417,42 @@ window.deletePost = async function(postId, mediaUrls) {
 
 // ── CLOUDINARY UPLOAD ──
 async function uploadToCloudinary(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', UPLOAD_PRESET);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, { method:'POST', body:fd });
-  if (!res.ok) throw new Error('Upload failed');
-  const data = await res.json();
-  return data.secure_url;
+  const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
+  if (file.size <= LARGE_UPLOAD_THRESHOLD) {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', UPLOAD_PRESET);
+    const res = await fetch(endpoint, { method:'POST', body:fd });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.error?.message || 'فشل رفع الملف');
+    }
+    return (await res.json()).secure_url;
+  }
+
+  const uploadId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  let lastData = null;
+  for (let start = 0; start < file.size; start += UPLOAD_CHUNK_SIZE) {
+    const end = Math.min(start + UPLOAD_CHUNK_SIZE, file.size) - 1;
+    const fd = new FormData();
+    fd.append('file', file.slice(start, end + 1), file.name);
+    fd.append('upload_preset', UPLOAD_PRESET);
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'X-Unique-Upload-Id': uploadId,
+        'Content-Range': `bytes ${start}-${end}/${file.size}`
+      },
+      body: fd
+    });
+    lastData = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(lastData.error?.message || 'فشل رفع جزء من الملف');
+    const percent = Math.round(((end + 1) / file.size) * 100);
+    setUploadStatus(`⬆️ ${file.name}: ${percent}%`);
+  }
+
+  if (!lastData?.secure_url) throw new Error('لم يعرض Cloudinary رابط الملف بعد الرفع');
+  return lastData.secure_url;
 }
 
 function extractPublicId(url) {

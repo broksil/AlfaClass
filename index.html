@@ -1199,6 +1199,8 @@ enableIndexedDbPersistence(db).catch((err) => {
 // ── CLOUDINARY ──
 const CLOUD_NAME = "dnblfxhcs";
 const UPLOAD_PRESET = "alfaclass_upload";
+const LARGE_UPLOAD_THRESHOLD = 9 * 1024 * 1024;
+const UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024;
 
 // ── ADMINS (codes hashed in comparison only) ──
 const ADMINS = [
@@ -1846,11 +1848,14 @@ function buildMediaHTML(post) {
       const sizeStr = item.size ? formatFileSize(item.size) : '';
       
       if (isPdf) {
-        const thumbUrl = item.url.replace(/\.pdf$/i, '.jpg'); // Cloudinary Magic!
+        const thumbUrl = _getThumbnailUrl(item.url);
         html += `
         <div class="media-file-wrap" onclick="downloadFileWithProgress('${item.url}', '${sanitizeText(name)}', this, ${item.size || 0})">
-          <img src="${thumbUrl}" loading="lazy" alt="PDF Cover">
-          <div class="file-info-badge">
+          ${thumbUrl
+            ? `<img src="${thumbUrl}" loading="lazy" alt="PDF Cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : ''}
+          <div class="file-info-badge" style="${thumbUrl ? '' : 'position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:36px;gap:4px;'}">
+             ${thumbUrl ? '' : '📄'}
              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${sanitizeText(name)}</span>
              ${sizeStr ? `<span style="opacity:0.7; font-size:9px; white-space:nowrap;">${sizeStr}</span>` : ''}
           </div>
@@ -2474,7 +2479,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     closeModal('publish-modal');
   } catch (e) {
     console.error(e);
-    showToast('❌','خطأ','فشل النشر، حاول مجدداً');
+    showToast('❌','خطأ', e.message || 'فشل النشر، حاول مجدداً');
   } finally {
     btn.disabled = false;
     btn.innerHTML = editId ? '💾 حفظ' : '🚀 نشر';
@@ -2494,14 +2499,216 @@ window.deletePost = async function(postId, mediaUrls) {
 };
 
 // ── CLOUDINARY UPLOAD ──
-async function uploadToCloudinary(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', UPLOAD_PRESET);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, { method:'POST', body:fd });
-  if (!res.ok) throw new Error('Upload failed');
-  const data = await res.json();
-  return data.secure_url;
+async function uploadToCloudinary(file, onProgress = null) {
+  const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
+
+  // ── ملفات صغيرة (≤ 9MB) → Cloudinary مباشرة ──
+  if (file.size <= LARGE_UPLOAD_THRESHOLD) {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', UPLOAD_PRESET);
+    const res = await fetch(endpoint, { method:'POST', body:fd });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.error?.message || 'فشل رفع الملف');
+    }
+    if (onProgress) onProgress(100);
+    return (await res.json()).secure_url;
+  }
+
+  // ── ملفات كبيرة (> 9MB) → R2 مباشرة ──
+  return await _r2UploadHybrid(file, onProgress);
+}
+
+// ── R2 CONFIG ──
+const _R2 = {
+  accessKeyId:     '0dde6779db252f5313e11e8929938150',
+  secretAccessKey: 'd1db44beb0c4b8c9ff00e310f16eaa5d4413022ac6240d511baa190b5f3b7902',
+  endpoint:        'https://e47adba3617ddab6010f171957083dec.r2.cloudflarestorage.com',
+  bucket:          'alfaclass',
+  region:          'auto',
+  // ✅ بعد تفعيل Public Access في Cloudflare: ضع الرابط هنا
+  // مثال: 'https://pub-xxxxxxxxxxxx.r2.dev'
+  // أو رابط دومين مخصص: 'https://files.موقعك.com'
+  // اتركه null للاستخدام Presigned URLs مؤقتاً (تنتهي بعد 7 أيام)
+  publicUrl: 'https://pub-8375af6c868d4d3ea80c16070553fca3.r2.dev',
+};
+
+/**
+ * يُعيد رابطاً قابلاً للوصول للملف:
+ * - إذا فُعِّل publicUrl: رابط دائم ومباشر
+ * - وإلا: Pre-signed URL مؤقت (7 أيام)
+ */
+async function _r2getUrl(key) {
+  if (_R2.publicUrl) {
+    return `${_R2.publicUrl}/${key}`;
+  }
+  // 7 أيام = 604800 ثانية (الحد الأقصى لـ R2)
+  return _r2presign('GET', key, {}, 604800);
+}
+
+/**
+ * يُعيد رابط الصورة المصغّرة (Thumbnail) للملف:
+ * - Cloudinary: يُحوّل .pdf → .jpg تلقائياً (Cloudinary Magic)
+ * - R2: لا يدعم التحويل، يُعيد null → سيُعرض أيقونة بدلاً من صورة
+ */
+function _getThumbnailUrl(url) {
+  if (!url) return null;
+  // روابط Cloudinary تحتوي على cloudinary.com أو res.cloudinary.com
+  if (url.includes('cloudinary.com')) {
+    return url.replace(/\.(pdf|PDF)$/, '.jpg');
+  }
+  // R2 أو أي مصدر آخر: لا thumbnail
+  return null;
+}
+
+
+const _enc    = new TextEncoder();
+const _R2_PART = 5 * 1024 * 1024; // 5MB حد أدنى لكل جزء في Multipart
+
+async function _r2hmac(key, msg) {
+  const k  = typeof key === 'string' ? _enc.encode(key) : key;
+  const ck = await crypto.subtle.importKey('raw', k, { name:'HMAC', hash:'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', ck, _enc.encode(msg)));
+}
+async function _r2sha(str) {
+  const h = await crypto.subtle.digest('SHA-256', _enc.encode(String(str)));
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function _r2hex(u8)  { return [...u8].map(b => b.toString(16).padStart(2,'0')).join(''); }
+function _r2amz(d)   { return d.toISOString().replace(/[:-]|\.\d{3}/g,'').slice(0,15)+'Z'; }
+function _r2stamp(d) { return d.toISOString().slice(0,10).replace(/-/g,''); }
+
+/**
+ * يُنشئ Pre-signed URL — التوثيق في query string بدل Authorization header.
+ * هذه الطريقة أكثر موثوقية للرفع من المتصفح مباشرةً.
+ * @param {string} method  GET | PUT | POST | DELETE
+ * @param {string} key     مسار الملف في الـ bucket
+ * @param {Object} extra   query params إضافية (مثل: {uploads:''} أو {partNumber:'1', uploadId:'...'})
+ */
+async function _r2presign(method, key, extra = {}, expires = 3600) {
+  const now   = new Date();
+  const amz   = _r2amz(now);
+  const ds    = _r2stamp(now);
+  const scope = `${ds}/${_R2.region}/s3/aws4_request`;
+  const host  = new URL(_R2.endpoint).hostname;
+
+  // المسار — حافظ على / بين أجزاء المسار
+  const path  = `/${_R2.bucket}/${key.split('/').map(s => encodeURIComponent(s)).join('/')}`;
+
+  // جميع query params مرتبة أبجدياً
+  const params = {
+    'X-Amz-Algorithm':     'AWS4-HMAC-SHA256',
+    'X-Amz-Credential':    `${_R2.accessKeyId}/${scope}`,
+    'X-Amz-Date':          amz,
+    'X-Amz-Expires':       String(expires),
+    'X-Amz-SignedHeaders': 'host',
+    ...extra,
+  };
+
+  // Canonical Query String (مرتب + percent-encoded)
+  const canonQS = Object.entries(params)
+    .sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0)
+    .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+
+  // Canonical Request
+  const canonReq = [
+    method,
+    path,
+    canonQS,
+    `host:${host}\n`,   // Canonical headers
+    'host',             // Signed headers
+    'UNSIGNED-PAYLOAD', // Payload hash (لا نُوقّع على محتوى الجسم)
+  ].join('\n');
+
+  // String to Sign
+  const strToSign = ['AWS4-HMAC-SHA256', amz, scope, await _r2sha(canonReq)].join('\n');
+
+  // Signing key
+  const kD = await _r2hmac('AWS4' + _R2.secretAccessKey, ds);
+  const kR = await _r2hmac(kD, _R2.region);
+  const kS = await _r2hmac(kR, 's3');
+  const kG = await _r2hmac(kS, 'aws4_request');
+  const sig = _r2hex(await _r2hmac(kG, strToSign));
+
+  // بناء الرابط النهائي مع التوقيع
+  const qs = Object.entries({ ...params, 'X-Amz-Signature': sig })
+    .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+
+  return `${_R2.endpoint}${path}?${qs}`;
+}
+
+async function _r2UploadHybrid(file, onProgress) {
+  const key = `uploads/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+
+  // ── ملفات < 10MB: رفع مباشر بـ PUT ──
+  if (file.size < _R2_PART * 2) {
+    const presignedUrl = await _r2presign('PUT', key);
+    const buffer = await file.arrayBuffer();
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', e => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
+      });
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          _r2getUrl(key).then(resolve).catch(() => resolve(`${_R2.endpoint}/${_R2.bucket}/${key}`));
+        } else {
+          reject(new Error(`فشل الرفع: ${xhr.status}\n${xhr.responseText}`));
+        }
+      });
+      xhr.addEventListener('error', () => reject(new Error('خطأ في الشبكة أثناء الرفع')));
+      xhr.open('PUT', presignedUrl);
+      // لا نضيف headers مخصصة — التوثيق كله في الرابط
+      xhr.send(buffer);
+    });
+  }
+
+  // ── ملفات كبيرة: Multipart Upload ──
+
+  // الخطوة 1: إنشاء جلسة رفع متعدد الأجزاء
+  const createUrl = await _r2presign('POST', key, { 'uploads': '' });
+  const initRes   = await fetch(createUrl, { method: 'POST' });
+  if (!initRes.ok) throw new Error(`بدء Multipart فشل: ${initRes.status}\n${await initRes.text()}`);
+  const uploadId  = (await initRes.text()).match(/<UploadId>(.+?)<\/UploadId>/)?.[1];
+  if (!uploadId) throw new Error('لم يتم الحصول على UploadId من R2');
+
+  // الخطوة 2: رفع الأجزاء
+  const totalParts = Math.ceil(file.size / _R2_PART);
+  const parts      = [];
+  let   uploaded   = 0;
+
+  for (let i = 0; i < totalParts; i++) {
+    const start   = i * _R2_PART;
+    const end     = Math.min(start + _R2_PART, file.size);
+    const chunk   = await file.slice(start, end).arrayBuffer();
+    const pn      = i + 1;
+    const partUrl = await _r2presign('PUT', key, {
+      'partNumber': String(pn),
+      'uploadId':   uploadId,
+    });
+    const res = await fetch(partUrl, { method: 'PUT', body: chunk });
+    if (!res.ok) throw new Error(`فشل رفع الجزء ${pn}: ${res.status}\n${await res.text()}`);
+    parts.push({ PartNumber: pn, ETag: res.headers.get('ETag') || '' });
+    uploaded += (end - start);
+    if (onProgress) onProgress(Math.round(uploaded / file.size * 100));
+  }
+
+  // الخطوة 3: إكمال الرفع
+  const complXml = `<CompleteMultipartUpload>${
+    parts.map(p => `<Part><PartNumber>${p.PartNumber}</PartNumber><ETag>${p.ETag}</ETag></Part>`).join('')
+  }</CompleteMultipartUpload>`;
+  const complUrl = await _r2presign('POST', key, { 'uploadId': uploadId });
+  const complRes = await fetch(complUrl, {
+    method:  'POST',
+    headers: { 'content-type': 'application/xml' },
+    body:    complXml,
+  });
+  if (!complRes.ok) throw new Error(`إكمال Multipart فشل: ${complRes.status}\n${await complRes.text()}`);
+
+  return await _r2getUrl(key);
 }
 
 function extractPublicId(url) {
@@ -3415,10 +3622,13 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
        if (url.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip|rar)$/i)) {
          const isPdf = url.toLowerCase().endsWith('.pdf');
          if (isPdf) {
-           const thumbUrl = url.replace(/\.pdf$/i, '.jpg');
+           const thumbUrl = _getThumbnailUrl(url);
            fileElements.push(`
              <div class="media-file-wrap" style="width:100px;height:120px;margin-top:4px;" onclick="downloadFileWithProgress('${url}', 'ملف مرفق', this); event.stopPropagation();">
-               <img src="${thumbUrl}" loading="lazy" alt="PDF"><div class="file-info-badge" style="justify-content:center;">📄 PDF</div>
+               ${thumbUrl
+                 ? `<img src="${thumbUrl}" loading="lazy" alt="PDF" onerror="this.style.display='none'">`
+                 : `<div style="display:flex;align-items:center;justify-content:center;height:70%;font-size:40px;">📄</div>`}
+               <div class="file-info-badge" style="justify-content:center;">📄 PDF</div>
                <div class="dl-overlay"><div class="dl-circle" style="--p:0%"><div class="dl-circle-inner"><span class="dl-pct">⬇️</span></div></div></div>
              </div>`);
          } else {
