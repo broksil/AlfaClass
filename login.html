@@ -13,11 +13,13 @@
 <style>
 :root{--bg:#080818;--card:#10102a;--line:#26264d;--acc:#7c3aed;--acc2:#a78bfa;--tx:#f0f0ff;--mut:#9393b8;--bad:#ef4444;--ok:#22c55e;--font:'Cairo',system-ui,sans-serif}
 *{box-sizing:border-box;margin:0}
+html,body,*{ -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none }
+input,textarea,select,[contenteditable="true"],[contenteditable=""],[data-selectable="true"]{ -webkit-user-select:text;-moz-user-select:text;-ms-user-select:text;user-select:text;-webkit-touch-callout:default }
 html,body{min-height:100%}
 body{font-family:var(--font);background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;
 background-image:radial-gradient(60% 40% at 85% 0%,#7c3aed33,transparent),radial-gradient(50% 35% at 0% 100%,#3b82f622,transparent);
 padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.wrap{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;padding-bottom:calc(20px + var(--kb-height,0px))}
 .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:30px 24px;box-shadow:0 20px 60px #0008;position:relative;overflow:hidden}
 .brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
 .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--acc),#5b21b6);display:grid;place-items:center;font-weight:900;font-size:22px}
@@ -67,8 +69,8 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
    <h1>أهلاً بعودتك 👋</h1>
    <p class="sub">سجّل دخولك لمتابعة التحاضير والجدول الدراسي.</p>
    <div class="form-err" id="loginErr"></div>
-   <div class="f"><label class="l" for="lUser">اسم المستخدم</label><input class="ltr" type="text" id="lUser" autocomplete="username" autocapitalize="none"><div class="err"></div></div>
-   <div class="f"><label class="l" for="lPass">كلمة السر</label><input class="ltr" type="password" id="lPass" autocomplete="current-password"><div class="err"></div></div>
+   <div class="f"><label class="l" for="lUser">اسم المستخدم</label><input class="ltr" type="text" id="lUser" autocapitalize="none" autocomplete="off"><div class="err"></div></div>
+   <div class="f"><label class="l" for="lPass">كلمة السر</label><input class="ltr" type="password" id="lPass" autocomplete="new-password"><div class="err"></div></div>
    <button class="btn" id="loginBtn">تسجيل الدخول</button>
    <p class="alt">ليس لديك حساب؟ <a data-go="step1">إنشاء حساب جديد</a></p>
    <a href="index.html" class="skip-link">تصفح بدون تسجيل دخول ←</a>
@@ -79,7 +81,7 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
    <div class="dots"><i class="on"></i><i></i></div>
    <h1>إنشاء حساب</h1>
    <p class="sub">الخطوة الأولى: بياناتك الأكاديمية.</p>
-   <div class="f"><label class="l" for="fullName">الاسم الكامل</label><input type="text" id="fullName" autocomplete="name"><div class="err"></div></div>
+   <div class="f"><label class="l" for="fullName">الاسم الكامل</label><input type="text" id="fullName" autocomplete="off"><div class="err"></div></div>
    <div class="f"><span class="l" style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:#c9c9ea">نوع الدوام</span>
     <div class="seg"><label><input type="radio" name="shift" value="صباحي"><span>صباحي</span></label><label><input type="radio" name="shift" value="مسائي"><span>مسائي</span></label></div><div class="err" id="shiftErr"></div></div>
    <div class="f"><span class="l" style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:#c9c9ea">الشعبة</span>
@@ -94,7 +96,7 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
    <h1>بيانات الحساب</h1>
    <p class="sub">الخطوة الثانية: اختر اسم مستخدم وكلمة سر.</p>
    <div class="form-err" id="signErr"></div>
-   <div class="f"><label class="l" for="sUser">اسم المستخدم (إنجليزي)</label><input class="ltr" type="text" id="sUser" autocomplete="username" autocapitalize="none"><div class="err"></div></div>
+   <div class="f"><label class="l" for="sUser">اسم المستخدم (إنجليزي)</label><input class="ltr" type="text" id="sUser" autocapitalize="none" autocomplete="off"><div class="err"></div></div>
    <div class="f"><label class="l" for="sPass">كلمة السر</label><input class="ltr" type="password" id="sPass" autocomplete="new-password"><div class="err"></div></div>
    <div class="f"><label class="l" for="sPass2">إعادة كلمة السر</label><input class="ltr" type="password" id="sPass2" autocomplete="new-password"><div class="err"></div></div>
    <div class="row"><button class="btn" id="signBtn">إنشاء الحساب</button><button class="btn ghost" id="backBtn">رجوع</button></div>
@@ -252,6 +254,50 @@ $('#signBtn').onclick=async()=>{
   }catch(e){window.__signing=false;showForm('#signErr',authMsg(e.code))}
   b.disabled=false;
 };
+</script>
+<script>
+/* ── استقرار الواجهة مع لوحة مفاتيح الهاتف (منع فقدان التركيز عند تغيير اللغة/الحجم) ── */
+(function () {
+  var FIELDS = 'input, textarea';
+  var lastField = null, blurAt = 0;
+
+  document.addEventListener('focusin', function (e) {
+    if (e.target && e.target.matches && e.target.matches(FIELDS)) lastField = e.target;
+  });
+  document.addEventListener('focusout', function (e) {
+    if (e.target === lastField) blurAt = Date.now();
+  });
+
+  function keepFocus() {
+    if (!lastField || document.activeElement === lastField) return;
+    if (Date.now() - blurAt > 900) return;              // الفقد ليس بسبب تغيّر الحجم
+    if (!document.body.contains(lastField) || lastField.disabled) return;
+    try { lastField.focus({ preventScroll: false }); } catch (err) { try { lastField.focus(); } catch (e2) {} }
+  }
+
+  // 1) Virtual Keyboard API: الكيبورد يطفو فوق المحتوى فلا يُعاد تخطيط الصفحة (لا فقدان تركيز)
+  if ('virtualKeyboard' in navigator) {
+    try { navigator.virtualKeyboard.overlaysContent = true; } catch (e) {}
+    try {
+      navigator.virtualKeyboard.addEventListener('geometrychange', function () {
+        var kb = navigator.virtualKeyboard.boundingRect || {};
+        var hgt = kb.height || 0;
+        document.documentElement.style.setProperty('--kb-height', hgt + 'px');
+        var el = document.activeElement;
+        if (el && el.matches && el.matches(FIELDS)) {
+          var r = el.getBoundingClientRect();
+          var limit = window.innerHeight - hgt - 16;
+          if (r.bottom > limit) window.scrollBy(0, r.bottom - limit);
+        }
+      });
+    } catch (e) {}
+  }
+
+  // 2) المتصفحات التي يعيد فيها الكيبورد تخطيط العرض (iOS وبعض أندرويد)
+  window.addEventListener('resize', keepFocus);
+  window.addEventListener('orientationchange', function () { setTimeout(keepFocus, 150); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', keepFocus);
+})();
 </script>
 </body>
 </html>

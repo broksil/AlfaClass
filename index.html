@@ -54,6 +54,23 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+  /* ── منع تحديد/نسخ النصوص لتجربة أقرب للتطبيقات الأصلية (Native) ── */
+  html, body, *, *::before, *::after {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* استثناء حقول الإدخال لتبقى قابلة للتحديد والنسخ */
+  input, textarea, select, [contenteditable="true"], [contenteditable=""], [data-selectable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
   html { scroll-behavior: smooth; }
 
   body {
@@ -768,7 +785,7 @@
     -webkit-backdrop-filter: blur(8px);
     display: none; align-items: flex-end; justify-content: center;
     padding: 16px;
-    padding-bottom: calc(16px + var(--safe-bottom));
+    padding-bottom: calc(16px + var(--safe-bottom) + var(--kb-height, 0px));
     overscroll-behavior: none;
   }
   .modal-overlay.open { display: flex; }
@@ -1477,6 +1494,39 @@
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
+  /* ── استقرار الواجهة مع لوحة مفاتيح الهاتف (منع فقدان التركيز عند تغيير اللغة/الحجم) ── */
+  (function () {
+    var FIELDS = 'input, textarea';
+    var lastField = null, blurAt = 0;
+    document.addEventListener('focusin', function (e) {
+      if (e.target && e.target.matches && e.target.matches(FIELDS)) lastField = e.target;
+    });
+    document.addEventListener('focusout', function (e) { if (e.target === lastField) blurAt = Date.now(); });
+    function keepFocus() {
+      if (!lastField || document.activeElement === lastField) return;
+      if (Date.now() - blurAt > 900) return;
+      if (!document.body.contains(lastField) || lastField.disabled) return;
+      try { lastField.focus({ preventScroll: false }); } catch (err) { try { lastField.focus(); } catch (e2) {} }
+    }
+    if ('virtualKeyboard' in navigator) {
+      try {
+        navigator.virtualKeyboard.addEventListener('geometrychange', function () {
+          var kb = navigator.virtualKeyboard.boundingRect || {};
+          var hgt = kb.height || 0;
+          document.documentElement.style.setProperty('--kb-height', hgt + 'px');
+          var el = document.activeElement;
+          if (el && el.matches && el.matches(FIELDS)) {
+            var r = el.getBoundingClientRect();
+            var limit = window.innerHeight - hgt - 16;
+            if (r.bottom > limit) window.scrollBy(0, r.bottom - limit);
+          }
+        });
+      } catch (e) {}
+    }
+    window.addEventListener('resize', keepFocus);
+    window.addEventListener('orientationchange', function () { setTimeout(keepFocus, 150); });
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', keepFocus);
+  })();
 </script>
 
 <!-- MAIN APP -->
@@ -1723,7 +1773,7 @@
     <div class="modal-title" data-i18n="changePassword">تغيير كلمة السر</div>
     <div class="acc-field" style="margin-bottom:14px">
       <label for="acc-np-pass" data-i18n="newPassword">كلمة السر الجديدة</label>
-      <input class="acc-input" id="acc-np-pass" type="password" autocomplete="new-password" style="direction:ltr;text-align:left">
+      <input class="acc-input" id="acc-np-pass" type="password" style="direction:ltr;text-align:left" autocomplete="new-password">
       <ul class="acc-rules" id="acc-np-rules">
         <li data-r="len"><span>○</span><span data-i18n="rulePassLen">6 أحرف على الأقل</span></li>
         <li data-r="match"><span>○</span><span data-i18n="rulePassMatch">كلمتا السر متطابقتان</span></li>
@@ -1731,7 +1781,7 @@
     </div>
     <div class="acc-field" style="margin-bottom:6px">
       <label for="acc-np-pass2" data-i18n="confirmPassword">تأكيد كلمة السر الجديدة</label>
-      <input class="acc-input" id="acc-np-pass2" type="password" autocomplete="new-password" style="direction:ltr;text-align:left">
+      <input class="acc-input" id="acc-np-pass2" type="password" style="direction:ltr;text-align:left" autocomplete="new-password">
     </div>
     <div class="acc-err" id="acc-np-err"></div>
     <div class="acc-actions">
@@ -1749,7 +1799,7 @@
     <div class="acc-grid">
       <div class="acc-field">
         <label for="acc-f-name" data-i18n="fullName">الاسم الكامل</label>
-        <input class="acc-input" id="acc-f-name" maxlength="60" autocomplete="name">
+        <input class="acc-input" id="acc-f-name" maxlength="60" autocomplete="off">
         <div class="acc-err" id="acc-e-name"></div>
       </div>
       <div class="acc-grid two">
@@ -1797,7 +1847,7 @@
     <div class="modal-title" data-i18n="changeUsername">تغيير اسم المستخدم</div>
     <div class="acc-field" style="margin-bottom:14px">
       <label for="acc-u-input" data-i18n="newUsername">اسم المستخدم الجديد</label>
-      <div class="acc-prefix-wrap"><span class="at">@</span><input class="acc-input" id="acc-u-input" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false"></div>
+      <div class="acc-prefix-wrap"><span class="at">@</span><input class="acc-input" id="acc-u-input" maxlength="30" autocapitalize="none" spellcheck="false" autocomplete="off"></div>
       <ul class="acc-rules" id="acc-u-rules">
         <li data-r="len"><span>○</span><span data-i18n="ruleLen">من 3 إلى 30 حرفاً</span></li>
         <li data-r="chars"><span>○</span><span data-i18n="ruleChars">حروف إنجليزية وأرقام ونقطة وشرطة سفلية (_) فقط</span></li>
@@ -1806,7 +1856,7 @@
     </div>
     <div class="acc-field" style="margin-bottom:14px">
       <label for="acc-u-pass" data-i18n="currentPassword">كلمة السر الحالية (للتأكيد)</label>
-      <input class="acc-input" id="acc-u-pass" type="password" autocomplete="current-password">
+      <input class="acc-input" id="acc-u-pass" type="password" autocomplete="new-password">
     </div>
     <div class="acc-warn" id="acc-u-cooldown" data-i18n="cooldownNote">يمكنك تغيير اسم المستخدم مرة واحدة كل 14 يوماً فقط.</div>
     <div class="acc-err" id="acc-u-err"></div>
@@ -1866,7 +1916,7 @@
     <div class="modal-handle"></div>
     <div class="modal-title" data-i18n="contact">تواصل معنا</div>
     <div class="acc-hint" style="margin:0 0 12px" data-i18n="contactHint">اكتب مشكلتك أو اقتراحك وسيصل إلى فريق الدعم الفني.</div>
-    <textarea class="acc-input acc-textarea" id="acc-c-text" maxlength="800"></textarea>
+    <textarea class="acc-input acc-textarea" id="acc-c-text" maxlength="800" autocomplete="off"></textarea>
     <div class="acc-err" id="acc-c-err"></div>
     <div class="acc-actions">
       <button class="acc-btn ghost" onclick="closeModal('acc-contact-modal')" data-i18n="cancel">إلغاء</button>
@@ -1940,15 +1990,15 @@
     </div>
     <div class="form-group">
       <label class="form-label">اسم الملزمة</label>
-      <input class="form-input" id="mat-name" placeholder="مثال: ملزمة الفصل الأول">
+      <input class="form-input" id="mat-name" placeholder="مثال: ملزمة الفصل الأول" autocomplete="off">
     </div>
     <div class="form-group">
       <label class="form-label">الوصف (اختياري)</label>
-      <textarea class="form-textarea" id="mat-desc" placeholder="وصف مختصر عن الملزمة..."></textarea>
+      <textarea class="form-textarea" id="mat-desc" placeholder="وصف مختصر عن الملزمة..." autocomplete="off"></textarea>
     </div>
     <div class="form-group">
       <label class="form-label">الفهرس (اختياري — سطر لكل عنوان)</label>
-      <textarea class="form-textarea" id="mat-index" placeholder="الفصل الأول: ...&#10;الفصل الثاني: ..."></textarea>
+      <textarea class="form-textarea" id="mat-index" placeholder="الفصل الأول: ...&#10;الفصل الثاني: ..." autocomplete="off"></textarea>
     </div>
     <div class="form-group">
       <label class="form-label">الملف / الصورة</label>
@@ -2023,11 +2073,11 @@
       <div id="auth-login-err" style="background:#ef44441a;border:1px solid #ef444455;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px;display:none"></div>
       <div class="form-group">
         <label class="form-label">اسم المستخدم</label>
-        <input class="form-input" type="text" id="auth-login-user" placeholder="أدخل اسم المستخدم" autocomplete="username" autocapitalize="none" style="direction:ltr;text-align:left">
+        <input class="form-input" type="text" id="auth-login-user" placeholder="أدخل اسم المستخدم" autocapitalize="none" style="direction:ltr;text-align:left" autocomplete="off">
       </div>
       <div class="form-group">
         <label class="form-label">كلمة السر</label>
-        <input class="form-input" type="password" id="auth-login-pass" placeholder="أدخل كلمة السر" autocomplete="current-password" style="direction:ltr;text-align:left">
+        <input class="form-input" type="password" id="auth-login-pass" placeholder="أدخل كلمة السر" style="direction:ltr;text-align:left" autocomplete="new-password">
       </div>
       <button class="btn-submit" id="btn-do-login">تسجيل الدخول</button>
       <p class="hint-text" style="margin-top:14px">ليس لديك حساب؟ <a href="#" onclick="showAuthPanel('signup1');return false" style="color:var(--accent2);font-weight:700;text-decoration:none">إنشاء حساب جديد</a></p>
@@ -2039,7 +2089,7 @@
       <div class="modal-title">📝 إنشاء حساب — الخطوة 1</div>
       <div class="form-group">
         <label class="form-label">الاسم الكامل</label>
-        <input class="form-input" type="text" id="auth-fullname" placeholder="أدخل اسمك الكامل" autocomplete="name">
+        <input class="form-input" type="text" id="auth-fullname" placeholder="أدخل اسمك الكامل" autocomplete="off">
       </div>
       <div class="form-group">
         <label class="form-label">نوع الدوام</label>
@@ -2067,15 +2117,15 @@
       <div id="auth-sign-err" style="background:#ef44441a;border:1px solid #ef444455;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px;display:none"></div>
       <div class="form-group">
         <label class="form-label">اسم المستخدم (إنجليزي)</label>
-        <input class="form-input" type="text" id="auth-sign-user" placeholder="مثال: ahmed123" autocomplete="username" autocapitalize="none" style="direction:ltr;text-align:left">
+        <input class="form-input" type="text" id="auth-sign-user" placeholder="مثال: ahmed123" autocapitalize="none" style="direction:ltr;text-align:left" autocomplete="off">
       </div>
       <div class="form-group">
         <label class="form-label">كلمة السر</label>
-        <input class="form-input" type="password" id="auth-sign-pass" placeholder="6 أحرف على الأقل" autocomplete="new-password" style="direction:ltr;text-align:left">
+        <input class="form-input" type="password" id="auth-sign-pass" placeholder="6 أحرف على الأقل" style="direction:ltr;text-align:left" autocomplete="new-password">
       </div>
       <div class="form-group">
         <label class="form-label">إعادة كلمة السر</label>
-        <input class="form-input" type="password" id="auth-sign-pass2" placeholder="أعد كتابة كلمة السر" autocomplete="new-password" style="direction:ltr;text-align:left">
+        <input class="form-input" type="password" id="auth-sign-pass2" placeholder="أعد كتابة كلمة السر" style="direction:ltr;text-align:left" autocomplete="new-password">
       </div>
       <button class="btn-submit" id="btn-do-signup">إنشاء الحساب</button>
       <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:8px;color:var(--text-secondary)" onclick="showAuthPanel('signup1')">رجوع</button>
@@ -2104,7 +2154,7 @@
       </select>
     </div>
     <div class="form-group hidden" id="type-custom-wrap">
-      <input class="form-input" id="pub-type-custom" placeholder="نوع مخصص...">
+      <input class="form-input" id="pub-type-custom" placeholder="نوع مخصص..." autocomplete="off">
     </div>
 
     <div class="form-group">
@@ -2121,12 +2171,12 @@
       </select>
     </div>
     <div class="form-group hidden" id="subject-custom-wrap">
-      <input class="form-input" id="pub-subject-custom" placeholder="مادة مخصصة...">
+      <input class="form-input" id="pub-subject-custom" placeholder="مادة مخصصة..." autocomplete="off">
     </div>
 
     <div class="form-group">
       <label class="form-label">ملاحظة (اختياري)</label>
-      <textarea class="form-textarea" id="pub-note" placeholder="اكتب ملاحظة أو رابط..."></textarea>
+      <textarea class="form-textarea" id="pub-note" placeholder="اكتب ملاحظة أو رابط..." autocomplete="off"></textarea>
     </div>
 
     <!-- File uploads -->
@@ -2162,7 +2212,7 @@
     </div>
     <div class="form-group">
       <label class="form-label">سؤالك</label>
-      <textarea class="form-textarea" id="enq-note" placeholder="اكتب استفسارك هنا بوضوح..."></textarea>
+      <textarea class="form-textarea" id="enq-note" placeholder="اكتب استفسارك هنا بوضوح..." autocomplete="off"></textarea>
     </div>
     <div class="form-group">
       <label class="form-label">إرفاق ملفات / صور (اختياري)</label>
@@ -2187,7 +2237,7 @@
   <div class="modal-box" id="viewers-box">
     <div class="modal-handle"></div>
     <div class="modal-title">👁 قائمة المشاهدات</div>
-    <div id="viewers-list-content" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;"></div>
+    <div id="viewers-list-content" style="display: flex; flex-direction: column; gap: 8px; max-height: 50dvh; overflow-y: auto;"></div>
     <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:16px;color:var(--text-secondary)" onclick="closeModal('viewers-modal')">إغلاق</button>
   </div>
 </div>
@@ -2197,7 +2247,7 @@
   <div class="modal-box" id="read-by-box">
     <div class="modal-handle"></div>
     <div class="modal-title">👀 تمت القراءة بواسطة</div>
-    <div id="read-by-list-content" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;"></div>
+    <div id="read-by-list-content" style="display: flex; flex-direction: column; gap: 8px; max-height: 50dvh; overflow-y: auto;"></div>
     <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:16px;color:var(--text-secondary)" onclick="closeModal('read-by-modal')">إغلاق</button>
   </div>
 </div>
@@ -2248,7 +2298,7 @@
     <div class="chat-input-row">
       <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()">📎</button>
       <input type="file" id="chat-file-input" hidden accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple onchange="handleChatImageUpload(this)">
-      <textarea id="chat-input" class="chat-input" placeholder="اكتب رسالتك هنا..." rows="1" autocomplete="nope" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="handleChatTyping(); autoResizeChatInput(this);" onkeydown="if(event.key==='Enter' && !event.shiftKey && window.innerWidth > 768) { event.preventDefault(); sendChatMessage(); }"></textarea>
+      <textarea id="chat-input" class="chat-input" placeholder="اكتب رسالتك هنا..." rows="1" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="handleChatTyping(); autoResizeChatInput(this);" onkeydown="if(event.key==='Enter' && !event.shiftKey && window.innerWidth autocomplete="off"> 768) { event.preventDefault(); sendChatMessage(); }"></textarea>
       <button class="chat-send-btn" onclick="sendChatMessage()">🚀</button>
     </div>
   </div>
@@ -4699,7 +4749,7 @@ function accApplyLang(lang) {
 function accMakeSelect(key, list) {
   const box = accEl('acc-sel-' + key); if (!box) return;
   const prev = accSelects[key] ? accSelects[key].get() : null;
-  box.innerHTML = '<select class="acc-select" id="acc-f-' + key + '"></select><input class="acc-input acc-other" id="acc-o-' + key + '" maxlength="60">';
+  box.innerHTML = '<select class="acc-select" id="acc-f-' + key + '"></select><input class="acc-input acc-other" id="acc-o-' + key + '" maxlength="60" autocomplete="off">';
   const sel = box.querySelector('select'), other = box.querySelector('input');
   other.placeholder = accT('أدخل القيمة');
   sel.innerHTML = '<option value="">' + accT('اختر...') + '</option>' +

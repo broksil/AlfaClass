@@ -48,6 +48,22 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+  /* ── منع تحديد/نسخ النصوص (تجربة أقرب للتطبيقات الأصلية) ── */
+  html, body, *, *::before, *::after {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  input, textarea, select, [contenteditable="true"], [contenteditable=""], [data-selectable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
   html { scroll-behavior: smooth; }
 
   body {
@@ -741,7 +757,7 @@
     <div class="modal-title">🔐 تسجيل الدخول</div>
     <div class="form-group">
       <label class="form-label">الرمز</label>
-      <input class="form-input" type="password" id="login-code" placeholder="أدخل الرمز" autocomplete="off" inputmode="numeric">
+      <input class="form-input" type="password" id="login-code" placeholder="أدخل الرمز" inputmode="numeric" autocomplete="new-password">
     </div>
     <button class="btn-submit" id="btn-do-login">دخول</button>
     <p class="hint-text">تنويه: يؤخذ الرمز من الممثل</p>
@@ -767,7 +783,7 @@
       </select>
     </div>
     <div class="form-group hidden" id="type-custom-wrap">
-      <input class="form-input" id="pub-type-custom" placeholder="نوع مخصص...">
+      <input class="form-input" id="pub-type-custom" placeholder="نوع مخصص..." autocomplete="off">
     </div>
 
     <div class="form-group">
@@ -782,12 +798,12 @@
       </select>
     </div>
     <div class="form-group hidden" id="subject-custom-wrap">
-      <input class="form-input" id="pub-subject-custom" placeholder="مادة مخصصة...">
+      <input class="form-input" id="pub-subject-custom" placeholder="مادة مخصصة..." autocomplete="off">
     </div>
 
     <div class="form-group">
       <label class="form-label">ملاحظة (اختياري)</label>
-      <textarea class="form-textarea" id="pub-note" placeholder="اكتب ملاحظة أو رابط..."></textarea>
+      <textarea class="form-textarea" id="pub-note" placeholder="اكتب ملاحظة أو رابط..." autocomplete="off"></textarea>
     </div>
 
     <!-- File uploads -->
