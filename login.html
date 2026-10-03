@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#080818">
 <title>ألفاكلاس | تسجيل الدخول</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
@@ -69,8 +69,8 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
    <h1>أهلاً بعودتك 👋</h1>
    <p class="sub">سجّل دخولك لمتابعة التحاضير والجدول الدراسي.</p>
    <div class="form-err" id="loginErr"></div>
-   <div class="f"><label class="l" for="lUser">اسم المستخدم</label><input class="ltr" type="text" id="lUser" autocapitalize="none" autocomplete="off"><div class="err"></div></div>
-   <div class="f"><label class="l" for="lPass">كلمة السر</label><input class="ltr" type="password" id="lPass" autocomplete="new-password"><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f1">اسم المستخدم</label><input class="ltr login-field" type="text" id="lfa-f1" name="lfa-f1" autocapitalize="none" inputmode="text" autocomplete="off" readonly><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f2">كلمة السر</label><input class="ltr login-field" type="password" id="lfa-f2" name="lfa-f2" inputmode="text" autocomplete="new-password" readonly><div class="err"></div></div>
    <button class="btn" id="loginBtn">تسجيل الدخول</button>
    <p class="alt">ليس لديك حساب؟ <a data-go="step1">إنشاء حساب جديد</a></p>
    <a href="index.html" class="skip-link">تصفح بدون تسجيل دخول ←</a>
@@ -81,7 +81,7 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
    <div class="dots"><i class="on"></i><i></i></div>
    <h1>إنشاء حساب</h1>
    <p class="sub">الخطوة الأولى: بياناتك الأكاديمية.</p>
-   <div class="f"><label class="l" for="fullName">الاسم الكامل</label><input type="text" id="fullName" autocomplete="off"><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f3">الاسم الكامل</label><input class="login-field" type="text" id="lfa-f3" name="lfa-f3" inputmode="text" autocomplete="off" readonly><div class="err"></div></div>
    <div class="f"><span class="l" style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:#c9c9ea">نوع الدوام</span>
     <div class="seg"><label><input type="radio" name="shift" value="صباحي"><span>صباحي</span></label><label><input type="radio" name="shift" value="مسائي"><span>مسائي</span></label></div><div class="err" id="shiftErr"></div></div>
    <div class="f"><span class="l" style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:#c9c9ea">الشعبة</span>
@@ -96,9 +96,9 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
    <h1>بيانات الحساب</h1>
    <p class="sub">الخطوة الثانية: اختر اسم مستخدم وكلمة سر.</p>
    <div class="form-err" id="signErr"></div>
-   <div class="f"><label class="l" for="sUser">اسم المستخدم (إنجليزي)</label><input class="ltr" type="text" id="sUser" autocapitalize="none" autocomplete="off"><div class="err"></div></div>
-   <div class="f"><label class="l" for="sPass">كلمة السر</label><input class="ltr" type="password" id="sPass" autocomplete="new-password"><div class="err"></div></div>
-   <div class="f"><label class="l" for="sPass2">إعادة كلمة السر</label><input class="ltr" type="password" id="sPass2" autocomplete="new-password"><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f4">اسم المستخدم (إنجليزي)</label><input class="ltr login-field" type="text" id="lfa-f4" name="lfa-f4" autocapitalize="none" inputmode="text" autocomplete="off" readonly><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f5">كلمة السر</label><input class="ltr login-field" type="password" id="lfa-f5" name="lfa-f5" inputmode="text" autocomplete="new-password" readonly><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f6">إعادة كلمة السر</label><input class="ltr login-field" type="password" id="lfa-f6" name="lfa-f6" inputmode="text" autocomplete="new-password" readonly><div class="err"></div></div>
    <div class="row"><button class="btn" id="signBtn">إنشاء الحساب</button><button class="btn ghost" id="backBtn">رجوع</button></div>
   </section>
  </div>
@@ -172,7 +172,7 @@ const authMsg=c=>({
 
 /* ===== تسجيل الدخول ===== */
 $('#loginBtn').onclick=async()=>{
-  const u=$('#lUser'),p=$('#lPass');showForm('#loginErr');
+  const u=$('#lfa-f1'),p=$('#lfa-f2');showForm('#loginErr');
   const ok=[setErr(u,u.value.trim()?'':'أدخل اسم المستخدم'),setErr(p,p.value?'':'أدخل كلمة السر')].every(Boolean);
   if(!ok)return;
   const b=$('#loginBtn');b.disabled=true;
@@ -197,12 +197,12 @@ $('#loginBtn').onclick=async()=>{
   }catch(e){showForm('#loginErr',authMsg(e.code))}
   b.disabled=false;
 };
-[$('#lUser'),$('#lPass')].forEach(i=>i.onkeydown=e=>e.key==='Enter'&&$('#loginBtn').click());
+[$('#lfa-f1'),$('#lfa-f2')].forEach(i=>i.onkeydown=e=>e.key==='Enter'&&$('#loginBtn').click());
 
 /* ===== إنشاء حساب: الخطوة 1 ===== */
 const radio=n=>(document.querySelector(`input[name=${n}]:checked`)||{}).value;
 $('#nextBtn').onclick=()=>{
-  const n=$('#fullName');
+  const n=$('#lfa-f3');
   const a=setErr(n,n.value.trim().length<3?'أدخل اسمك الكامل':'');
   const s=radio('shift'),c=radio('section');
   $('#shiftErr').textContent=s?'':'اختر نوع الدوام';
@@ -213,7 +213,7 @@ $('#backBtn').onclick=()=>go('step1',-1);
 
 /* ===== إنشاء حساب: الخطوة 2 ===== */
 $('#signBtn').onclick=async()=>{
-  const u=$('#sUser'),p=$('#sPass'),p2=$('#sPass2');showForm('#signErr');
+  const u=$('#lfa-f4'),p=$('#lfa-f5'),p2=$('#lfa-f6');showForm('#signErr');
   const un=u.value.trim();
   const e1=setErr(u,!un?'أدخل اسم المستخدم':!/^[A-Za-z0-9_]+$/.test(un)?'حروف إنجليزية وأرقام فقط':un.length<3?'يجب ألا يقل عن 3 أحرف':'');
   const e2=setErr(p,!p.value?'أدخل كلمة السر':p.value.length<6?'يجب ألا تقل عن 6 أحرف':'');
@@ -232,7 +232,7 @@ $('#signBtn').onclick=async()=>{
     window.__signing=true;
     const cred=await createUserWithEmailAndPassword(auth,email(name),p.value);
     await setDoc(doc(db,'users',name),{
-      username:name,fullName:$('#fullName').value.trim(),
+      username:name,fullName:$('#lfa-f3').value.trim(),
       shift:radio('shift'),section:radio('section'),
       role:name===OWNER?'owner':'student',
       uid:cred.user.uid,createdAt:serverTimestamp()
@@ -241,7 +241,7 @@ $('#signBtn').onclick=async()=>{
     // حفظ البيانات في localStorage
     const isOwner=name===OWNER;
     localStorage.setItem('isLoggedIn','true');
-    localStorage.setItem('name',$('#fullName').value.trim());
+    localStorage.setItem('name',$('#lfa-f3').value.trim());
     localStorage.setItem('username',name);
     localStorage.setItem('role',isOwner?'مالك الموقع':radio('shift'));
     localStorage.setItem('color',isOwner?'#fbbf24':'#a78bfa');
@@ -256,35 +256,53 @@ $('#signBtn').onclick=async()=>{
 };
 </script>
 <script>
-/* ── استقرار الواجهة مع لوحة مفاتيح الهاتف (منع فقدان التركيز عند تغيير اللغة/الحجم) ── */
+/* ── حيل صارمة: منع الأوتوفيل (readonly) + تثبيت تركيز الكيبورد عند تغيير اللغة ── */
 (function () {
-  var FIELDS = 'input, textarea';
-  var lastField = null, blurAt = 0;
+  var SEL = 'input.login-field, textarea.login-field';
+  var lastField = null, lastPointer = 0, lastBlur = 0;
 
+  function fieldOf(t) { return (t && t.closest) ? t.closest(SEL) : null; }
+  function unlock(el) { if (el && el.hasAttribute('readonly')) el.removeAttribute('readonly'); }
+  function isField(el) { return !!el && !!el.classList && el.classList.contains('login-field'); }
+
+  /* (1) حيلة readonly: الحقول مقيّدة عند التحميل فيتجاهلها مدير كلمات المرور، وتُفتح عند أول لمسة */
+  ['pointerdown', 'touchstart', 'mousedown', 'click'].forEach(function (evt) {
+    document.addEventListener(evt, function (e) {
+      lastPointer = Date.now();
+      var el = fieldOf(e.target);
+      if (!el) return;
+      unlock(el);
+      if (evt === 'pointerdown' || evt === 'mousedown') { try { el.focus({ preventScroll: false }); } catch (err) {} }
+    }, true);
+  });
   document.addEventListener('focusin', function (e) {
-    if (e.target && e.target.matches && e.target.matches(FIELDS)) lastField = e.target;
-  });
+    var el = fieldOf(e.target);
+    if (el) { unlock(el); lastField = el; }
+  }, true);
+
+  /* (2) تثبيت التركيز: أي blur مفاجئ → إعادة focus() بعد 40ms (إلا إذا لمس المستخدم عنصرًا آخر فعلًا) */
   document.addEventListener('focusout', function (e) {
-    if (e.target === lastField) blurAt = Date.now();
-  });
+    if (!isField(e.target)) return;
+    lastField = e.target; lastBlur = Date.now();
+    setTimeout(function () {
+      var el = lastField;
+      if (!el || !isField(el) || !document.body.contains(el) || el.disabled) return;
+      if (Date.now() - lastBlur > 1500) return;
+      if (Date.now() - lastPointer < 700) return;   // المستخدم لمس شيئًا آخر بنفسه
+      var a = document.activeElement;
+      if (a && a !== document.body && a !== document.documentElement) return;
+      try { el.focus({ preventScroll: true }); } catch (err) { try { el.focus(); } catch (e2) {} }
+    }, 40);
+  }, true);
 
-  function keepFocus() {
-    if (!lastField || document.activeElement === lastField) return;
-    if (Date.now() - blurAt > 900) return;              // الفقد ليس بسبب تغيّر الحجم
-    if (!document.body.contains(lastField) || lastField.disabled) return;
-    try { lastField.focus({ preventScroll: false }); } catch (err) { try { lastField.focus(); } catch (e2) {} }
-  }
-
-  // 1) Virtual Keyboard API: الكيبورد يطفو فوق المحتوى فلا يُعاد تخطيط الصفحة (لا فقدان تركيز)
+  /* (3) Virtual Keyboard API: قياس ارتفاع الكيبورد وإظهار الحقل فوقه */
   if ('virtualKeyboard' in navigator) {
-    try { navigator.virtualKeyboard.overlaysContent = true; } catch (e) {}
     try {
       navigator.virtualKeyboard.addEventListener('geometrychange', function () {
-        var kb = navigator.virtualKeyboard.boundingRect || {};
-        var hgt = kb.height || 0;
+        var hgt = (navigator.virtualKeyboard.boundingRect || {}).height || 0;
         document.documentElement.style.setProperty('--kb-height', hgt + 'px');
         var el = document.activeElement;
-        if (el && el.matches && el.matches(FIELDS)) {
+        if (el && isField(el)) {
           var r = el.getBoundingClientRect();
           var limit = window.innerHeight - hgt - 16;
           if (r.bottom > limit) window.scrollBy(0, r.bottom - limit);
@@ -292,11 +310,6 @@ $('#signBtn').onclick=async()=>{
       });
     } catch (e) {}
   }
-
-  // 2) المتصفحات التي يعيد فيها الكيبورد تخطيط العرض (iOS وبعض أندرويد)
-  window.addEventListener('resize', keepFocus);
-  window.addEventListener('orientationchange', function () { setTimeout(keepFocus, 150); });
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', keepFocus);
 })();
 </script>
 </body>

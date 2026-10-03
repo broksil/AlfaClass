@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0a0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1532,28 +1532,53 @@
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
-  /* ── استقرار الواجهة مع لوحة مفاتيح الهاتف (منع فقدان التركيز عند تغيير اللغة/الحجم) ── */
+  /* ── حيل صارمة: منع الأوتوفيل (readonly) + تثبيت تركيز الكيبورد عند تغيير اللغة ── */
   (function () {
-    var FIELDS = 'input, textarea';
-    var lastField = null, blurAt = 0;
-    document.addEventListener('focusin', function (e) {
-      if (e.target && e.target.matches && e.target.matches(FIELDS)) lastField = e.target;
+    var SEL = 'input.login-field, textarea.login-field';
+    var lastField = null, lastPointer = 0, lastBlur = 0;
+
+    function fieldOf(t) { return (t && t.closest) ? t.closest(SEL) : null; }
+    function unlock(el) { if (el && el.hasAttribute('readonly')) el.removeAttribute('readonly'); }
+    function isField(el) { return !!el && !!el.classList && el.classList.contains('login-field'); }
+
+    /* (1) حيلة readonly: الحقول مقيّدة عند التحميل فيتجاهلها مدير كلمات المرور، وتُفتح عند أول لمسة */
+    ['pointerdown', 'touchstart', 'mousedown', 'click'].forEach(function (evt) {
+      document.addEventListener(evt, function (e) {
+        lastPointer = Date.now();
+        var el = fieldOf(e.target);
+        if (!el) return;
+        unlock(el);
+        if (evt === 'pointerdown' || evt === 'mousedown') { try { el.focus({ preventScroll: false }); } catch (err) {} }
+      }, true);
     });
-    document.addEventListener('focusout', function (e) { if (e.target === lastField) blurAt = Date.now(); });
-    function keepFocus() {
-      if (!lastField || document.activeElement === lastField) return;
-      if (Date.now() - blurAt > 900) return;
-      if (!document.body.contains(lastField) || lastField.disabled) return;
-      try { lastField.focus({ preventScroll: false }); } catch (err) { try { lastField.focus(); } catch (e2) {} }
-    }
+    document.addEventListener('focusin', function (e) {
+      var el = fieldOf(e.target);
+      if (el) { unlock(el); lastField = el; }
+    }, true);
+
+    /* (2) تثبيت التركيز: أي blur مفاجئ → إعادة focus() بعد 40ms (إلا إذا لمس المستخدم عنصرًا آخر فعلًا) */
+    document.addEventListener('focusout', function (e) {
+      if (!isField(e.target)) return;
+      lastField = e.target; lastBlur = Date.now();
+      setTimeout(function () {
+        var el = lastField;
+        if (!el || !isField(el) || !document.body.contains(el) || el.disabled) return;
+        if (Date.now() - lastBlur > 1500) return;
+        if (Date.now() - lastPointer < 700) return;   // المستخدم لمس شيئًا آخر بنفسه
+        var a = document.activeElement;
+        if (a && a !== document.body && a !== document.documentElement) return;
+        try { el.focus({ preventScroll: true }); } catch (err) { try { el.focus(); } catch (e2) {} }
+      }, 40);
+    }, true);
+
+    /* (3) Virtual Keyboard API: قياس ارتفاع الكيبورد وإظهار الحقل فوقه */
     if ('virtualKeyboard' in navigator) {
       try {
         navigator.virtualKeyboard.addEventListener('geometrychange', function () {
-          var kb = navigator.virtualKeyboard.boundingRect || {};
-          var hgt = kb.height || 0;
+          var hgt = (navigator.virtualKeyboard.boundingRect || {}).height || 0;
           document.documentElement.style.setProperty('--kb-height', hgt + 'px');
           var el = document.activeElement;
-          if (el && el.matches && el.matches(FIELDS)) {
+          if (el && isField(el)) {
             var r = el.getBoundingClientRect();
             var limit = window.innerHeight - hgt - 16;
             if (r.bottom > limit) window.scrollBy(0, r.bottom - limit);
@@ -1561,9 +1586,6 @@
         });
       } catch (e) {}
     }
-    window.addEventListener('resize', keepFocus);
-    window.addEventListener('orientationchange', function () { setTimeout(keepFocus, 150); });
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', keepFocus);
   })();
 </script>
 
@@ -2113,11 +2135,11 @@
       <div id="auth-login-err" style="background:#ef44441a;border:1px solid #ef444455;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px;display:none"></div>
       <div class="form-group">
         <label class="form-label">اسم المستخدم</label>
-        <input class="form-input" type="text" id="auth-login-user" placeholder="أدخل اسم المستخدم" autocapitalize="none" style="direction:ltr;text-align:left" autocomplete="off">
+        <input class="form-input login-field" type="text" id="alfa-f1" name="alfa-f1" placeholder="أدخل اسم المستخدم" autocapitalize="none" inputmode="text" autocomplete="off" readonly style="direction:ltr;text-align:left">
       </div>
       <div class="form-group">
         <label class="form-label">كلمة السر</label>
-        <input class="form-input" type="password" id="auth-login-pass" placeholder="أدخل كلمة السر" style="direction:ltr;text-align:left" autocomplete="new-password">
+        <input class="form-input login-field" type="password" id="alfa-f2" name="alfa-f2" placeholder="أدخل كلمة السر" inputmode="text" autocomplete="new-password" readonly style="direction:ltr;text-align:left">
       </div>
       <button class="btn-submit" id="btn-do-login">تسجيل الدخول</button>
       <p class="hint-text" style="margin-top:14px">ليس لديك حساب؟ <a href="#" onclick="showAuthPanel('signup1');return false" style="color:var(--accent2);font-weight:700;text-decoration:none">إنشاء حساب جديد</a></p>
@@ -2129,7 +2151,7 @@
       <div class="modal-title">📝 إنشاء حساب — الخطوة 1</div>
       <div class="form-group">
         <label class="form-label">الاسم الكامل</label>
-        <input class="form-input" type="text" id="auth-fullname" placeholder="أدخل اسمك الكامل" autocomplete="off">
+        <input class="form-input login-field" type="text" id="alfa-f3" name="alfa-f3" placeholder="أدخل اسمك الكامل" inputmode="text" autocomplete="off" readonly>
       </div>
       <div class="form-group">
         <label class="form-label">نوع الدوام</label>
@@ -2157,15 +2179,15 @@
       <div id="auth-sign-err" style="background:#ef44441a;border:1px solid #ef444455;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px;display:none"></div>
       <div class="form-group">
         <label class="form-label">اسم المستخدم (إنجليزي)</label>
-        <input class="form-input" type="text" id="auth-sign-user" placeholder="مثال: ahmed123" autocapitalize="none" style="direction:ltr;text-align:left" autocomplete="off">
+        <input class="form-input login-field" type="text" id="alfa-f4" name="alfa-f4" placeholder="مثال: ahmed123" autocapitalize="none" inputmode="text" autocomplete="off" readonly style="direction:ltr;text-align:left">
       </div>
       <div class="form-group">
         <label class="form-label">كلمة السر</label>
-        <input class="form-input" type="password" id="auth-sign-pass" placeholder="6 أحرف على الأقل" style="direction:ltr;text-align:left" autocomplete="new-password">
+        <input class="form-input login-field" type="password" id="alfa-f5" name="alfa-f5" placeholder="6 أحرف على الأقل" inputmode="text" autocomplete="new-password" readonly style="direction:ltr;text-align:left">
       </div>
       <div class="form-group">
         <label class="form-label">إعادة كلمة السر</label>
-        <input class="form-input" type="password" id="auth-sign-pass2" placeholder="أعد كتابة كلمة السر" style="direction:ltr;text-align:left" autocomplete="new-password">
+        <input class="form-input login-field" type="password" id="alfa-f6" name="alfa-f6" placeholder="أعد كتابة كلمة السر" inputmode="text" autocomplete="new-password" readonly style="direction:ltr;text-align:left">
       </div>
       <button class="btn-submit" id="btn-do-signup">إنشاء الحساب</button>
       <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:8px;color:var(--text-secondary)" onclick="showAuthPanel('signup1')">رجوع</button>
@@ -2745,8 +2767,8 @@ window.showAuthPanel = function(name) {
 
 // ── LOGIN (Firebase Auth) ──
 async function doLogin() {
-  const uEl = document.getElementById('auth-login-user');
-  const pEl = document.getElementById('auth-login-pass');
+  const uEl = document.getElementById('alfa-f1');
+  const pEl = document.getElementById('alfa-f2');
   if (!uEl || !pEl) return;
   const username = uEl.value.trim().toLowerCase();
   const password = pEl.value;
@@ -2776,7 +2798,7 @@ window.authNextStep = function() {
   const sectionErr = document.getElementById('auth-section-err');
   if (shiftErr) shiftErr.textContent = '';
   if (sectionErr) sectionErr.textContent = '';
-  const nameEl = document.getElementById('auth-fullname');
+  const nameEl = document.getElementById('alfa-f3');
   const shift = document.querySelector('input[name="auth-shift"]:checked');
   const section = document.querySelector('input[name="auth-section"]:checked');
   if (!nameEl || nameEl.value.trim().length < 3) { showToast('⚠️','تنبيه','أدخل اسمك الكامل (3 أحرف على الأقل)'); return; }
@@ -2787,10 +2809,10 @@ window.authNextStep = function() {
 
 // إنشاء حساب جديد (Firebase Auth)
 window.doAuthSignup = async function() {
-  const uEl = document.getElementById('auth-sign-user');
-  const pEl = document.getElementById('auth-sign-pass');
-  const p2El = document.getElementById('auth-sign-pass2');
-  const nameEl = document.getElementById('auth-fullname');
+  const uEl = document.getElementById('alfa-f4');
+  const pEl = document.getElementById('alfa-f5');
+  const p2El = document.getElementById('alfa-f6');
+  const nameEl = document.getElementById('alfa-f3');
   if (!uEl || !pEl || !p2El) return;
   showAuthErr('auth-sign-err');
   const username = uEl.value.trim().toLowerCase();
@@ -5391,8 +5413,8 @@ window.handleModalOverlayClick = function(e, id) {
 
 document.getElementById('btn-open-login')?.addEventListener('click', () => { showAuthPanel('login'); openModal('login-modal'); });
 document.getElementById('btn-do-login')?.addEventListener('click', doLogin);
-document.getElementById('auth-login-user')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('auth-login-pass')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('alfa-f1')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('alfa-f2')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('btn-auth-next')?.addEventListener('click', authNextStep);
 document.getElementById('btn-do-signup')?.addEventListener('click', doAuthSignup);
 
