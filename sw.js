@@ -1,19 +1,22 @@
-const CACHE_NAME = 'alfaclass-v2';
+const CACHE_NAME = 'alfaclass-v13';
 const DYNAMIC_CACHE = 'alfaclass-images-v1';
 const urlsToCache = [
   './',
   './index.html',
-  './صور/ألفاكلاس.png',
-  './صور/غلاف موقع.png'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable-512.png',
+  './apple-touch-icon.png',
+  './icon.svg'
 ];
 
 // تنصيب Service Worker وتخزين الملفات الأساسية
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache).catch(() => {}))
   );
 });
 
@@ -29,49 +32,56 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// جلب الملفات من الكاش مع تخزين الصور ديناميكياً للعمل بدون إنترنت
+// تخزين/إرجاع الصور بأسلوب Cache First
+function cacheFirstImage(req) {
+  return caches.match(req).then(cachedRes => {
+    if (cachedRes) return cachedRes; // إرجاع الصورة من الكاش إذا كانت موجودة
+    return fetch(req).then(fetchRes => {
+      return caches.open(DYNAMIC_CACHE).then(cache => {
+        cache.put(req, fetchRes.clone()); // حفظ نسخة من الصورة الجديدة
+        return fetchRes;
+      });
+    }).catch(() => {
+      // صورة فارغة بدلاً من خطأ TypeError
+      return new Response(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>',
+        { headers: { 'Content-Type': 'image/svg+xml' } }
+      );
+    });
+  });
+}
+
+// جلب الملفات: الصور Cache First، وملفات التطبيق Stale-While-Revalidate (سريعة + تحديث بالخلفية)
 self.addEventListener('fetch', event => {
   const req = event.request;
+  if (req.method !== 'GET') return; // لا نتدخل في طلبات الرفع (POST/PUT)
 
-  // إذا كان الطلب لصورة (مثل صور المنشورات من Cloudinary)
-  if (req.destination === 'image' || req.url.includes('res.cloudinary.com')) {
-    event.respondWith(
-      caches.match(req).then(cachedRes => {
-        if (cachedRes) return cachedRes; // إرجاع الصورة من الكاش إذا كانت موجودة
-        
-        return fetch(req).then(fetchRes => {
-          return caches.open(DYNAMIC_CACHE).then(cache => {
-            cache.put(req, fetchRes.clone()); // حفظ نسخة من الصورة الجديدة في الكاش
-            return fetchRes;
-          });
-        }).catch(() => {
-          // إرجاع صورة فارغة بدلاً من إحداث خطأ TypeError في المتصفح
-          return new Response(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>',
-            { headers: { 'Content-Type': 'image/svg+xml' } }
-          );
-        });
-      })
-    );
-  } else {
-    // التعامل مع باقي الملفات الأساسية باستراتيجية (Network First) لضمان حصول المستخدم على التحديثات
-    event.respondWith(
-      fetch(req).then(fetchRes => {
-        // حفظ نسخة في الكاش فقط إذا كان الطلب من نوع GET لمنع أخطاء الرفع
-        if (req.method === 'GET') {
-          const resClone = fetchRes.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
-        }
-        return fetchRes;
-      }).catch(() => {
-        return caches.match(req).then(response => {
-          return response || new Response('Offline', { status: 503 });
-        });
-      })
-    );
+  const url = new URL(req.url);
+
+  // الصور (بما فيها صور Cloudinary) → Cache First
+  if (req.destination === 'image' || url.hostname.indexOf('res.cloudinary.com') !== -1) {
+    event.respondWith(cacheFirstImage(req));
+    return;
   }
+
+  // الطلبات الخارجية (Firebase / Fonts / APIs) → تُترك للشبكة بدون تدخل
+  if (url.origin !== self.location.origin) return;
+
+  // ملفات التطبيق الأساسية → Stale-While-Revalidate
+  event.respondWith(
+    caches.match(req).then(cached => {
+      const network = fetch(req).then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        }
+        return res;
+      }).catch(() => cached || new Response('Offline', { status: 503 }));
+      return cached || network; // الإرجاع الفوري من الكاش إن وُجد، مع التحديث في الخلفية
+    })
+  );
 });

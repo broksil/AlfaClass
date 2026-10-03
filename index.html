@@ -8,10 +8,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ألفاكلاس">
 <title>ألفاكلاس</title>
-<link rel="icon" type="image/png" sizes="32x32" href="صور\alf.png">
-<link rel="apple-touch-icon" sizes="180x180" href="صور\alf.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
+<!-- الأداء: تسريع الاتصال بالمصادر الحرجة -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://api.cloudinary.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -110,9 +115,10 @@
     background: linear-gradient(90deg, var(--accent), var(--accent2));
     border-radius: 99px;
     box-shadow: 0 0 15px var(--accent-glow);
-    animation: loadBar 1s ease forwards;
+    animation: loadBar 1s ease forwards, loadPulse 1.4s ease-in-out 1s infinite;
   }
   @keyframes loadBar { to { width: 100%; } }
+  @keyframes loadPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
   /* ── HEADER ── */
   #app { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; }
@@ -133,17 +139,17 @@
   }
 
   .header-brand {
-    display: flex; align-items: center; gap: 0;
-    text-decoration: none;
-    flex-shrink: 0;
-  }
-  .header-logo {
-    width: 72px; height: 56px;
     display: flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
   }
   .header-name {
     font-size: 20px; font-weight: 900;
-    margin-right: -12px;
+    margin: 0;
+    white-space: nowrap;
     background: linear-gradient(135deg, #fff 30%, var(--accent2));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     letter-spacing: -0.3px;
@@ -1166,6 +1172,274 @@
     background: #6b7280 !important;
     animation: none !important;
   }
+
+  /* ── AUTH MODAL PANELS ── */
+  .auth-panel { display: none; animation: authFadeIn 0.3s ease both; }
+  .auth-panel.on { display: block; }
+  @keyframes authFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .auth-seg-btn {
+    display: block; text-align: center; padding: 11px;
+    border: 1.5px solid var(--border); border-radius: 14px;
+    background: rgba(255,255,255,0.05); cursor: pointer;
+    font-weight: 600; transition: all 0.2s; font-family: var(--font); font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .auth-seg-btn:hover { background: rgba(255,255,255,0.08); }
+  input[type=radio]:checked + .auth-seg-btn {
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    border-color: var(--accent); color: #fff;
+    box-shadow: 0 3px 14px var(--accent-glow);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     واجهة إدارة الحساب والملف الشخصي (Account & Profile)
+     كل الأنماط محصورة داخل .acc حتى لا تتأثر بقية الموقع
+     ══════════════════════════════════════════════════════════════ */
+  .acc {
+    --a-bg: #0b0f19;
+    --a-surface: #0f172a;
+    --a-card: #1e293b;
+    --a-field: rgba(15,23,42,0.75);
+    --a-line: rgba(148,163,184,0.16);
+    --a-gold: #f5c04a;
+    --a-gold-soft: rgba(245,192,74,0.14);
+    --a-gold-ink: #1a1203;
+    --a-text: #e8edf6;
+    --a-muted: #94a3b8;
+    --a-red: #ef4444;
+    --a-red-soft: rgba(239,68,68,0.12);
+    font-family: var(--font);
+    color: var(--a-text);
+  }
+  html[data-theme="light"] .acc {
+    --a-bg: #f4f6fb;
+    --a-surface: #ffffff;
+    --a-card: #ffffff;
+    --a-field: #f1f5f9;
+    --a-line: rgba(15,23,42,0.12);
+    --a-gold: #b7791f;
+    --a-gold-soft: rgba(183,121,31,0.12);
+    --a-gold-ink: #ffffff;
+    --a-text: #0f172a;
+    --a-muted: #475569;
+    --a-red-soft: rgba(239,68,68,0.10);
+  }
+
+  /* ── ثيم فاتح لبقية الموقع (يُفعَّل من إعدادات المظهر) ── */
+  html[data-theme="light"] {
+    --bg-primary: #f1f4fa;
+    --bg-card: rgba(15,23,42,0.045);
+    --bg-card-hover: rgba(15,23,42,0.08);
+    --bg-glass: rgba(255,255,255,0.97);
+    --border: rgba(15,23,42,0.12);
+    --text-primary: #0f172a;
+    --text-secondary: rgba(30,41,59,0.78);
+    --text-muted: rgba(71,85,105,0.7);
+    --shadow-card: 0 4px 18px rgba(15,23,42,0.08);
+  }
+  html[data-theme="light"] header { background: rgba(255,255,255,0.85); border-bottom-color: rgba(15,23,42,0.08); box-shadow: 0 4px 24px rgba(15,23,42,0.08); }
+  html[data-theme="light"] .bottom-nav { background: rgba(255,255,255,0.92); border-color: rgba(15,23,42,0.10); }
+  html[data-theme="light"] .bottom-nav-item { color: rgba(51,65,85,0.7); }
+  html[data-theme="light"] body::before { opacity: 0.35; }
+  html[data-theme="light"] .form-select option { background: #fff; color: #0f172a; }
+  html[data-theme="light"] .form-input, html[data-theme="light"] .form-select, html[data-theme="light"] .form-textarea { background: rgba(15,23,42,0.04); }
+
+  #view-account { padding-bottom: 12px; }
+
+  /* ── بطاقة البروفايل العلوية ── */
+  .acc-banner {
+    display: flex; align-items: center; gap: 16px;
+    background: linear-gradient(135deg, var(--a-surface), var(--a-card));
+    border: 1px solid var(--a-line);
+    border-radius: 24px; padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.28);
+  }
+  .acc-avatar {
+    position: relative; flex-shrink: 0;
+    width: 76px; height: 76px; border-radius: 50%;
+    border: 2px solid var(--a-gold);
+    background: var(--a-field) center/cover no-repeat;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 800; color: var(--a-gold);
+    cursor: pointer; overflow: visible; padding: 0;
+  }
+  .acc-avatar:active { transform: scale(0.95); }
+  .acc-avatar-edit {
+    position: absolute; bottom: -2px; inset-inline-start: -2px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--a-gold); color: var(--a-gold-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; border: 2px solid var(--a-surface);
+  }
+  .acc-avatar.loading::after {
+    content: ''; position: absolute; inset: -2px; border-radius: 50%;
+    border: 3px solid transparent; border-top-color: var(--a-gold);
+    animation: accSpin .8s linear infinite;
+  }
+  @keyframes accSpin { to { transform: rotate(360deg); } }
+  .acc-banner-info { min-width: 0; flex: 1; }
+  .acc-banner-name { font-size: 18px; font-weight: 800; line-height: 1.4; overflow-wrap: anywhere; }
+  .acc-banner-user { font-size: 13px; color: var(--a-muted); direction: ltr; text-align: start; margin: 2px 0 8px; }
+  html[dir="rtl"] .acc-banner-user, .acc[dir="rtl"] .acc-banner-user { text-align: right; }
+  .acc-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--a-gold-soft); color: var(--a-gold);
+    border: 1px solid rgba(245,192,74,0.35);
+    border-radius: 99px; padding: 3px 12px; font-size: 12px; font-weight: 700;
+  }
+  /* ── العناوين والبطاقات ── */
+  .acc-section-title { font-size: 13px; font-weight: 700; color: var(--a-muted); margin: 22px 6px 10px; letter-spacing: .2px; }
+  .acc-card {
+    background: var(--a-surface);
+    border: 1px solid var(--a-line);
+    border-radius: 20px; padding: 18px;
+    margin-bottom: 12px;
+  }
+  .acc-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-weight: 800; font-size: 15px; }
+  .acc-card-head .ico, .acc-row .ico {
+    width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
+    background: var(--a-gold-soft); color: var(--a-gold);
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+  }
+  .acc-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 520px) { .acc-grid.two { grid-template-columns: 1fr 1fr; } }
+  .acc-field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--a-muted); margin-bottom: 7px; }
+  .acc-input, .acc-select {
+    width: 100%; padding: 12px 14px;
+    background: var(--a-field); color: var(--a-text);
+    border: 1px solid var(--a-line); border-radius: 14px;
+    font-family: var(--font); font-size: 14.5px; outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .acc-select {
+    cursor: pointer; padding-inline-end: 38px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: left 14px center;
+  }
+  .acc[dir="ltr"] .acc-select { background-position: right 14px center; }
+  .acc-select option { background: #0f172a; color: #e8edf6; }
+  html[data-theme="light"] .acc-select option { background: #fff; color: #0f172a; }
+  .acc-input:focus, .acc-select:focus { border-color: var(--a-gold); box-shadow: 0 0 0 3px var(--a-gold-soft); }
+  .acc-input.invalid, .acc-select.invalid { border-color: var(--a-red); }
+  .acc-other { margin-top: 8px; display: none; }
+  .acc-other.show { display: block; }
+  .acc-err { color: var(--a-red); font-size: 12px; margin-top: 6px; min-height: 0; }
+  .acc-err:empty { display: none; }
+  .acc-hint { color: var(--a-muted); font-size: 12px; line-height: 1.7; margin-top: 8px; }
+
+  /* أزرار اختيار (segmented) */
+  .acc-seg { display: flex; gap: 8px; }
+  .acc-seg button {
+    flex: 1; padding: 11px 8px; border-radius: 14px;
+    background: var(--a-field); color: var(--a-muted);
+    border: 1px solid var(--a-line);
+    font-family: var(--font); font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all .2s;
+  }
+  .acc-seg button.on { background: var(--a-gold-soft); color: var(--a-gold); border-color: var(--a-gold); }
+  /* الأزرار */
+  .acc-btn {
+    width: 100%; padding: 14px; border-radius: 16px; border: none;
+    font-family: var(--font); font-size: 15px; font-weight: 800; cursor: pointer;
+    background: var(--a-gold); color: var(--a-gold-ink);
+    transition: transform .15s, opacity .2s;
+  }
+  .acc-btn:active { transform: scale(0.97); }
+  .acc-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .acc-btn.ghost { background: var(--a-field); color: var(--a-text); border: 1px solid var(--a-line); }
+  .acc-btn.danger { background: var(--a-red); color: #fff; }
+  .acc-btn.danger-soft { background: var(--a-red-soft); color: var(--a-red); border: 1px solid rgba(239,68,68,0.4); }
+  .acc-btn-sm { width: auto; padding: 9px 16px; font-size: 13px; border-radius: 12px; }
+
+  /* صفوف القوائم */
+  .acc-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 12px 4px; background: none; border: none; color: inherit;
+    font-family: var(--font); font-size: 14.5px; font-weight: 600; text-align: start; cursor: pointer;
+    border-bottom: 1px solid var(--a-line);
+  }
+  .acc-row:last-child { border-bottom: none; }
+  .acc-row .grow { flex: 1; min-width: 0; }
+  .acc-row .sub { display: block; font-size: 12px; font-weight: 500; color: var(--a-muted); margin-top: 2px; direction: ltr; text-align: start; }
+  .acc-row .chev { color: var(--a-muted); font-size: 16px; }
+  .acc[dir="rtl"] .acc-row .chev { transform: scaleX(-1); }
+  .acc-row .val { color: var(--a-gold); font-size: 13px; font-weight: 700; }
+
+  /* مفتاح التبديل */
+  .acc-switch { position: relative; width: 50px; height: 28px; flex-shrink: 0; }
+  .acc-switch input { opacity: 0; width: 100%; height: 100%; position: absolute; margin: 0; cursor: pointer; z-index: 1; }
+  .acc-switch span { position: absolute; inset: 0; background: var(--a-field); border: 1px solid var(--a-line); border-radius: 99px; transition: .25s; }
+  .acc-switch span::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--a-muted); transition: .25s; }
+  .acc-switch input:checked + span { background: var(--a-gold-soft); border-color: var(--a-gold); }
+  .acc-switch input:checked + span::after { background: var(--a-gold); transform: translateX(-22px); }
+  .acc[dir="ltr"] .acc-switch input:checked + span::after { transform: translateX(22px); }
+  /* الفترة الدراسية */
+  .acc-period { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .acc-period-val { font-size: 16px; font-weight: 800; color: var(--a-gold); }
+  .acc-period-sub { font-size: 12px; color: var(--a-muted); margin-top: 3px; }
+
+  /* الخيارات المتقدمة (منطوية) */
+  .acc-adv summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px;
+    font-weight: 800; font-size: 15px;
+  }
+  .acc-adv summary::-webkit-details-marker { display: none; }
+  .acc-adv summary .chev { margin-inline-start: auto; color: var(--a-muted); transition: transform .25s; }
+  .acc-adv[open] summary .chev { transform: rotate(180deg); }
+  .acc-adv-body { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--a-line); }
+
+  .acc-footer { text-align: center; color: var(--a-muted); font-size: 12px; margin: 22px 0 6px; }
+  .acc-footer a { color: var(--a-gold); text-decoration: none; font-weight: 700; }
+  .acc-center { text-align: center; }
+  .acc-guest-ico { font-size: 44px; margin-bottom: 10px; }
+
+  /* نوافذ الحساب (تعتمد على .modal-overlay الموجود في الموقع) */
+  .modal-box.acc {
+    background: var(--a-surface); border: 1px solid var(--a-line);
+    color: var(--a-text); max-width: 480px;
+  }
+  .modal-box.acc .modal-handle { background: var(--a-line); }
+  .modal-box.acc .modal-title { color: var(--a-text); }
+  .acc-prefix-wrap { position: relative; direction: ltr; }
+  .acc-prefix-wrap .at { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--a-gold); font-weight: 800; }
+  .acc-prefix-wrap .acc-input { padding-left: 34px; text-align: left; direction: ltr; }
+  .acc-rules { margin: 12px 0 0; padding: 0; list-style: none; }
+  .acc-rules li { font-size: 12.5px; color: var(--a-muted); padding: 3px 0; display: flex; gap: 8px; }
+  .acc-rules li.ok { color: #4ade80; }
+  .acc-rules li.bad { color: var(--a-red); }
+  .acc-warn {
+    background: var(--a-gold-soft); border: 1px solid rgba(245,192,74,0.3);
+    color: var(--a-gold); border-radius: 14px; padding: 11px 14px; font-size: 12.5px; line-height: 1.7; margin-bottom: 14px;
+  }
+  .acc-warn.red { background: var(--a-red-soft); border-color: rgba(239,68,68,0.4); color: var(--a-red); }
+  .acc-emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .acc-emoji-grid button {
+    aspect-ratio: 1; font-size: 26px; border-radius: 14px; cursor: pointer;
+    background: var(--a-field); border: 1px solid var(--a-line); transition: transform .15s;
+  }
+  .acc-emoji-grid button:active { transform: scale(0.9); }
+  .acc-emoji-grid button.on { background: var(--a-gold-soft); border-color: var(--a-gold); }
+  .acc-legal { font-size: 13.5px; line-height: 1.95; color: var(--a-text); }
+  .acc-legal h4 { margin: 16px 0 4px; font-size: 14.5px; color: var(--a-gold); }
+  .acc-legal p, .acc-legal li { color: var(--a-muted); }
+  .acc-legal ul { padding-inline-start: 20px; margin: 4px 0; }
+  .acc-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .acc-actions .acc-btn { flex: 1; }
+  .acc-textarea { min-height: 110px; resize: none; line-height: 1.7; }
+
+  /* عرض البيانات الشخصية داخل الملف الشخصي (قراءة فقط) */
+  .acc-info-list { display: flex; flex-direction: column; }
+  .acc-info-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--a-line); font-size: 13.5px; }
+  .acc-info-row:last-child { border-bottom: none; }
+  .acc-info-row .k { color: var(--a-muted); font-weight: 600; flex-shrink: 0; }
+  .acc-info-row .v { color: var(--a-text); font-weight: 700; text-align: end; overflow-wrap: anywhere; }
+
+  /* إخفاء زر تسجيل الدخول ومعلومات المستخدم من الهيدر (متاحان داخل قسم الحساب) */
+  #btn-open-login, #user-info { display: none !important; }
+  /* أيقونة الإشعارات في زاوية الهيدر */
+  header .header-actions { margin-inline-start: auto; }
 </style>
 </head>
 <body>
@@ -1176,12 +1450,40 @@
   <div class="loading-bar"><div class="loading-bar-inner"></div></div>
 </div>
 
+<!-- LOADING SCREEN SAFETY NET -->
+<!-- يضمن إخفاء شاشة التحميل حتى لو فشل تحميل وحدات Firebase (انترنت ضعيف / محجوب) أو حدث أي خطأ -->
+<script>
+  // دالة موحّدة لإخفاء شاشة التحميل وإظهار التطبيق
+  window.__hideLoadingScreen = function () {
+    var appEl = document.getElementById('app');
+    if (appEl) { appEl.style.display = 'flex'; appEl.style.flexDirection = 'column'; }
+    var el = document.getElementById('loading-screen');
+    if (!el) return;
+    el.classList.add('hide');
+    setTimeout(function () { if (el.parentNode) el.remove(); }, 700);
+  };
+  // شبكة أمان: إخفاء قسري للشاشة بعد 8 ثوانٍ كحد أقصى مهما حدث
+  window.__loadingWatchdog = setTimeout(window.__hideLoadingScreen, 8000);
+  // التقط أي خطأ فادح أثناء تحميل الصفحة وأخفِ الشاشة بدل تعليقها
+  window.addEventListener('error', function (e) {
+    // أخفِ الشاشة فقط عند فشل تحميل سكربت (مثل وحدات Firebase من الإنترنت)
+    if (document.getElementById('loading-screen') && e && e.target && e.target.tagName === 'SCRIPT') {
+      window.__hideLoadingScreen();
+    }
+  }, true);
+  // تسجيل Service Worker مبكرًا (شرط أساسي لتفعيل التثبيت كتطبيق PWA)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
+
 <!-- MAIN APP -->
 <div id="app" style="display:none">
 
   <header>
     <div class="header-brand">
-      <div class="header-logo"><img src="صور/ألفاكلاس.png" alt="شعار" style="width:100%;height:100%;object-fit:contain;"></div>
       <div class="header-name">ألفاكلاس</div>
     </div>
     <div class="header-actions">
@@ -1261,6 +1563,125 @@
         <div class="pagination" id="materials-pagination"></div>
       </div>
     </div>
+  <!-- ── قسم الحساب والملف الشخصي ── -->
+    <div id="view-account" class="acc" dir="rtl" style="display:none">
+
+      <!-- حالة الزائر (غير مسجّل) -->
+      <div id="acc-guest" class="acc-card acc-center" style="display:none">
+        <div class="acc-guest-ico">👤</div>
+        <div style="font-weight:800;font-size:17px;margin-bottom:6px" data-i18n="guestTitle">سجّل الدخول لإدارة حسابك</div>
+        <div class="acc-hint" style="margin-bottom:16px" data-i18n="guestDesc">بعد تسجيل الدخول تستطيع تعديل بياناتك الدراسية واسم المستخدم وتخصيص المظهر.</div>
+        <button class="acc-btn" data-act="open-login" data-i18n="login">تسجيل الدخول</button>
+      </div>
+
+      <div id="acc-main" style="display:none">
+
+        <!-- الهيدر: بطاقة البروفايل -->
+        <div class="acc-banner">
+          <button class="acc-avatar" id="acc-avatar" data-act="pick-avatar" aria-label="تغيير الصورة الشخصية">
+            <span id="acc-avatar-letter">؟</span>
+            <span class="acc-avatar-edit">📷</span>
+          </button>
+          <input type="file" id="acc-avatar-file" accept="image/*" hidden>
+          <div class="acc-banner-info">
+            <div class="acc-banner-name" id="acc-name">—</div>
+            <div class="acc-banner-user" id="acc-username">@—</div>
+            <span class="acc-badge" id="acc-badge">🎓 طالب</span>
+          </div>
+        </div>
+    <!-- عرض البيانات الشخصية داخل الملف الشخصي -->
+        <div class="acc-card">
+          <div class="acc-card-head"><span class="ico">📝</span><span data-i18n="personalData">البيانات الشخصية</span></div>
+          <div class="acc-info-list">
+            <div class="acc-info-row"><span class="k" data-i18n="governorate">المحافظة</span><span class="v" id="acc-v-governorate">—</span></div>
+            <div class="acc-info-row"><span class="k" data-i18n="university">الجامعة</span><span class="v" id="acc-v-university">—</span></div>
+            <div class="acc-info-row"><span class="k" data-i18n="college">الكلية</span><span class="v" id="acc-v-college">—</span></div>
+            <div class="acc-info-row"><span class="k" data-i18n="department">القسم</span><span class="v" id="acc-v-department">—</span></div>
+            <div class="acc-info-row"><span class="k" data-i18n="shift">نوع الدوام</span><span class="v" id="acc-v-shift">—</span></div>
+            <div class="acc-info-row"><span class="k" data-i18n="stage">المرحلة الدراسية</span><span class="v" id="acc-v-stage">—</span></div>
+            <div class="acc-info-row"><span class="k" data-i18n="section">الشعبة</span><span class="v" id="acc-v-section">—</span></div>
+          </div>
+        </div>
+
+        <!-- إدارة الحساب -->
+        <div class="acc-section-title" data-i18n="secAccount">إدارة الحساب</div>
+
+        <div class="acc-card" style="padding-top:6px;padding-bottom:6px">
+          <button class="acc-row" data-act="open-manage">
+            <span class="ico">⚙️</span>
+            <span class="grow"><span data-i18n="manageAccount">إدارة الحساب</span><span class="sub" data-i18n="manageAccountSub" style="direction:inherit">تعديل بياناتك الشخصية والدراسية</span></span>
+            <span class="chev">›</span>
+          </button>
+          <button class="acc-row" data-act="open-username">
+            <span class="ico">@</span>
+            <span class="grow"><span data-i18n="changeUsername">تغيير اسم المستخدم</span><span class="sub" id="acc-row-username">@—</span></span>
+            <span class="chev">›</span>
+          </button>
+        </div>
+    <!-- الفترة الدراسية -->
+        <div class="acc-section-title" data-i18n="secPeriod">الفترة الدراسية</div>
+        <div class="acc-card">
+          <div class="acc-period">
+            <div>
+              <div class="acc-period-val" id="acc-period-val">—</div>
+              <div class="acc-period-sub" data-i18n="periodSub">الكورس والمرحلة المعروضان حالياً</div>
+            </div>
+            <button class="acc-btn acc-btn-sm ghost" data-act="open-period" data-i18n="change">تغيير</button>
+          </div>
+        </div>
+
+        <!-- المظهر واللغة والتفاعل -->
+        <div class="acc-section-title" data-i18n="secPrefs">التفضيلات</div>
+        <div class="acc-card">
+          <div class="acc-field" style="margin-bottom:6px">
+            <label data-i18n="appearance">مظهر التطبيق</label>
+            <div class="acc-seg" id="acc-seg-theme">
+              <button type="button" data-val="dark">🌙 <span data-i18n="dark">داكن</span></button>
+              <button type="button" data-val="light">☀️ <span data-i18n="light">فاتح</span></button>
+              <button type="button" data-val="auto">🌗 <span data-i18n="auto">تلقائي</span></button>
+            </div>
+          </div>
+          <div class="acc-row" style="margin-top:8px">
+            <span class="ico">🌐</span>
+            <span class="grow"><span data-i18n="langEnglish">اللغة الإنجليزية</span><span class="sub" data-i18n="langSub" style="direction:inherit">بدّل الواجهة بين العربية والإنجليزية</span></span>
+            <label class="acc-switch"><input type="checkbox" id="acc-lang-switch" aria-label="English"><span></span></label>
+          </div>
+          <button class="acc-row" data-act="open-emoji">
+            <span class="ico">😍</span>
+            <span class="grow"><span data-i18n="quickReaction">وجه التفاعل السريع</span><span class="sub" data-i18n="quickReactionSub" style="direction:inherit">التفاعل الافتراضي داخل المنصة</span></span>
+            <span class="val" id="acc-emoji-val" style="font-size:24px">👍</span>
+          </button>
+        </div>
+
+        <!-- خيارات متقدمة -->
+        <div class="acc-section-title" data-i18n="secSecurity">الحماية</div>
+        <div class="acc-card" style="padding-top:6px;padding-bottom:6px;margin-bottom:12px">
+          <button class="acc-row" data-act="open-password">
+            <span class="ico">🔑</span>
+            <span class="grow"><span data-i18n="changePassword">تغيير كلمة السر</span><span class="sub" data-i18n="changePasswordSub" style="direction:inherit">تعيين كلمة سر جديدة لحسابك</span></span>
+            <span class="chev">›</span>
+          </button>
+        </div>
+        <details class="acc-card acc-adv">
+          <summary><span class="ico" style="width:36px;height:36px;border-radius:12px;background:var(--a-red-soft);color:var(--a-red);display:flex;align-items:center;justify-content:center">⚠️</span><span data-i18n="advanced">خيارات الحساب المتقدمة</span><span class="chev">▾</span></summary>
+          <div class="acc-adv-body">
+            <button class="acc-btn ghost" data-act="ask-logout" data-i18n="logoutAccount">تسجيل الخروج من الحساب</button>
+            <div class="acc-hint" style="margin:12px 0" data-i18n="deleteHint">يُجدوَل حذف الحساب بعد كتابة الصلاة، ويُلغى تلقائياً إذا سجّلت الدخول خلال 7 أيام.</div>
+            <button class="acc-btn danger" data-act="open-delete" data-i18n="deleteAccount">حذف الحساب نهائياً</button>
+          </div>
+        </details>
+
+        <!-- الدعم والمعلومات -->
+        <div class="acc-section-title" data-i18n="secSupport">الدعم والمعلومات</div>
+        <div class="acc-card" style="padding-top:6px;padding-bottom:6px">
+          <button class="acc-row" data-act="open-contact"><span class="ico">💬</span><span class="grow" data-i18n="contact">تواصل معنا</span><span class="chev">›</span></button>
+          <button class="acc-row" data-act="open-privacy"><span class="ico">🔒</span><span class="grow" data-i18n="privacy">سياسة الخصوصية</span><span class="chev">›</span></button>
+          <button class="acc-row" data-act="open-terms"><span class="ico">📄</span><span class="grow" data-i18n="terms">الشروط والأحكام</span><span class="chev">›</span></button>
+          <a class="acc-row" id="acc-instagram" href="#" target="_blank" rel="noopener" style="text-decoration:none"><span class="ico">📸</span><span class="grow" data-i18n="instagram">حسابنا على إنستغرام</span><span class="chev">›</span></a>
+        </div>
+        <div class="acc-footer"><span data-i18n="version">الإصدار</span> <b id="acc-version">1.0.0</b></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -1274,11 +1695,226 @@
     <span class="nav-icon">📚</span>
     <span class="nav-label">ملازم</span>
   </button>
-  <button class="bottom-nav-item" id="nav-user" onclick="document.getElementById('btn-open-login').click()">
+  <button class="bottom-nav-item" id="nav-user" onclick="setActiveNav('user')">
     <span class="nav-icon">👤</span>
     <span class="nav-label">الحساب</span>
   </button>
 </nav>
+
+<!-- ══════════ نوافذ الحساب والملف الشخصي ══════════ -->
+
+<!-- تأكيد تسجيل الخروج -->
+<div class="modal-overlay" id="acc-logout-modal" onclick="handleModalOverlayClick(event,'acc-logout-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="logoutConfirmTitle">تسجيل الخروج</div>
+    <div class="acc-hint acc-center" style="margin:0 0 6px;font-size:14.5px;color:var(--a-text)" data-i18n="logoutConfirmMsg">هل تريد الخروج من حسابك؟</div>
+    <div class="acc-actions">
+      <button class="acc-btn ghost" onclick="closeModal('acc-logout-modal')" data-i18n="cancel">إلغاء</button>
+      <button class="acc-btn danger" id="acc-logout-confirm" data-act="confirm-logout" data-i18n="logoutYes">نعم، خروج</button>
+    </div>
+  </div>
+</div>
+
+<!-- تغيير كلمة السر -->
+<div class="modal-overlay" id="acc-password-modal" onclick="handleModalOverlayClick(event,'acc-password-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="changePassword">تغيير كلمة السر</div>
+    <div class="acc-field" style="margin-bottom:14px">
+      <label for="acc-np-pass" data-i18n="newPassword">كلمة السر الجديدة</label>
+      <input class="acc-input" id="acc-np-pass" type="password" autocomplete="new-password" style="direction:ltr;text-align:left">
+      <ul class="acc-rules" id="acc-np-rules">
+        <li data-r="len"><span>○</span><span data-i18n="rulePassLen">6 أحرف على الأقل</span></li>
+        <li data-r="match"><span>○</span><span data-i18n="rulePassMatch">كلمتا السر متطابقتان</span></li>
+      </ul>
+    </div>
+    <div class="acc-field" style="margin-bottom:6px">
+      <label for="acc-np-pass2" data-i18n="confirmPassword">تأكيد كلمة السر الجديدة</label>
+      <input class="acc-input" id="acc-np-pass2" type="password" autocomplete="new-password" style="direction:ltr;text-align:left">
+    </div>
+    <div class="acc-err" id="acc-np-err"></div>
+    <div class="acc-actions">
+      <button class="acc-btn ghost" onclick="closeModal('acc-password-modal')" data-i18n="cancel">إلغاء</button>
+      <button class="acc-btn" id="acc-np-save" data-act="save-password" data-i18n="saveShort">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- إدارة الحساب (تعديل البيانات) -->
+<div class="modal-overlay" id="acc-manage-modal" onclick="handleModalOverlayClick(event,'acc-manage-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="manageAccount">إدارة الحساب</div>
+    <div class="acc-grid">
+      <div class="acc-field">
+        <label for="acc-f-name" data-i18n="fullName">الاسم الكامل</label>
+        <input class="acc-input" id="acc-f-name" maxlength="60" autocomplete="name">
+        <div class="acc-err" id="acc-e-name"></div>
+      </div>
+      <div class="acc-grid two">
+        <div class="acc-field"><label data-i18n="governorate">المحافظة</label><div id="acc-sel-governorate"></div></div>
+        <div class="acc-field"><label data-i18n="university">الجامعة</label><div id="acc-sel-university"></div></div>
+        <div class="acc-field"><label data-i18n="college">الكلية</label><div id="acc-sel-college"></div></div>
+        <div class="acc-field"><label data-i18n="department">القسم</label><div id="acc-sel-department"></div></div>
+      </div>
+      <div class="acc-field">
+        <label data-i18n="shift">نوع الدوام</label>
+        <div class="acc-seg" id="acc-seg-shift">
+          <button type="button" data-val="صباحي" data-i18n="morning">صباحي</button>
+          <button type="button" data-val="مسائي" data-i18n="evening">مسائي</button>
+        </div>
+        <div class="acc-err" id="acc-e-shift"></div>
+      </div>
+      <div class="acc-grid two">
+        <div class="acc-field">
+          <label for="acc-f-stage" data-i18n="stage">المرحلة الدراسية</label>
+          <select class="acc-select" id="acc-f-stage"></select>
+          <div class="acc-err" id="acc-e-stage"></div>
+        </div>
+        <div class="acc-field">
+          <label data-i18n="section">الشعبة</label>
+          <div class="acc-seg" id="acc-seg-section">
+            <button type="button" data-val="أ">أ (A)</button>
+            <button type="button" data-val="ب">ب (B)</button>
+            <button type="button" data-val="ج">ج (C)</button>
+          </div>
+          <div class="acc-err" id="acc-e-section"></div>
+        </div>
+      </div>
+    </div>
+    <div class="acc-actions">
+      <button class="acc-btn ghost" onclick="closeModal('acc-manage-modal')" data-i18n="cancel">إلغاء</button>
+      <button class="acc-btn" id="acc-save" data-act="save-profile" data-i18n="save">حفظ التغييرات</button>
+    </div>
+  </div>
+</div>
+
+<!-- تغيير اسم المستخدم -->
+<div class="modal-overlay" id="acc-username-modal" onclick="handleModalOverlayClick(event,'acc-username-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="changeUsername">تغيير اسم المستخدم</div>
+    <div class="acc-field" style="margin-bottom:14px">
+      <label for="acc-u-input" data-i18n="newUsername">اسم المستخدم الجديد</label>
+      <div class="acc-prefix-wrap"><span class="at">@</span><input class="acc-input" id="acc-u-input" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false"></div>
+      <ul class="acc-rules" id="acc-u-rules">
+        <li data-r="len"><span>○</span><span data-i18n="ruleLen">من 3 إلى 30 حرفاً</span></li>
+        <li data-r="chars"><span>○</span><span data-i18n="ruleChars">حروف إنجليزية وأرقام ونقطة وشرطة سفلية (_) فقط</span></li>
+        <li data-r="dots"><span>○</span><span data-i18n="ruleDots">لا تبدأ أو تنتهِ بنقطة ولا نقطتان متتاليتان</span></li>
+      </ul>
+    </div>
+    <div class="acc-field" style="margin-bottom:14px">
+      <label for="acc-u-pass" data-i18n="currentPassword">كلمة السر الحالية (للتأكيد)</label>
+      <input class="acc-input" id="acc-u-pass" type="password" autocomplete="current-password">
+    </div>
+    <div class="acc-warn" id="acc-u-cooldown" data-i18n="cooldownNote">يمكنك تغيير اسم المستخدم مرة واحدة كل 14 يوماً فقط.</div>
+    <div class="acc-err" id="acc-u-err"></div>
+    <div class="acc-actions">
+      <button class="acc-btn ghost" onclick="closeModal('acc-username-modal')" data-i18n="cancel">إلغاء</button>
+      <button class="acc-btn" id="acc-u-save" data-act="save-username" data-i18n="saveShort">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- تغيير الفترة الدراسية -->
+<div class="modal-overlay" id="acc-period-modal" onclick="handleModalOverlayClick(event,'acc-period-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="secPeriod">الفترة الدراسية</div>
+    <div class="acc-grid" style="margin-bottom:6px">
+      <div class="acc-field"><label for="acc-p-stage" data-i18n="stage">المرحلة الدراسية</label><select class="acc-select" id="acc-p-stage"></select></div>
+      <div class="acc-field"><label for="acc-p-course" data-i18n="course">الكورس</label><select class="acc-select" id="acc-p-course"></select></div>
+    </div>
+    <div class="acc-actions">
+      <button class="acc-btn ghost" onclick="closeModal('acc-period-modal')" data-i18n="cancel">إلغاء</button>
+      <button class="acc-btn" id="acc-p-save" data-act="save-period" data-i18n="saveShort">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- منتقي وجه التفاعل -->
+<div class="modal-overlay" id="acc-emoji-modal" onclick="handleModalOverlayClick(event,'acc-emoji-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="quickReaction">وجه التفاعل السريع</div>
+    <div class="acc-emoji-grid" id="acc-emoji-grid"></div>
+  </div>
+</div>
+<!-- تأكيد حذف الحساب -->
+<div class="modal-overlay" id="acc-delete-modal" onclick="handleModalOverlayClick(event,'acc-delete-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:var(--a-red)" data-i18n="deleteTitle">⚠️ حذف الحساب نهائياً</div>
+    <div class="acc-warn red" data-i18n="deleteWarn">لطلب الحذف اكتب الصلاة على محمد وآل محمد. لن يُحذف الحساب فوراً: يُجدوَل الحذف ويُلغى تلقائياً إذا سجّلت الدخول خلال 7 أيام، وإلا يُمسح نهائياً.</div>
+    <div class="acc-field" style="margin-bottom:6px">
+      <label for="acc-d-word" data-i18n="typeSalawat">اكتب: اللهم صلِّ على محمد وآل محمد</label>
+      <input class="acc-input" id="acc-d-word" autocomplete="off">
+      <div class="acc-hint" data-i18n="salawatHint">اكتبها كما هي لتأكيد طلب الحذف.</div>
+    </div>
+    <div class="acc-err" id="acc-d-err"></div>
+    <div class="acc-actions">
+      <button class="acc-btn ghost" onclick="closeModal('acc-delete-modal')" data-i18n="cancel">إلغاء</button>
+      <button class="acc-btn danger" id="acc-d-confirm" data-act="confirm-delete" data-i18n="deleteConfirm">تأكيد طلب الحذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- تواصل معنا -->
+<div class="modal-overlay" id="acc-contact-modal" onclick="handleModalOverlayClick(event,'acc-contact-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="contact">تواصل معنا</div>
+    <div class="acc-hint" style="margin:0 0 12px" data-i18n="contactHint">اكتب مشكلتك أو اقتراحك وسيصل إلى فريق الدعم الفني.</div>
+    <textarea class="acc-input acc-textarea" id="acc-c-text" maxlength="800"></textarea>
+    <div class="acc-err" id="acc-c-err"></div>
+    <div class="acc-actions">
+      <button class="acc-btn ghost" onclick="closeModal('acc-contact-modal')" data-i18n="cancel">إلغاء</button>
+      <button class="acc-btn" id="acc-c-send" data-act="send-contact" data-i18n="send">إرسال</button>
+    </div>
+  </div>
+</div>
+
+<!-- سياسة الخصوصية -->
+<div class="modal-overlay" id="acc-privacy-modal" onclick="handleModalOverlayClick(event,'acc-privacy-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="privacy">سياسة الخصوصية</div>
+    <div class="acc-legal">
+      <p>نلتزم في ألفاكلاس بحماية بياناتك وفق مبادئ الشفافية وتقليل البيانات، بما ينسجم مع اللائحة الأوروبية العامة لحماية البيانات (GDPR).</p>
+      <h4>البيانات التي نجمعها</h4>
+      <ul><li>الاسم الكامل واسم المستخدم.</li><li>البيانات الدراسية: المحافظة، الجامعة، الكلية، القسم، الدوام، المرحلة، الشعبة.</li><li>الصورة الشخصية إن اخترت رفعها.</li></ul>
+      <h4>كيف نستخدمها</h4>
+      <p>لتخصيص الجدول والملازم لشعبتك، وعرض اسمك في التفاعلات داخل المنصة، وتحسين الخدمة. لا نبيع بياناتك ولا نشاركها مع أي جهة إعلانية.</p>
+      <h4>حقوقك</h4>
+      <ul><li>الاطلاع على بياناتك وتعديلها في أي وقت من صفحة الحساب.</li><li>حذف حسابك وبياناتك نهائياً من «خيارات الحساب المتقدمة».</li><li>التواصل معنا لأي استفسار عن بياناتك.</li></ul>
+      <h4>الحماية والتخزين</h4>
+      <p>تُخزَّن البيانات على خدمات Google Firebase، ويتم التحقق من الهوية عبر Firebase Authentication. كلمات السر لا نطّلع عليها ولا نخزنها بشكل مقروء.</p>
+      <h4>التحديثات</h4>
+      <p>قد نحدّث هذه السياسة، وسنعرض التغييرات الجوهرية داخل المنصة.</p>
+    </div>
+    <div class="acc-actions"><button class="acc-btn ghost" onclick="closeModal('acc-privacy-modal')" data-i18n="close">إغلاق</button></div>
+  </div>
+</div>
+<!-- الشروط والأحكام -->
+<div class="modal-overlay" id="acc-terms-modal" onclick="handleModalOverlayClick(event,'acc-terms-modal')">
+  <div class="modal-box acc" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="modal-title" data-i18n="terms">الشروط والأحكام</div>
+    <div class="acc-legal">
+      <p>باستخدامك منصة ألفاكلاس فإنك توافق على الشروط التالية:</p>
+      <ul>
+        <li>استخدام المنصة لأغراض دراسية فقط وبما يحترم زملاءك.</li>
+        <li>أنت مسؤول عن صحة بياناتك وعن سرية كلمة السر الخاصة بك.</li>
+        <li>يُمنع نشر محتوى مسيء أو مخالف للقانون أو ينتهك حقوق الآخرين.</li>
+        <li>للإدارة الحق في تقييد أو إيقاف أي حساب يخالف هذه الشروط.</li>
+        <li>الملازم والمواد المنشورة هدفها المساعدة الدراسية وتبقى حقوقها لأصحابها.</li>
+        <li>قد نعدّل هذه الشروط عند الحاجة، واستمرارك بالاستخدام يعني موافقتك على النسخة المحدّثة.</li>
+      </ul>
+    </div>
+    <div class="acc-actions"><button class="acc-btn ghost" onclick="closeModal('acc-terms-modal')" data-i18n="close">إغلاق</button></div>
+  </div>
+</div>
 
 <!-- زر إضافة ملزمة (للمشرفين فقط) -->
 <button class="fab-add-material" id="fab-add-material" onclick="openMaterialModal()">
@@ -1376,17 +2012,74 @@
   <img id="lightbox-img" src="" alt="صورة مكبرة" onclick="event.stopPropagation()">
 </div>
 
-<!-- ── LOGIN MODAL ── -->
+<!-- ── LOGIN MODAL (Firebase Auth) ── -->
 <div class="modal-overlay" id="login-modal" onclick="handleModalOverlayClick(event,'login-modal')">
-  <div class="modal-box" id="login-box">
+  <div class="modal-box" id="login-box" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
-    <div class="modal-title">🔐 تسجيل الدخول</div>
-    <div class="form-group">
-      <label class="form-label">الرمز</label>
-      <input class="form-input" type="password" id="login-code" placeholder="أدخل الرمز" autocomplete="off" inputmode="numeric">
+
+    <!-- تسجيل الدخول -->
+    <div id="auth-panel-login" class="auth-panel on">
+      <div class="modal-title">🔐 تسجيل الدخول</div>
+      <div id="auth-login-err" style="background:#ef44441a;border:1px solid #ef444455;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px;display:none"></div>
+      <div class="form-group">
+        <label class="form-label">اسم المستخدم</label>
+        <input class="form-input" type="text" id="auth-login-user" placeholder="أدخل اسم المستخدم" autocomplete="username" autocapitalize="none" style="direction:ltr;text-align:left">
+      </div>
+      <div class="form-group">
+        <label class="form-label">كلمة السر</label>
+        <input class="form-input" type="password" id="auth-login-pass" placeholder="أدخل كلمة السر" autocomplete="current-password" style="direction:ltr;text-align:left">
+      </div>
+      <button class="btn-submit" id="btn-do-login">تسجيل الدخول</button>
+      <p class="hint-text" style="margin-top:14px">ليس لديك حساب؟ <a href="#" onclick="showAuthPanel('signup1');return false" style="color:var(--accent2);font-weight:700;text-decoration:none">إنشاء حساب جديد</a></p>
+      <p class="hint-text" style="margin-top:8px"><a href="#" onclick="closeModal('login-modal');return false" style="color:var(--text-muted);text-decoration:none">تصفح بدون تسجيل دخول ←</a></p>
     </div>
-    <button class="btn-submit" id="btn-do-login">دخول</button>
-    <p class="hint-text">تنويه: يؤخذ الرمز من الممثل</p>
+
+    <!-- إنشاء حساب: خطوة 1 -->
+    <div id="auth-panel-signup1" class="auth-panel" style="display:none">
+      <div class="modal-title">📝 إنشاء حساب — الخطوة 1</div>
+      <div class="form-group">
+        <label class="form-label">الاسم الكامل</label>
+        <input class="form-input" type="text" id="auth-fullname" placeholder="أدخل اسمك الكامل" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">نوع الدوام</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label style="position:relative"><input type="radio" name="auth-shift" value="صباحي" style="position:absolute;opacity:0;pointer-events:none"><span class="auth-seg-btn">صباحي</span></label>
+          <label style="position:relative"><input type="radio" name="auth-shift" value="مسائي" style="position:absolute;opacity:0;pointer-events:none"><span class="auth-seg-btn">مسائي</span></label>
+        </div>
+        <div id="auth-shift-err" style="color:#ef4444;font-size:12.5px;margin-top:5px"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الشعبة</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label style="position:relative"><input type="radio" name="auth-section" value="أ" style="position:absolute;opacity:0;pointer-events:none"><span class="auth-seg-btn">أ</span></label>
+          <label style="position:relative"><input type="radio" name="auth-section" value="ب" style="position:absolute;opacity:0;pointer-events:none"><span class="auth-seg-btn">ب</span></label>
+        </div>
+        <div id="auth-section-err" style="color:#ef4444;font-size:12.5px;margin-top:5px"></div>
+      </div>
+      <button class="btn-submit" id="btn-auth-next">التالي</button>
+      <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:8px;color:var(--text-secondary)" onclick="showAuthPanel('login')">العودة لتسجيل الدخول</button>
+    </div>
+
+    <!-- إنشاء حساب: خطوة 2 -->
+    <div id="auth-panel-signup2" class="auth-panel" style="display:none">
+      <div class="modal-title">📝 إنشاء حساب — الخطوة 2</div>
+      <div id="auth-sign-err" style="background:#ef44441a;border:1px solid #ef444455;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px;display:none"></div>
+      <div class="form-group">
+        <label class="form-label">اسم المستخدم (إنجليزي)</label>
+        <input class="form-input" type="text" id="auth-sign-user" placeholder="مثال: ahmed123" autocomplete="username" autocapitalize="none" style="direction:ltr;text-align:left">
+      </div>
+      <div class="form-group">
+        <label class="form-label">كلمة السر</label>
+        <input class="form-input" type="password" id="auth-sign-pass" placeholder="6 أحرف على الأقل" autocomplete="new-password" style="direction:ltr;text-align:left">
+      </div>
+      <div class="form-group">
+        <label class="form-label">إعادة كلمة السر</label>
+        <input class="form-input" type="password" id="auth-sign-pass2" placeholder="أعد كتابة كلمة السر" autocomplete="new-password" style="direction:ltr;text-align:left">
+      </div>
+      <button class="btn-submit" id="btn-do-signup">إنشاء الحساب</button>
+      <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:8px;color:var(--text-secondary)" onclick="showAuthPanel('signup1')">رجوع</button>
+    </div>
   </div>
 </div>
 
@@ -1577,13 +2270,14 @@
 </div>
 
 <!-- Firebase -->
-<script type="module">
+<script type="module" onerror="window.__hideLoadingScreen && window.__hideLoadingScreen()">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore, collection, onSnapshot, addDoc, query, orderBy, limitToLast, limit,
   updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthChanged, signOut as firebaseSignOut, updateEmail, updatePassword, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // ── FIREBASE INIT ──
 const firebaseConfig = {
@@ -1595,7 +2289,15 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const messaging = getMessaging(app);
+let messaging = null;
+try {
+  messaging = getMessaging(app);
+} catch (err) {
+  console.warn('Firebase Messaging غير مدعوم في هذا المتصفح:', err && err.message);
+}
+const fireAuth = getAuth(app);
+const AUTH_DOMAIN = "@alfaclass.app";
+const AUTH_OWNER = "baqer";
 
 // ── ENABLE OFFLINE PERSISTENCE (IndexedDB) ──
 enableIndexedDbPersistence(db).catch((err) => {
@@ -1815,7 +2517,8 @@ function loadSession() {
       color: localStorage.getItem('color'),
       icon: localStorage.getItem('icon') || '',
       isAdmin: localStorage.getItem('isAdmin') === 'true',
-      isSuperAdmin: localStorage.getItem('isSuperAdmin') === 'true'
+      isSuperAdmin: localStorage.getItem('isSuperAdmin') === 'true',
+      code: localStorage.getItem('username') || ''
     };
   }
   updateHeaderUI(true); // تحديث واجهة المستخدم في كل الحالات لتطبيق قيود الزوار
@@ -1843,6 +2546,7 @@ function clearSession() {
 }
 
 function updateHeaderUI(skipRender = false) {
+  setTimeout(() => window.__accOnAuth && window.__accOnAuth(), 0); // تحديث صفحة الحساب
   const loginBtn = document.getElementById('btn-open-login');
   const userInfoEl = document.getElementById('user-info');
   const userNameEl = document.getElementById('user-name');
@@ -1880,38 +2584,170 @@ function updateHeaderUI(skipRender = false) {
   if (!skipRender) renderDays();
 }
 
-// ── LOGIN ──
-function doLogin() {
-  const code = document.getElementById('login-code').value.trim();
-  if (!code) { showToast('⚠️','خطأ','أدخل الرمز أولاً'); return; }
-  
-  const user = ADMINS.find(a => a.code === code);
-  if (user) {
-    currentUser = {
-      name: user.name,
-      role: user.role,
-      color: user.color,
-      icon: user.icon || '',
-      isAdmin: !!user.isAdmin,
-      isSuperAdmin: !!user.superAdmin
-    };
-    saveSession(currentUser);
-    updateHeaderUI();
-    closeModal('login-modal');
-    document.getElementById('login-code').value = '';
-    showToast('✅','مرحباً',`${currentUser.name} (${currentUser.role})`);
-    requestNotifPermission();
-  } else {
-    showToast('❌','خطأ','الرمز الذي أدخلته غير صحيح');
+// ── AUTH HELPERS (Firebase Auth) ──
+function authMsg(code) {
+  return {
+    'auth/email-already-in-use':'اسم المستخدم مأخوذ، اختر اسماً آخر.',
+    'auth/invalid-credential':'اسم المستخدم أو كلمة السر غير صحيحة.',
+    'auth/invalid-email':'اسم المستخدم غير صالح (حروف إنجليزية وأرقام فقط).',
+    'auth/user-not-found':'اسم المستخدم أو كلمة السر غير صحيحة.',
+    'auth/wrong-password':'اسم المستخدم أو كلمة السر غير صحيحة.',
+    'auth/too-many-requests':'محاولات كثيرة، حاول لاحقاً.',
+    'auth/network-request-failed':'تعذّر الاتصال بالإنترنت.',
+    'auth/operation-not-allowed':'Email/Password غير مفعّل في Firebase Console.',
+    'auth/weak-password':'كلمة السر يجب ألا تقل عن 6 أحرف.',
+    'permission-denied':'ليس لديك صلاحية (راجع قواعد Firestore).'
+  }[code] || 'حدث خطأ غير متوقع، حاول مرة أخرى.';
+}
+
+function showAuthErr(id, msg) {
+  const box = document.getElementById(id);
+  if (!box) return;
+  box.textContent = msg || '';
+  box.style.display = msg ? 'block' : 'none';
+}
+
+// تطبيق بيانات المستخدم القادمة من مجموعة users على الواجهة
+function applyUserProfile(profile, fallbackName, uid) {
+  const isOwner = profile.role === 'owner';
+  const user = {
+    name: profile.fullName || fallbackName,
+    role: isOwner ? 'مالك الموقع' : (profile.shift || 'طالب'),
+    color: isOwner ? '#fbbf24' : '#a78bfa',
+    icon: '',
+    isAdmin: isOwner,
+    isSuperAdmin: isOwner,
+    code: profile.username || fallbackName
+  };
+  currentUser = user;
+  saveSession(user);
+  localStorage.setItem('username', profile.username || fallbackName);
+  localStorage.setItem('shift', profile.shift || '');
+  localStorage.setItem('section', profile.section || '');
+  if (uid) localStorage.setItem('firebaseUid', uid);
+  updateHeaderUI();
+  // معالجة طلب الحذف المجدول: يُلغى إذا سجّل الدخول خلال المهلة، ويُنفَّذ إن انتهت المهلة
+  const uname = profile.username || fallbackName;
+  if (profile.deletePendingAt) accResolvePendingDelete(uname, profile.deletePendingAt);
+  accPurgeExpiredDeletions();
+}
+
+async function loadProfileAndApply(name, uid) {
+  try {
+    const snap = await getDoc(doc(db, 'users', name));
+    if (snap.exists()) applyUserProfile(snap.data(), name, uid);
+    else applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
+  } catch (e) {
+    applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
   }
 }
 
-// ── LOGOUT ──
-document.getElementById('btn-logout').addEventListener('click', () => {
-  clearSession();
-  updateHeaderUI();
-  showToast('👋','تسجيل خروج','تم تسجيل خروجك بنجاح');
+// تبديل بين لوحات نافذة الدخول (login / signup1 / signup2)
+window.showAuthPanel = function(name) {
+  ['login', 'signup1', 'signup2'].forEach(p => {
+    const el = document.getElementById('auth-panel-' + p);
+    if (!el) return;
+    const active = (p === name);
+    el.classList.toggle('on', active);
+    el.style.display = active ? 'block' : 'none'; // تجاوز أي display مضمّن
+  });
+};
+
+// ── LOGIN (Firebase Auth) ──
+async function doLogin() {
+  const uEl = document.getElementById('auth-login-user');
+  const pEl = document.getElementById('auth-login-pass');
+  if (!uEl || !pEl) return;
+  const username = uEl.value.trim().toLowerCase();
+  const password = pEl.value;
+  showAuthErr('auth-login-err');
+  if (!username) { showAuthErr('auth-login-err', 'أدخل اسم المستخدم'); return; }
+  if (!password) { showAuthErr('auth-login-err', 'أدخل كلمة السر'); return; }
+
+  const btn = document.getElementById('btn-do-login');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  try {
+    const cred = await signInWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password);
+    await loadProfileAndApply(username, cred.user.uid);
+    closeModal('login-modal');
+    uEl.value = ''; pEl.value = '';
+    showToast('✅','مرحباً', `${currentUser.name} (${currentUser.role})`);
+    requestNotifPermission();
+  } catch (e) {
+    showAuthErr('auth-login-err', authMsg(e && e.code));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'تسجيل الدخول'; }
+  }
+}
+
+// التحقق من الخطوة 1 ثم الانتقال للخطوة 2
+window.authNextStep = function() {
+  const shiftErr = document.getElementById('auth-shift-err');
+  const sectionErr = document.getElementById('auth-section-err');
+  if (shiftErr) shiftErr.textContent = '';
+  if (sectionErr) sectionErr.textContent = '';
+  const nameEl = document.getElementById('auth-fullname');
+  const shift = document.querySelector('input[name="auth-shift"]:checked');
+  const section = document.querySelector('input[name="auth-section"]:checked');
+  if (!nameEl || nameEl.value.trim().length < 3) { showToast('⚠️','تنبيه','أدخل اسمك الكامل (3 أحرف على الأقل)'); return; }
+  if (!shift) { if (shiftErr) shiftErr.textContent = 'اختر نوع الدوام'; return; }
+  if (!section) { if (sectionErr) sectionErr.textContent = 'اختر الشعبة'; return; }
+  showAuthPanel('signup2');
+};
+
+// إنشاء حساب جديد (Firebase Auth)
+window.doAuthSignup = async function() {
+  const uEl = document.getElementById('auth-sign-user');
+  const pEl = document.getElementById('auth-sign-pass');
+  const p2El = document.getElementById('auth-sign-pass2');
+  const nameEl = document.getElementById('auth-fullname');
+  if (!uEl || !pEl || !p2El) return;
+  showAuthErr('auth-sign-err');
+  const username = uEl.value.trim().toLowerCase();
+  const password = pEl.value;
+  if (!/^[a-z0-9_]{3,}$/.test(username)) { showAuthErr('auth-sign-err','اسم المستخدم: حروف إنجليزية أو أرقام فقط، 3 أحرف على الأقل'); return; }
+  if (password.length < 6) { showAuthErr('auth-sign-err','كلمة السر يجب ألا تقل عن 6 أحرف'); return; }
+  if (password !== p2El.value) { showAuthErr('auth-sign-err','كلمتا السر غير متطابقتين'); return; }
+
+  const fullName = (nameEl && nameEl.value.trim()) || username;
+  const shift = (document.querySelector('input[name="auth-shift"]:checked') || {}).value || '';
+  const section = (document.querySelector('input[name="auth-section"]:checked') || {}).value || '';
+
+  const btn = document.getElementById('btn-do-signup');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  try {
+    const existing = await getDoc(doc(db, 'users', username));
+    if (existing.exists()) { showAuthErr('auth-sign-err','اسم المستخدم مأخوذ، اختر اسماً آخر.'); return; }
+    window.__signing = true;
+    const cred = await createUserWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password);
+    await setDoc(doc(db, 'users', username), {
+      username, fullName, shift, section,
+      role: username === AUTH_OWNER ? 'owner' : 'student',
+      uid: cred.user.uid, createdAt: new Date()
+    });
+    window.__signing = false;
+    applyUserProfile({ fullName, username, role: username === AUTH_OWNER ? 'owner' : 'student', shift, section }, username, cred.user.uid);
+    closeModal('login-modal');
+    showToast('✅','مرحباً', `${fullName} — تم إنشاء الحساب بنجاح`);
+    requestNotifPermission();
+  } catch (e) {
+    window.__signing = false;
+    showAuthErr('auth-sign-err', authMsg(e && e.code));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'إنشاء الحساب'; }
+  }
+};
+
+// استعادة الجلسة تلقائياً عند إعادة فتح الموقع (إن وُجد مستخدم مسجّل في Firebase)
+onFirebaseAuthChanged(fireAuth, (u) => {
+  if (u && !window.__signing && localStorage.getItem('isLoggedIn') !== 'true') {
+    const name = (u.email || '').split('@')[0];
+    if (name) loadProfileAndApply(name, u.uid).catch(() => {});
+  }
 });
+
+// ── LOGOUT ──
+document.getElementById('btn-logout').addEventListener('click', () => accDoLogout());
 
 // ── WEEK NAVIGATION ──
 document.getElementById('btn-prev').addEventListener('click', () => {
@@ -2229,7 +3065,7 @@ function buildMediaHTML(post) {
       if (file.type && file.type.startsWith('image/')) {
         const url = imgUrls[imgIndex];
         const safeUrls = JSON.stringify(imgUrls).replace(/"/g, '&quot;');
-        html += `<img class="media-thumb" src="${url}" loading="lazy" onclick="openLightbox(${safeUrls}, ${imgIndex})" alt="صورة">`;
+        html += `<img class="media-thumb" src="${url}" loading="lazy" decoding="async" onclick="openLightbox(${safeUrls}, ${imgIndex})" alt="صورة">`;
         imgIndex++;
       } else {
         html += `<span class="media-file-link" style="cursor:default">📎 ${sanitizeText(file.name || 'ملف')}</span>`;
@@ -2249,7 +3085,7 @@ function buildMediaHTML(post) {
     const isPdf = item.url.toLowerCase().endsWith('.pdf');
     if (item.type === 'image' && !isPdf) {
       const safeUrls = JSON.stringify(imgUrls).replace(/"/g, '&quot;');
-      html += `<img class="media-thumb" src="${item.url}" loading="lazy" onclick="openLightbox(${safeUrls}, ${imgIndex})" alt="صورة">`;
+      html += `<img class="media-thumb" src="${item.url}" loading="lazy" decoding="async" onclick="openLightbox(${safeUrls}, ${imgIndex})" alt="صورة">`;
       imgIndex++;
     } else if (item.type === 'video') {
       html += `<video class="media-thumb" src="${item.url}" controls preload="none" style="background:#000"></video>`;
@@ -3377,7 +4213,7 @@ async function requestNotifPermission() {
   
   try {
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
+    if (permission === 'granted' && messaging) {
       // استبدل المفتاح أدناه بمفتاح الـ VAPID الخاص بك من منصة فايربيس
       const token = await getToken(messaging, { vapidKey: 'YOUR_VAPID_KEY_HERE' });
       if (token) {
@@ -3391,11 +4227,13 @@ async function requestNotifPermission() {
 }
 
 // استقبال الإشعارات الفورية (عندما يكون التطبيق مفتوحاً)
-onMessage(messaging, (payload) => {
-  const { title, body } = payload.notification;
-  showToast('🔔', title, body);
-  playNotifSound();
-});
+if (messaging) {
+  onMessage(messaging, (payload) => {
+    const { title, body } = payload.notification;
+    showToast('🔔', title, body);
+    playNotifSound();
+  });
+}
 
 // ══════════════════ قسم الملازم ══════════════════
 
@@ -3546,7 +4384,7 @@ function renderMaterialsGrid() {
       card.className = 'material-card';
       card.innerHTML = `
         <div class="material-cover">
-          ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : (isImg ? `<img src="${mat.fileUrl}" loading="lazy" alt="${sanitizeText(mat.name)}">` : '📄')}
+          ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : (isImg ? `<img src="${mat.fileUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}">` : '📄')}
         </div>
         <div class="material-type-dot" style="background:${color}"></div>
         <div class="material-name">${sanitizeText(mat.name)}</div>
@@ -3750,6 +4588,626 @@ async function deleteMaterial(id) {
   } catch { showToast('❌','خطأ','فشل الحذف'); }
 }
 
+// ════════════════════════════════════════════════════════════════════
+//  واجهة إدارة الحساب والملف الشخصي (Account & Profile)
+//  - تقرأ/تكتب في مجموعة Firestore: users/{username}
+//  - الحقول المضافة على مستند المستخدم: governorate, university, college,
+//    department, stage, course, photoURL, favReaction, usernameChangedAt
+//  - تعتمد على المتغيرات الموجودة أعلاه: db, fireAuth, currentUser, ...
+// ════════════════════════════════════════════════════════════════════
+
+// ⚙️ إعدادات قابلة للتعديل
+const ACC_CONFIG = {
+  INSTAGRAM_URL: 'https://www.instagram.com/',   // ← ضع رابط حساب إنستغرام الخاص بالمنصة هنا
+  APP_VERSION: '1.0.0',                          // ← رقم إصدار الموقع
+  USERNAME_COOLDOWN_DAYS: 14,                    // مدة الانتظار بين كل تغيير لاسم المستخدم
+  SUPPORT_COLLECTION: 'support_messages'         // مجموعة Firestore لرسائل الدعم الفني
+};
+
+const ACC_LISTS = {
+  governorate: ['بغداد','نينوى','البصرة','الأنبار','أربيل','السليمانية','دهوك','كركوك','ديالى','صلاح الدين','بابل','كربلاء','النجف','واسط','ذي قار','ميسان','المثنى','القادسية'],
+  university: ['جامعة بغداد','الجامعة المستنصرية','جامعة النهرين','الجامعة التكنولوجية','جامعة الموصل','جامعة البصرة','جامعة الكوفة','جامعة كربلاء','جامعة بابل','جامعة القادسية','جامعة ذي قار','جامعة ديالى','جامعة تكريت','جامعة الأنبار','جامعة واسط','جامعة ميسان','جامعة المثنى','جامعة كركوك','الجامعة التقنية الوسطى','الجامعة التقنية الجنوبية','الجامعة التقنية الشمالية','جامعة الفرات الأوسط التقنية'],
+  college: ['الكلية التقنية الإدارية','كلية الإدارة والاقتصاد','كلية العلوم','كلية الهندسة','كلية الآداب','كلية القانون','كلية التربية','كلية علوم الحاسوب','كلية الطب','كلية التمريض','كلية الصيدلة','كلية طب الأسنان'],
+  department: ['تقنيات المحاسبة','المحاسبة','العلوم المالية والمصرفية','إدارة الأعمال','الاقتصاد','تقنيات إدارة العمليات','تقنيات التسويق','تقنيات الحاسوب','القانون']
+};
+const ACC_STAGES  = ['المرحلة الأولى','المرحلة الثانية','المرحلة الثالثة','المرحلة الرابعة'];
+const ACC_COURSES = ['الكورس الأول','الكورس الثاني'];
+const ACC_EMOJIS  = ['👍','❤️','😂','😮','😢','🔥','👏','🎉','😍','🙏','💯','✅','😎','🤩','😅','🤝','💪','⭐','🥰','😭','👌','🤔','😡','💔'];
+// ── الترجمة الإنجليزية (العربية هي النص الأصلي داخل الـ HTML) ──
+const ACC_EN = {
+  guestTitle:'Sign in to manage your account', guestDesc:'After signing in you can edit your academic info, username and appearance.', login:'Sign in',
+  secAccount:'Account', personalData:'Personal information', manageAccount:'Account management', manageAccountSub:'Edit your personal and academic info', fullName:'Full name', governorate:'Governorate', university:'University', college:'College', department:'Department',
+  shift:'Shift', morning:'Morning', evening:'Evening', stage:'Academic stage', section:'Section', save:'Save changes', saveShort:'Save', cancel:'Cancel', close:'Close', send:'Send', change:'Change',
+  changeUsername:'Change username', newUsername:'New username', ruleLen:'3 to 30 characters', ruleChars:'English letters, numbers, dot and underscore (_) only', ruleDots:'No leading/trailing dot and no consecutive dots',
+  currentPassword:'Current password (for confirmation)', cooldownNote:'You can change your username once every 14 days only.',
+  secPeriod:'Academic period', periodSub:'The course and stage currently shown', course:'Course',
+  secPrefs:'Preferences', appearance:'App appearance', dark:'Dark', light:'Light', auto:'Auto', langEnglish:'English language', langSub:'Switch the interface between Arabic and English',
+  quickReaction:'Quick reaction', quickReactionSub:'Your default reaction on the platform',
+  secSecurity:'Security', changePassword:'Change password', changePasswordSub:'Set a new password for your account', newPassword:'New password', confirmPassword:'Confirm new password', rulePassLen:'At least 6 characters', rulePassMatch:'Passwords match', advanced:'Advanced account options', deleteHint:'Deletion is scheduled after typing the prayer, and is cancelled automatically if you sign in within 7 days.', deleteAccount:'Delete account permanently',
+  deleteTitle:'⚠️ Delete account permanently', deleteWarn:'To request deletion, type the prayer upon Muhammad and his family. The account is not deleted immediately: deletion is scheduled and cancelled automatically if you sign in within 7 days, otherwise it is permanently removed.',
+  typeSalawat:'Type: اللهم صلِّ على محمد وآل محمد', salawatHint:'Type it exactly to confirm the deletion request.', deleteConfirm:'Confirm deletion request',
+  secSupport:'Support & info', contact:'Contact us', contactHint:'Write your problem or suggestion and it will reach the support team.', privacy:'Privacy policy', terms:'Terms & conditions', instagram:'Our Instagram', version:'Version', logout:'Sign out', logoutAccount:'Sign out of account', logoutConfirmTitle:'Sign out', logoutConfirmMsg:'Do you want to sign out of your account?', logoutYes:'Yes, sign out'
+};
+const ACC_EN_MAP = {
+  'المرحلة الأولى':'First stage','المرحلة الثانية':'Second stage','المرحلة الثالثة':'Third stage','المرحلة الرابعة':'Fourth stage',
+  'الكورس الأول':'First course','الكورس الثاني':'Second course',
+  'اختر...':'Select...','أخرى…':'Other…','أدخل القيمة':'Enter value'
+};
+
+let accProfile = null;                 // نسخة من مستند المستخدم الحالي (+ _id = اسم المستخدم)
+const accSelects = {};                 // القوائم المنسدلة ذات خيار "أخرى"
+let accLang  = localStorage.getItem('alfa_lang')  || 'ar';
+let accTheme = localStorage.getItem('alfa_theme') || 'dark';
+
+const accEl   = id => document.getElementById(id);
+const accT    = (ar) => (accLang === 'en' && ACC_EN_MAP[ar]) ? ACC_EN_MAP[ar] : ar;
+const accVisible = () => { const v = accEl('view-account'); return !!v && v.style.display !== 'none'; };
+
+function accToMs(v) {
+  if (!v) return 0;
+  if (typeof v.toMillis === 'function') return v.toMillis();
+  if (typeof v.seconds === 'number') return v.seconds * 1000;
+  const n = +new Date(v); return isNaN(n) ? 0 : n;
+}
+function accErrMsg(e) {
+  const c = e && e.code;
+  if (c === 'auth/wrong-password' || c === 'auth/invalid-credential') return accLang === 'en' ? 'Incorrect password.' : 'كلمة السر غير صحيحة.';
+  if (c === 'auth/requires-recent-login' || c === 'auth/no-current-user') return 'انتهت صلاحية الجلسة، سجّل الخروج ثم ادخل من جديد وحاول مرة أخرى.';
+  if (c === 'auth/operation-not-allowed') return 'تغيير اسم المستخدم غير مسموح من إعدادات Firebase (Email enumeration protection)، راجع الإعدادات.';
+  return authMsg(c);
+}
+function accSetErr(id, msg) { const el = accEl(id); if (el) el.textContent = msg || ''; }
+function accBusy(btn, busy, label) {
+  if (!btn) return;
+  btn.disabled = busy;
+  if (busy) { btn.dataset.label = btn.textContent; btn.innerHTML = '<span class="spinner"></span>'; }
+  else btn.textContent = label || btn.dataset.label || btn.textContent;
+}
+// ═══════════ الثيم (داكن / فاتح / تلقائي) ═══════════
+const accMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+function accApplyTheme(mode) {
+  accTheme = ['dark','light','auto'].includes(mode) ? mode : 'dark';
+  const eff = accTheme === 'auto' ? ((accMQ && accMQ.matches) ? 'light' : 'dark') : accTheme;
+  document.documentElement.setAttribute('data-theme', eff);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', eff === 'light' ? '#f1f4fa' : '#0a0a1a');
+  document.querySelectorAll('#acc-seg-theme button').forEach(b => b.classList.toggle('on', b.dataset.val === accTheme));
+}
+if (accMQ && accMQ.addEventListener) accMQ.addEventListener('change', () => { if (accTheme === 'auto') accApplyTheme('auto'); });
+accApplyTheme(accTheme);   // تطبيق المظهر المحفوظ فور تحميل الصفحة
+
+// ═══════════ اللغة (عربي / إنجليزي) ═══════════
+function accApplyLang(lang) {
+  accLang = lang === 'en' ? 'en' : 'ar';
+  localStorage.setItem('alfa_lang', accLang);
+  document.querySelectorAll('.acc').forEach(el => el.setAttribute('dir', accLang === 'en' ? 'ltr' : 'rtl'));
+  document.querySelectorAll('.acc [data-i18n], .modal-box.acc [data-i18n]').forEach(el => {
+    if (el.dataset.ar === undefined) el.dataset.ar = el.textContent;
+    el.textContent = (accLang === 'en' && ACC_EN[el.dataset.i18n]) ? ACC_EN[el.dataset.i18n] : el.dataset.ar;
+  });
+  const navMap = { 'nav-home': 'Schedule', 'nav-schedule': 'Notes', 'nav-user': 'Account' };
+  Object.keys(navMap).forEach(id => {
+    const l = document.querySelector('#' + id + ' .nav-label'); if (!l) return;
+    if (l.dataset.ar === undefined) l.dataset.ar = l.textContent;
+    l.textContent = accLang === 'en' ? navMap[id] : l.dataset.ar;
+  });
+  const sw = accEl('acc-lang-switch'); if (sw) sw.checked = accLang === 'en';
+  accBuildForm();
+  if (accProfile) accRender();
+}
+// ═══════════ بناء عناصر النموذج ═══════════
+function accMakeSelect(key, list) {
+  const box = accEl('acc-sel-' + key); if (!box) return;
+  const prev = accSelects[key] ? accSelects[key].get() : null;
+  box.innerHTML = '<select class="acc-select" id="acc-f-' + key + '"></select><input class="acc-input acc-other" id="acc-o-' + key + '" maxlength="60">';
+  const sel = box.querySelector('select'), other = box.querySelector('input');
+  other.placeholder = accT('أدخل القيمة');
+  sel.innerHTML = '<option value="">' + accT('اختر...') + '</option>' +
+    list.map(v => '<option value="' + v + '">' + v + '</option>').join('') +
+    '<option value="__other">' + accT('أخرى…') + '</option>';
+  sel.addEventListener('change', () => { other.classList.toggle('show', sel.value === '__other'); if (sel.value === '__other') other.focus(); });
+  accSelects[key] = {
+    get: () => sel.value === '__other' ? other.value.trim() : sel.value,
+    set: v => {
+      if (!v) { sel.value = ''; other.value = ''; }
+      else if (list.includes(v)) { sel.value = v; other.value = ''; }
+      else { sel.value = '__other'; other.value = v; }
+      other.classList.toggle('show', sel.value === '__other');
+    }
+  };
+  if (prev !== null) accSelects[key].set(prev);
+}
+function accFillOptions(sel, list, placeholder) {
+  const cur = sel.value;
+  sel.innerHTML = (placeholder ? '<option value="">' + accT('اختر...') + '</option>' : '') + list.map(v => '<option value="' + v + '">' + accT(v) + '</option>').join('');
+  if (cur) sel.value = cur;
+}
+function accBuildForm() {
+  Object.keys(ACC_LISTS).forEach(k => accMakeSelect(k, ACC_LISTS[k]));
+  accFillOptions(accEl('acc-f-stage'), ACC_STAGES, true);
+  accFillOptions(accEl('acc-p-stage'), ACC_STAGES, false);
+  accFillOptions(accEl('acc-p-course'), ACC_COURSES, false);
+  if (accProfile) accFillForm();
+}
+function accSegGet(id) { const b = document.querySelector('#' + id + ' button.on'); return b ? b.dataset.val : ''; }
+function accSegSet(id, val) { document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.val === val)); }
+
+// ═══════════ تحميل الملف الشخصي وعرضه ═══════════
+async function accLoadProfile() {
+  if (!currentUser) { accProfile = null; return; }
+  const username = String(currentUser.code || '').toLowerCase();
+  let data;
+  try {
+    const snap = await getDoc(doc(db, 'users', username));
+    data = snap.exists() ? snap.data() : { username, fullName: currentUser.name, role: 'student' };
+  } catch (e) {
+    data = { username, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
+  }
+  accProfile = Object.assign({}, data, { _id: username });
+}
+function accFillForm() {
+  const p = accProfile || {};
+  accEl('acc-f-name').value = p.fullName || '';
+  Object.keys(ACC_LISTS).forEach(k => accSelects[k] && accSelects[k].set(p[k] || ''));
+  accSegSet('acc-seg-shift', p.shift || '');
+  accSegSet('acc-seg-section', p.section || '');
+  accEl('acc-f-stage').value = p.stage || '';
+}
+function accRoleBadge(p) {
+  if (p.role === 'owner') return '👑 ' + (accLang === 'en' ? 'Site owner' : 'مالك الموقع');
+  if (['rep', 'representative', 'mod', 'moderator'].includes(p.role)) return '⭐ ' + (accLang === 'en' ? 'Section rep' : 'ممثل شعبة');
+  return '🎓 ' + (accLang === 'en' ? 'Student' : 'طالب');
+}
+function accRender() {
+  const guest = !currentUser;
+  accEl('acc-guest').style.display = guest ? 'block' : 'none';
+  accEl('acc-main').style.display  = guest ? 'none'  : 'block';
+  if (guest || !accProfile) return;
+  const p = accProfile;
+  const name = p.fullName || currentUser.name || '—';
+  accEl('acc-name').textContent = name;
+  accEl('acc-username').textContent = '@' + p._id;
+  accEl('acc-row-username').textContent = '@' + p._id;
+  accEl('acc-badge').textContent = accRoleBadge(p);
+  const av = accEl('acc-avatar'), photo = p.photoURL || localStorage.getItem('accAvatar') || '';
+  av.style.backgroundImage = photo ? 'url("' + photo.replace(/"/g, '%22') + '")' : '';
+  accEl('acc-avatar-letter').style.display = photo ? 'none' : '';
+  accEl('acc-avatar-letter').textContent = (name.trim()[0] || '؟');
+  const stage = p.stage || '', course = p.course || ACC_COURSES[0];
+  accEl('acc-period-val').textContent = stage ? accT(stage) + ' - ' + accT(course) : '—';
+  accEl('acc-emoji-val').textContent = p.favReaction || localStorage.getItem('alfa_reaction') || '👍';
+  accEl('acc-version').textContent = ACC_CONFIG.APP_VERSION;
+  accEl('acc-instagram').href = ACC_CONFIG.INSTAGRAM_URL;
+  accFillInfo();
+}
+// تعبئة بيانات الملف الشخصي للعرض (قراءة فقط)
+function accFillInfo() {
+  const p = accProfile || {};
+  const set = (id, val) => { const el = accEl(id); if (el) el.textContent = val || '—'; };
+  set('acc-v-governorate', accT(p.governorate || ''));
+  set('acc-v-university',  accT(p.university  || ''));
+  set('acc-v-college',     accT(p.college     || ''));
+  set('acc-v-department',  accT(p.department  || ''));
+  set('acc-v-shift',       p.shift   || '');
+  set('acc-v-stage',       accT(p.stage || ''));
+  set('acc-v-section',     p.section || '');
+}
+// فتح نافذة «إدارة الحساب» لتعديل البيانات
+function accOpenManage() {
+  accFillForm();
+  ['name','shift','stage','section'].forEach(k => accSetErr('acc-e-' + k, ''));
+  openModal('acc-manage-modal');
+}
+async function accOpen(autoLogin = false) {
+  window.scrollTo(0, 0);
+  accRender();                                  // يعرض حالة الزائر فوراً إن لم يكن مسجلاً
+  if (!currentUser) {
+    // الزائر غير المسجّل: أظهر واجهة تسجيل الدخول مباشرةً عند دخوله للملف الشخصي
+    if (autoLogin) {
+      const lm = accEl('login-modal');
+      if (lm && !lm.classList.contains('open')) { showAuthPanel('login'); openModal('login-modal'); }
+    }
+    return;
+  }
+  if (!accProfile || accProfile._id !== String(currentUser.code || '').toLowerCase()) await accLoadProfile();
+  accFillForm();
+  accRender();
+}
+// تُستدعى من updateHeaderUI عند أي تغيير في حالة الدخول
+window.__accOnAuth = function () {
+  const u = currentUser ? String(currentUser.code || '').toLowerCase() : null;
+  if (!u) accProfile = null;
+  else if (accProfile && accProfile._id !== u) accProfile = null;
+  if (accVisible()) accOpen();
+};
+// ═══════════ حفظ البيانات الشخصية ═══════════
+function accProfileData() { const d = Object.assign({}, accProfile); delete d._id; return d; }
+function accApplyToSession() {
+  const p = accProfile, isOwner = p.role === 'owner';
+  currentUser.name = p.fullName || currentUser.name;
+  currentUser.role = isOwner ? 'مالك الموقع' : (p.shift || 'طالب');
+  currentUser.code = p._id;
+  saveSession(currentUser);
+  localStorage.setItem('username', p._id);
+  localStorage.setItem('shift', p.shift || '');
+  localStorage.setItem('section', p.section || '');
+  updateHeaderUI(true);            // ← تحديث فوري للاسم في الهيدر
+}
+async function accSaveProfile() {
+  if (!accProfile) return;
+  ['name', 'shift', 'stage', 'section'].forEach(k => accSetErr('acc-e-' + k, ''));
+  const name = accEl('acc-f-name').value.trim().replace(/\s+/g, ' ');
+  const shift = accSegGet('acc-seg-shift'), section = accSegGet('acc-seg-section'), stage = accEl('acc-f-stage').value;
+  let ok = true;
+  accEl('acc-f-name').classList.toggle('invalid', name.length < 3);
+  if (name.length < 3) { accSetErr('acc-e-name', 'أدخل اسمك الكامل (3 أحرف على الأقل)'); ok = false; }
+  if (!shift)   { accSetErr('acc-e-shift', 'اختر نوع الدوام'); ok = false; }
+  if (!stage)   { accSetErr('acc-e-stage', 'اختر المرحلة الدراسية'); ok = false; }
+  if (!section) { accSetErr('acc-e-section', 'اختر الشعبة'); ok = false; }
+  // إذا اختار "أخرى" يجب كتابة القيمة
+  Object.keys(ACC_LISTS).forEach(k => {
+    const sel = accEl('acc-f-' + k), v = accSelects[k].get();
+    const bad = sel.value === '__other' && !v;
+    sel.classList.toggle('invalid', bad);
+    if (bad) { ok = false; accEl('acc-o-' + k).focus(); }
+  });
+  if (!ok) { showToast('⚠️', 'تنبيه', 'راجع الحقول المحددة'); return; }
+
+  const data = { fullName: name, shift, section, stage };
+  Object.keys(ACC_LISTS).forEach(k => data[k] = accSelects[k].get());
+  const btn = accEl('acc-save');
+  accBusy(btn, true);
+  try {
+    await setDoc(doc(db, 'users', accProfile._id), data, { merge: true });
+    Object.assign(accProfile, data);
+    accApplyToSession();
+    accRender();
+    closeModal('acc-manage-modal');
+    showToast('✅', 'تم الحفظ', 'تم تحديث بياناتك بنجاح');
+  } catch (e) {
+    showToast('❌', 'خطأ', accErrMsg(e));
+  } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.save : 'حفظ التغييرات'); }
+}
+
+// ═══════════ الفترة الدراسية ═══════════
+function accOpenPeriod() {
+  accEl('acc-p-stage').value  = (accProfile && accProfile.stage)  || ACC_STAGES[0];
+  accEl('acc-p-course').value = (accProfile && accProfile.course) || ACC_COURSES[0];
+  openModal('acc-period-modal');
+}
+async function accSavePeriod() {
+  if (!accProfile) return;
+  const data = { stage: accEl('acc-p-stage').value, course: accEl('acc-p-course').value };
+  const btn = accEl('acc-p-save');
+  accBusy(btn, true);
+  try {
+    await setDoc(doc(db, 'users', accProfile._id), data, { merge: true });
+    Object.assign(accProfile, data);
+    accEl('acc-f-stage').value = data.stage;
+    accRender();
+    closeModal('acc-period-modal');
+    showToast('✅', 'تم التحديث', accT(data.stage) + ' - ' + accT(data.course));
+  } catch (e) { showToast('❌', 'خطأ', accErrMsg(e)); }
+  finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.saveShort : 'حفظ'); }
+}
+// ═══════════ تغيير اسم المستخدم ═══════════
+function accUsernameChecks(v) {
+  return {
+    len:   v.length >= 3 && v.length <= 30,
+    chars: /^[a-z0-9._]+$/.test(v),
+    dots:  v.length > 0 && !/^\.|\.$|\.\./.test(v)
+  };
+}
+function accUpdateRules() {
+  const v = accEl('acc-u-input').value.trim().toLowerCase(), r = accUsernameChecks(v);
+  document.querySelectorAll('#acc-u-rules li').forEach(li => {
+    const good = r[li.dataset.r];
+    li.classList.toggle('ok', v && good);
+    li.classList.toggle('bad', v && !good);
+    li.firstElementChild.textContent = !v ? '○' : (good ? '✓' : '✕');
+  });
+  return r.len && r.chars && r.dots;
+}
+function accCooldownLeftDays() {
+  const last = accToMs(accProfile && accProfile.usernameChangedAt);
+  if (!last) return 0;
+  const left = last + ACC_CONFIG.USERNAME_COOLDOWN_DAYS * 86400000 - Date.now();
+  return left > 0 ? Math.ceil(left / 86400000) : 0;
+}
+function accOpenUsername() {
+  accEl('acc-u-input').value = ''; accEl('acc-u-pass').value = ''; accSetErr('acc-u-err', '');
+  accUpdateRules();
+  const left = accCooldownLeftDays(), warn = accEl('acc-u-cooldown'), btn = accEl('acc-u-save');
+  btn.disabled = left > 0;
+  warn.classList.toggle('red', left > 0);
+  if (left > 0) warn.textContent = accLang === 'en' ? ('You can change your username again in ' + left + ' day(s).') : ('يمكنك تغيير اسم المستخدم مجدداً بعد ' + left + ' يوم.');
+  else warn.textContent = accLang === 'en' ? ACC_EN.cooldownNote : 'يمكنك تغيير اسم المستخدم مرة واحدة كل 14 يوماً فقط.';
+  openModal('acc-username-modal');
+}
+async function accReauth(password) {
+  const u = fireAuth.currentUser;
+  if (!u || !u.email) throw { code: 'auth/no-current-user' };
+  await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, password));
+  return u;
+}
+async function accSaveUsername() {
+  if (!accProfile) return;
+  accSetErr('acc-u-err', '');
+  const old = accProfile._id;
+  const nu = accEl('acc-u-input').value.trim().toLowerCase().replace(/^\.+|\.+$/g, '');
+  const pass = accEl('acc-u-pass').value;
+  if (accCooldownLeftDays() > 0) { accSetErr('acc-u-err', 'لا يمكن التغيير الآن، لم تنتهِ مدة الانتظار.'); return; }
+  if (!accUpdateRules()) { accSetErr('acc-u-err', 'اسم المستخدم لا يطابق الشروط أعلاه.'); return; }
+  if (nu === old) { accSetErr('acc-u-err', 'هذا هو اسم المستخدم الحالي.'); return; }
+  if (!pass) { accSetErr('acc-u-err', 'أدخل كلمة السر الحالية للتأكيد.'); return; }
+
+  const btn = accEl('acc-u-save');
+  accBusy(btn, true);
+  try {
+    if ((await getDoc(doc(db, 'users', nu))).exists()) throw { code: 'auth/email-already-in-use' };
+    const user = await accReauth(pass);
+    const oldEmail = user.email;
+    await updateEmail(user, nu + AUTH_DOMAIN);           // تغيير بريد الدخول الداخلي
+    try {
+      const data = Object.assign(accProfileData(), { username: nu, previousUsername: old, usernameChangedAt: new Date() });
+      await setDoc(doc(db, 'users', nu), data);          // نسخ المستند تحت الاسم الجديد
+      await deleteDoc(doc(db, 'users', old));            // حذف المستند القديم
+      accProfile = Object.assign({}, data, { _id: nu });
+    } catch (inner) {
+      try { await updateEmail(user, oldEmail); } catch (e2) {}   // تراجع عن تغيير البريد عند الفشل
+      throw inner;
+    }
+    accApplyToSession();
+    accRender();
+    closeModal('acc-username-modal');
+    showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + nu);
+  } catch (e) {
+    accSetErr('acc-u-err', accErrMsg(e));
+  } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.saveShort : 'حفظ'); }
+}
+// تسجيل الخروج (يُستخدم من الهيدر ومن صفحة الحساب)
+async function accDoLogout() {
+  clearSession();
+  updateHeaderUI();
+  try { await firebaseSignOut(fireAuth); } catch (e) {}
+  try { setActiveNav('home'); } catch (e) {}
+  showToast('👋', 'تسجيل خروج', 'تم تسجيل خروجك بنجاح');
+}
+
+// ═══════════ تغيير كلمة السر (بدون كلمة السر القديمة) ═══════════
+function accOpenPassword() {
+  accEl('acc-np-pass').value = '';
+  accEl('acc-np-pass2').value = '';
+  accSetErr('acc-np-err', '');
+  accUpdatePassRules();
+  openModal('acc-password-modal');
+}
+function accUpdatePassRules() {
+  const p = accEl('acc-np-pass').value, p2 = accEl('acc-np-pass2').value;
+  const r = { len: p.length >= 6, match: p.length > 0 && p === p2 };
+  document.querySelectorAll('#acc-np-rules li').forEach(li => {
+    const k = li.dataset.r, val = (k === 'len') ? p : p2, good = r[k];
+    li.classList.toggle('ok', val.length > 0 && good);
+    li.classList.toggle('bad', val.length > 0 && !good);
+    li.firstElementChild.textContent = val.length === 0 ? '○' : (good ? '✓' : '✕');
+  });
+  return r.len && r.match;
+}
+async function accSavePassword() {
+  if (!currentUser) return;
+  accSetErr('acc-np-err', '');
+  const pass = accEl('acc-np-pass').value, pass2 = accEl('acc-np-pass2').value;
+  if (pass.length < 6) { accSetErr('acc-np-err', 'كلمة السر يجب ألا تقل عن 6 أحرف.'); return; }
+  if (pass !== pass2) { accSetErr('acc-np-err', 'كلمتا السر غير متطابقتين.'); return; }
+  const user = fireAuth.currentUser;
+  if (!user) { accSetErr('acc-np-err', 'يجب تسجيل الدخول أولاً.'); return; }
+  const btn = accEl('acc-np-save');
+  accBusy(btn, true);
+  try {
+    await updatePassword(user, pass);          // تغيير مباشر بدون طلب كلمة السر القديمة
+    accEl('acc-np-pass').value = ''; accEl('acc-np-pass2').value = '';
+    closeModal('acc-password-modal');
+    showToast('✅', 'تم', 'تم تغيير كلمة السر بنجاح');
+  } catch (e) {
+    accSetErr('acc-np-err', accErrMsg(e));
+  } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.saveShort : 'حفظ'); }
+}
+
+// ═══════════ الصورة الشخصية ═══════════
+function accResizeToBlob(file, max) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const r = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? resolve(b) : reject(new Error('toBlob')), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
+    img.src = url;
+  });
+}
+async function accUploadAvatar(file) {
+  if (!file || !accProfile) return;
+  if (!/^image\//.test(file.type)) { showToast('⚠️', 'تنبيه', 'اختر ملف صورة'); return; }
+  const av = accEl('acc-avatar'); av.classList.add('loading');
+  try {
+    const blob = await accResizeToBlob(file, 400);
+    try {
+      const fd = new FormData();
+      fd.append('file', blob, 'avatar.jpg'); fd.append('upload_preset', UPLOAD_PRESET);
+      const res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/image/upload', { method: 'POST', body: fd });
+      const j = await res.json();
+      if (!res.ok || !j.secure_url) throw new Error('upload');
+      await setDoc(doc(db, 'users', accProfile._id), { photoURL: j.secure_url }, { merge: true });
+      accProfile.photoURL = j.secure_url; localStorage.removeItem('accAvatar');
+      showToast('✅', 'تم', 'تم تحديث صورتك الشخصية');
+    } catch (upErr) {
+      // احتياطي: حفظ نسخة مصغرة على هذا الجهاز فقط
+      const small = await accResizeToBlob(file, 200);
+      const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(small); });
+      localStorage.setItem('accAvatar', dataUrl);
+      showToast('⚠️', 'حُفظت محلياً', 'تعذّر رفع الصورة للسيرفر، حُفظت على هذا الجهاز فقط');
+    }
+    accRender();
+  } catch (e) { showToast('❌', 'خطأ', 'تعذّر قراءة الصورة'); }
+  finally { av.classList.remove('loading'); accEl('acc-avatar-file').value = ''; }
+}
+
+// ═══════════ وجه التفاعل السريع ═══════════
+window.getFavReaction = () => localStorage.getItem('alfa_reaction') || '👍';   // ← استخدمها في نظام التفاعلات
+function accOpenEmoji() {
+  const cur = (accProfile && accProfile.favReaction) || window.getFavReaction();
+  const grid = accEl('acc-emoji-grid');
+  grid.innerHTML = ACC_EMOJIS.map(e => '<button type="button" data-emoji="' + e + '" class="' + (e === cur ? 'on' : '') + '">' + e + '</button>').join('');
+  openModal('acc-emoji-modal');
+}
+async function accPickEmoji(e) {
+  localStorage.setItem('alfa_reaction', e);
+  if (accProfile) accProfile.favReaction = e;
+  accRender(); closeModal('acc-emoji-modal');
+  showToast(e, 'تم', 'تم تعيين تفاعلك السريع');
+  try { if (accProfile) await setDoc(doc(db, 'users', accProfile._id), { favReaction: e }, { merge: true }); } catch (err) {}
+}
+
+// ═══════════ حذف الحساب (يتطلب كتابة الصلاة، ويُجدوَل 7 أيام) ═══════════
+const SALAWAT_TEXT = 'اللهم صل على محمد وآل محمد';
+const DELETE_GRACE_DAYS = 7;
+function accNormalizeArabic(s) {
+  return String(s || '')
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, '')          // إزالة التشكيل والتطويل
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+    .replace(/[^\u0600-\u06FF\s]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+function accValidSalawat(input) {
+  const n = accNormalizeArabic(input);
+  if (n === accNormalizeArabic(SALAWAT_TEXT)) return true;
+  // تسامح مع الصيغ الشائعة: وجود «صل» + ذكر «محمد» مرتين على الأقل
+  return n.includes('صل') && (n.match(/محمد/g) || []).length >= 2;
+}
+function accOpenDelete() { accEl('acc-d-word').value = ''; accSetErr('acc-d-err', ''); openModal('acc-delete-modal'); }
+async function accConfirmDelete() {
+  if (!accProfile) return;
+  accSetErr('acc-d-err', '');
+  if (!accValidSalawat(accEl('acc-d-word').value)) {
+    accSetErr('acc-d-err', 'اكتب «اللهم صلِّ على محمد وآل محمد» كما هي للتأكيد.');
+    return;
+  }
+  const btn = accEl('acc-d-confirm'), id = accProfile._id;
+  accBusy(btn, true);
+  try {
+    const pendingAt = new Date();
+    await setDoc(doc(db, 'users', id), { deletePendingAt: pendingAt }, { merge: true });
+    accProfile.deletePendingAt = pendingAt;
+    localStorage.setItem('deletePendingAt', pendingAt.toISOString());
+    closeModal('acc-delete-modal');
+    showToast('🕓', 'تم جدولة الحذف', 'سيُحذف حسابك بعد 7 أيام إذا لم تسجّل الدخول خلال المدة.');
+    setTimeout(() => accDoLogout(), 900);
+  } catch (e) {
+    accSetErr('acc-d-err', accErrMsg(e));
+    accBusy(btn, false, accLang === 'en' ? ACC_EN.deleteConfirm : 'تأكيد طلب الحذف');
+  }
+}
+// معالجة طلب الحذف المجدول عند تسجيل الدخول: يُلغى خلال المهلة، ويُنفَّذ بعدها
+async function accResolvePendingDelete(username, pendingAt) {
+  const ts = accToMs(pendingAt);
+  if (!username || !ts) return;
+  if ((Date.now() - ts) < DELETE_GRACE_DAYS * 86400000) {
+    localStorage.removeItem('deletePendingAt');
+    try { await updateDoc(doc(db, 'users', username), { deletePendingAt: null }); } catch (e) {}
+    showToast('✅', 'أُلغي الحذف', 'سجّلت الدخول خلال المهلة، فأُلغي حذف حسابك.');
+  } else {
+    accFinalizeDelete(username);
+  }
+}
+// تنفيذ الحذف النهائي بعد انتهاء المهلة
+async function accFinalizeDelete(username) {
+  try { await deleteDoc(doc(db, 'users', username)); } catch (e) {}
+  try { const u = fireAuth.currentUser; if (u) await deleteUser(u); } catch (e) {}
+  ['accAvatar', 'username', 'shift', 'section', 'firebaseUid', 'deletePendingAt'].forEach(k => localStorage.removeItem(k));
+  clearSession(); accProfile = null;
+  try { await firebaseSignOut(fireAuth); } catch (e) {}
+  updateHeaderUI();
+  try { setActiveNav('home'); } catch (e) {}
+  showToast('🕓', 'تم الحذف', 'انتهت مهلة الحذف وتم حذف حسابك نهائياً.');
+}
+// تنظيف الحسابات التي انتهت مهلة حذفها (محاولة تلقائية، تُتجاهل أخطاء الصلاحيات)
+async function accPurgeExpiredDeletions() {
+  try {
+    const cutoff = new Date(Date.now() - DELETE_GRACE_DAYS * 86400000);
+    const snap = await getDocs(query(collection(db, 'users'), where('deletePendingAt', '<=', cutoff)));
+    snap.forEach(d => { deleteDoc(doc(db, 'users', d.id)).catch(() => {}); });
+  } catch (e) { /* قد تمنعها قواعد Firestore */ }
+}
+
+// ═══════════ تواصل معنا ═══════════
+async function accSendContact() {
+  accSetErr('acc-c-err', '');
+  const msg = accEl('acc-c-text').value.trim();
+  if (msg.length < 5) { accSetErr('acc-c-err', 'اكتب رسالتك (5 أحرف على الأقل).'); return; }
+  const btn = accEl('acc-c-send');
+  accBusy(btn, true);
+  try {
+    await addDoc(collection(db, ACC_CONFIG.SUPPORT_COLLECTION), {
+      username: accProfile ? accProfile._id : '', name: accProfile ? (accProfile.fullName || '') : '',
+      message: msg, createdAt: new Date()
+    });
+    accEl('acc-c-text').value = '';
+    closeModal('acc-contact-modal');
+    showToast('✅', 'تم الإرسال', 'وصلت رسالتك إلى الدعم الفني');
+  } catch (e) { accSetErr('acc-c-err', accErrMsg(e)); }
+  finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.send : 'إرسال'); }
+}
+// ═══════════ ربط الأحداث ═══════════
+document.addEventListener('click', ev => {
+  const emoji = ev.target.closest('#acc-emoji-grid [data-emoji]');
+  if (emoji) { accPickEmoji(emoji.dataset.emoji); return; }
+  const seg = ev.target.closest('#acc-seg-shift button, #acc-seg-section button, #acc-seg-theme button');
+  if (seg) {
+    const id = seg.parentElement.id;
+    if (id === 'acc-seg-theme') { localStorage.setItem('alfa_theme', seg.dataset.val); accApplyTheme(seg.dataset.val); }
+    else { accSegSet(id, seg.dataset.val); accSetErr(id === 'acc-seg-shift' ? 'acc-e-shift' : 'acc-e-section', ''); }
+    return;
+  }
+  const el = ev.target.closest('[data-act]'); if (!el) return;
+  switch (el.dataset.act) {
+    case 'open-login':    showAuthPanel('login'); openModal('login-modal'); break;
+    case 'pick-avatar':   accEl('acc-avatar-file').click(); break;
+    case 'save-profile':  accSaveProfile(); break;
+    case 'open-manage':   accOpenManage(); break;
+    case 'open-username': accOpenUsername(); break;
+    case 'open-password': accOpenPassword(); break;
+    case 'save-password': accSavePassword(); break;
+    case 'logout':        accDoLogout(); break;
+    case 'ask-logout':    openModal('acc-logout-modal'); break;
+    case 'confirm-logout': closeModal('acc-logout-modal'); accDoLogout(); break;
+    case 'save-username': accSaveUsername(); break;
+    case 'open-period':   accOpenPeriod(); break;
+    case 'save-period':   accSavePeriod(); break;
+    case 'open-emoji':    accOpenEmoji(); break;
+    case 'open-delete':   accOpenDelete(); break;
+    case 'confirm-delete':accConfirmDelete(); break;
+    case 'open-contact':  accSetErr('acc-c-err', ''); openModal('acc-contact-modal'); break;
+    case 'send-contact':  accSendContact(); break;
+    case 'open-privacy':  openModal('acc-privacy-modal'); break;
+    case 'open-terms':    openModal('acc-terms-modal'); break;
+  }
+});
+accEl('acc-avatar-file').addEventListener('change', e => accUploadAvatar(e.target.files[0]));
+accEl('acc-lang-switch').addEventListener('change', e => accApplyLang(e.target.checked ? 'en' : 'ar'));
+accEl('acc-u-input').addEventListener('input', accUpdateRules);
+accEl('acc-np-pass').addEventListener('input', accUpdatePassRules);
+accEl('acc-np-pass2').addEventListener('input', accUpdatePassRules);
+accEl('acc-f-name').addEventListener('input', () => { accEl('acc-f-name').classList.remove('invalid'); accSetErr('acc-e-name', ''); });
+window.accOpen = accOpen;          // يُستدعى من setActiveNav('user')
+
+accBuildForm();
+accApplyLang(accLang);             // تطبيق اللغة المحفوظة
+accApplyTheme(accTheme);
+
 // ── BOTTOM NAV ──
 window.setActiveNav = function(id) {
   document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
@@ -3759,8 +5217,10 @@ window.setActiveNav = function(id) {
   // إخفاء جميع الـ views
   const homeView  = document.getElementById('view-home');
   const matsView  = document.getElementById('view-materials');
+  const accView   = document.getElementById('view-account');
   if (homeView) homeView.style.display  = 'none';
   if (matsView) matsView.style.display  = 'none';
+  if (accView)  accView.style.display   = 'none';
 
   const fab = document.getElementById('fab-add-material');
   if (fab) fab.classList.remove('show');
@@ -3779,6 +5239,10 @@ window.setActiveNav = function(id) {
       document.getElementById('materials-subjects-screen').style.display = 'block';
       document.getElementById('materials-subject-detail').style.display  = 'none';
     }
+  } else if (id === 'user') {
+    // الحساب والملف الشخصي
+    if (accView) accView.style.display = 'block';
+    window.accOpen && window.accOpen(true);
   } else {
     // الجدول الدراسي (home)
     if (homeView) homeView.style.display = 'block';
@@ -3826,9 +5290,12 @@ window.handleModalOverlayClick = function(e, id) {
   if (e.target.id === id) closeModal(id);
 };
 
-document.getElementById('btn-open-login').addEventListener('click', () => openModal('login-modal'));
-document.getElementById('btn-do-login').addEventListener('click', doLogin);
-document.getElementById('login-code').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+document.getElementById('btn-open-login')?.addEventListener('click', () => { showAuthPanel('login'); openModal('login-modal'); });
+document.getElementById('btn-do-login')?.addEventListener('click', doLogin);
+document.getElementById('auth-login-user')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('auth-login-pass')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('btn-auth-next')?.addEventListener('click', authNextStep);
+document.getElementById('btn-do-signup')?.addEventListener('click', doAuthSignup);
 
 document.getElementById('btn-enable-notif')?.addEventListener('click', () => {
   requestNotifPermission();
@@ -3993,14 +5460,25 @@ let chatTypingTimeout = null;
 let isChatTyping = false;
 let unreadMsgIdsCache = [];
 
-// ── عداد الاستفسارات على الأزرار ──
-async function loadEnquiryCount(postId, markAsRead = false) {
+// ── عداد الاستفسارات على الأزرار (مع كاش لتسريع العرض) ──
+const enquiryCountCache = new Map(); // postId → { count, ts }
+const ENQ_COUNT_TTL = 45000;         // صلاحية الكاش بالملّي ثانية
+
+async function loadEnquiryCount(postId, markAsRead = false, force = false) {
   try {
-    const snap = await getCountFromServer(query(
-      collection(db, 'enquiries'),
-      where('postId', '==', postId)
-    ));
-    const count = snap.data().count;
+    let count;
+    const cached = enquiryCountCache.get(postId);
+    if (!force && cached && (Date.now() - cached.ts) < ENQ_COUNT_TTL) {
+      count = cached.count; // استخدام القيمة المخزنة مؤقتاً لتفادي طلب شبكة
+    } else {
+      const snap = await getCountFromServer(query(
+        collection(db, 'enquiries'),
+        where('postId', '==', postId)
+      ));
+      count = snap.data().count;
+      enquiryCountCache.set(postId, { count, ts: Date.now() });
+    }
+
     const btn = document.getElementById(`enq-btn-${postId}`);
     if (!btn) return;
 
@@ -4034,7 +5512,7 @@ async function loadEnquiryCount(postId, markAsRead = false) {
 
 // تحديث عداد تحضير معين (بعد إرسال أو حذف رسالة)
 function refreshEnquiryCount(postId, markAsRead = false) {
-  if (postId) loadEnquiryCount(postId, markAsRead);
+  if (postId) loadEnquiryCount(postId, markAsRead, true); // force لتحديث فوري
 }
 
 // ── MOBILE KEYBOARD & VIEWPORT FIX ──
@@ -4848,12 +6326,10 @@ window.addEventListener('popstate', () => {
 
 // ── INIT ──
 function init() {
-  // Hide loading screen
+  // Hide loading screen (التطبيق عمل بنجاح، لذا نلغي شبكة الأمان)
+  clearTimeout(window.__loadingWatchdog);
   setTimeout(() => {
-    document.getElementById('loading-screen').classList.add('hide');
-    document.getElementById('app').style.display = 'flex';
-    document.getElementById('app').style.flexDirection = 'column';
-    setTimeout(() => document.getElementById('loading-screen').remove(), 700);
+    if (window.__hideLoadingScreen) window.__hideLoadingScreen();
   }, 1200);
 
   loadSession();
@@ -4867,11 +6343,16 @@ function init() {
   }
   
   renderDays('fade');
-  scheduleMidnightCleanup();
-  autoDeleteExpiredPosts();
-  requestNotifPermission();
-  refreshOfflinePosts();
-  
+
+  // تأجيل المهام غير الحرجة حتى ينتهي المتصفح من الرسم الأول (تحسين سرعة الإقلاع)
+  const runWhenIdle = window.requestIdleCallback || (cb => setTimeout(() => cb({ timeRemaining: () => 0 }), 1600));
+  runWhenIdle(() => {
+    scheduleMidnightCleanup();
+    autoDeleteExpiredPosts();
+    requestNotifPermission();
+    refreshOfflinePosts();
+  });
+
   // الدردشة الآن تُفتح عند الضغط على "استفسار" - لا حاجة للاشتراك المسبق
   initChatSwipeToReply();
 
@@ -4970,5 +6451,4 @@ if (isIos && !isStandalone && !localStorage.getItem('iosPromptDismissed')) {
 }
 </script>
 </body>
-</html>
 </html>

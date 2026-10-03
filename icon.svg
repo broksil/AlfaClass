@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="AlfaClass">
+  <defs>
+    <linearGradient id="alfaBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="102" fill="url(#alfaBg)"/>
+  <path d="M178.2 243.2 H333.8 L309 340 Q306 349 297 349 H215 Q206 349 203 340 Z" fill="#e6ebfa"/>
+  <path d="M256 148.5 L401.9 225.3 L256 302.1 L110.1 225.3 Z" fill="#ffffff"/>
+  <rect x="353.5" y="225.3" width="9.8" height="128" rx="4.9" fill="#fbbf24"/>
+  <circle cx="358.4" cy="366.1" r="15.9" fill="#f59e0b"/>
+</svg>
