@@ -1457,6 +1457,44 @@
   #btn-open-login, #user-info { display: none !important; }
   /* أيقونة الإشعارات في زاوية الهيدر */
   header .header-actions { margin-inline-start: auto; }
+
+  /* ══════════ واجهة تسجيل الدخول على كامل الشاشة ══════════ */
+  #login-modal { padding: 0; align-items: stretch; background: rgba(6,6,18,0.92); }
+  #login-modal .modal-box {
+    position: relative;
+    width: 100%; max-width: 100%;
+    min-height: 100dvh; height: 100dvh; max-height: 100dvh;
+    border: none; border-radius: 0;
+    padding: calc(66px + var(--safe-top)) 20px calc(28px + var(--safe-bottom));
+    display: flex; flex-direction: column;
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    background: radial-gradient(ellipse at 25% 0%, rgba(124,58,237,0.20) 0%, transparent 62%),
+                linear-gradient(180deg, #0e0e22 0%, #080818 100%);
+    animation: loginScreenIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes loginScreenIn { from { opacity: 0; transform: translateY(22px) scale(0.99); } to { opacity: 1; transform: none; } }
+  #login-modal .modal-handle { display: none; }
+  #login-modal .auth-panel { width: 100%; max-width: 420px; margin: auto; padding: 6px 0; }
+  #login-modal .login-brand {
+    position: absolute; top: calc(16px + var(--safe-top)); left: 0; right: 0;
+    text-align: center; font-size: 21px; font-weight: 900; letter-spacing: -0.4px;
+    background: linear-gradient(135deg, #fff 30%, var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    pointer-events: none;
+  }
+  #login-modal .login-close {
+    position: absolute; top: calc(12px + var(--safe-top)); inset-inline-end: 14px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text-primary); font-size: 15px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font);
+    transition: background 0.2s, transform 0.15s;
+  }
+  #login-modal .login-close:hover { background: rgba(255,255,255,0.12); }
+  #login-modal .login-close:active { transform: scale(0.90); }
+  /* مهم: يجعل أنيميشن الإغلاق يتفوّق على أنيميشن الدخول ذي الأولوية الأعلى */
+  #login-modal .modal-box.closing { animation: modalOut 0.25s ease forwards; }
 </style>
 </head>
 <body>
@@ -2065,6 +2103,8 @@
 <!-- ── LOGIN MODAL (Firebase Auth) ── -->
 <div class="modal-overlay" id="login-modal" onclick="handleModalOverlayClick(event,'login-modal')">
   <div class="modal-box" id="login-box" onclick="event.stopPropagation()">
+    <div class="login-brand">ألفاكلاس</div>
+    <button type="button" class="login-close" onclick="closeModal('login-modal')" aria-label="إغلاق">✖</button>
     <div class="modal-handle"></div>
 
     <!-- تسجيل الدخول -->
@@ -5326,14 +5366,23 @@ window.closeModal = function(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
   const box = overlay.querySelector('.modal-box');
+  let closed = false;
+  let onEnd = null;
   const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    if (box && onEnd) box.removeEventListener('animationend', onEnd);
     overlay.classList.remove('open');
+    if (box) box.classList.remove('closing');
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
   };
   if (box) {
+    // نستمع لأنيميشن الصندوق نفسه فقط (animationend يتصاعد من العناصر الابنة أيضًا)
+    onEnd = (ev) => { if (ev.target === box) cleanup(); };
+    box.addEventListener('animationend', onEnd);
     box.classList.add('closing');
-    box.addEventListener('animationend', () => { box.classList.remove('closing'); cleanup(); }, {once:true});
+    setTimeout(cleanup, 420); // شبكة أمان: يُغلق دائمًا حتى لو لم يصل الحدث
   } else { cleanup(); }
 };
 window.handleModalOverlayClick = function(e, id) {

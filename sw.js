@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alfaclass-v15';
+const CACHE_NAME = 'alfaclass-v17';
 const DYNAMIC_CACHE = 'alfaclass-images-v1';
 const urlsToCache = [
   './',
