@@ -108,7 +108,7 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import {getFirestore,doc,setDoc,getDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import {getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,query,where,limit} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const app=initializeApp({apiKey:"AIzaSyDrT10AouY-MAtS4Brt-1fPpPt4YoT8spc",authDomain:"alfaclass-120e3.firebaseapp.com",projectId:"alfaclass-120e3",messagingSenderId:"548886375389",appId:"1:548886375389:web:a49c2a446981cd2836e434"});
 const auth=getAuth(app),db=getFirestore(app);
@@ -116,13 +116,24 @@ const OWNER="baqer",DOMAIN="@alfaclass.app";
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const email=u=>u.toLowerCase()+DOMAIN;
 
+/* ===== البحث عن الحساب: باليوزر أو البريد الداخلي أو المسار (Firestore يعتمد على الأيدي) ===== */
+const findUser=async(name)=>{
+  name=String(name||'').trim().toLowerCase();
+  if(!name)return null;
+  try{const q=await getDocs(query(collection(db,'users'),where('username','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
+  try{const s=await getDoc(doc(db,'users',name));if(s.exists())return{d:s.data(),id:s.id};}catch(e){}
+  try{const q=await getDocs(query(collection(db,'users'),where('emailPrefix','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
+  return null;
+};
+const loginPrefix=async(name)=>{const f=await findUser(name);return f?(f.d.emailPrefix||f.d.username||name):name;};
+
 /* ===== إذا كان المستخدم مسجل دخوله بالفعل، انقله مباشرة ===== */
 onAuthStateChanged(auth,u=>{
   if(u && !window.__signing){
     const name=u.email.split('@')[0];
-    getDoc(doc(db,'users',name)).then(snap=>{
-      if(snap.exists()){
-        const d=snap.data();
+    findUser(name).then(f=>{
+      if(f){
+        const d=f.d;
         localStorage.setItem('isLoggedIn','true');
         localStorage.setItem('name',d.fullName||name);
         localStorage.setItem('username',d.username||name);
@@ -132,6 +143,7 @@ onAuthStateChanged(auth,u=>{
         localStorage.setItem('isSuperAdmin',d.role==='owner'?'true':'false');
         localStorage.setItem('shift',d.shift||'');
         localStorage.setItem('section',d.section||'');
+        localStorage.setItem('userId',d.userId?String(d.userId):'');
         localStorage.setItem('firebaseUid',u.uid);
         window.location.href='index.html';
       }
@@ -178,11 +190,12 @@ $('#loginBtn').onclick=async()=>{
   if(!ok)return;
   const b=$('#loginBtn');b.disabled=true;
   try{
-    const cred=await signInWithEmailAndPassword(auth,email(u.value.trim()),p.value);
     const name=u.value.trim().toLowerCase();
-    const snap=await getDoc(doc(db,'users',name));
-    if(snap.exists()){
-      const d=snap.data();
+    const prefix=await loginPrefix(name); // يدعم تغيير اليوزر لاحقاً (البريد الداخلي ثابت)
+    const cred=await signInWithEmailAndPassword(auth,prefix+DOMAIN,p.value);
+    const f=await findUser(name);
+    if(f){
+      const d=f.d;
       localStorage.setItem('isLoggedIn','true');
       localStorage.setItem('name',d.fullName||name);
       localStorage.setItem('username',d.username||name);
@@ -192,6 +205,7 @@ $('#loginBtn').onclick=async()=>{
       localStorage.setItem('isSuperAdmin',d.role==='owner'?'true':'false');
       localStorage.setItem('shift',d.shift||'');
       localStorage.setItem('section',d.section||'');
+      localStorage.setItem('userId',d.userId?String(d.userId):'');
       localStorage.setItem('firebaseUid',cred.user.uid);
     }
     window.location.href='index.html';
@@ -223,20 +237,23 @@ $('#signBtn').onclick=async()=>{
   const b=$('#signBtn');b.disabled=true;
   try{
     const name=un.toLowerCase();
-    // تحقق من عدم تكرار اسم المستخدم في Firestore
-    const existingUser=await getDoc(doc(db,'users',name));
-    if(existingUser.exists()){
+    // تحقق من عدم تكرار اسم المستخدم (بالحقل username لا بالمسار)
+    const dupSnap=await getDocs(query(collection(db,'users'),where('username','==',name),limit(1)));
+    if(!dupSnap.empty){
       showForm('#signErr','اسم المستخدم مأخوذ، اختر اسماً آخر.');
       b.disabled=false;
       return;
     }
     window.__signing=true;
     const cred=await createUserWithEmailAndPassword(auth,email(name),p.value);
-    await setDoc(doc(db,'users',name),{
+    const newUserId=name===OWNER?666:Math.floor(100000+Math.random()*900000);
+    // المعرّف الرقمي هو مفتاح المستند في Firestore (لا اليوزر)
+    await setDoc(doc(db,'users',String(newUserId)),{
       username:name,fullName:$('#lfa-f3').value.trim(),
       shift:radio('shift'),section:radio('section'),
       role:name===OWNER?'owner':'student',
-      uid:cred.user.uid,createdAt:serverTimestamp()
+      uid:cred.user.uid,createdAt:serverTimestamp(),
+      userId:newUserId,emailPrefix:name // بريد الدخول الثابت
     });
     window.__signing=false;
     // حفظ البيانات في localStorage
@@ -250,6 +267,7 @@ $('#signBtn').onclick=async()=>{
     localStorage.setItem('isSuperAdmin',isOwner?'true':'false');
     localStorage.setItem('shift',radio('shift'));
     localStorage.setItem('section',radio('section'));
+    localStorage.setItem('userId',String(newUserId));
     localStorage.setItem('firebaseUid',cred.user.uid);
     window.location.href='index.html';
   }catch(e){window.__signing=false;showForm('#signErr',authMsg(e.code))}

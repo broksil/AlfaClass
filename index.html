@@ -323,6 +323,184 @@
   }
   .bottom-nav-item.active .nav-icon { filter: drop-shadow(0 0 6px rgba(167,139,250,0.6)); }
 
+  /* ── البلاغات ── */
+  .reports-empty {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px;
+    padding: 36px 18px; text-align: center; color: var(--text-secondary);
+  }
+  .reports-empty .reports-empty-ico { font-size: 40px; margin-bottom: 10px; filter: drop-shadow(0 0 8px rgba(167,139,250,0.5)); }
+  .reports-empty .reports-empty-title { font-size: 15px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+
+  /* بطاقات البلاغات */
+  .reports-list { display: flex; flex-direction: column; gap: 10px; }
+  .report-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 14px 16px;
+    box-shadow: var(--shadow-card);
+    animation: cardFade 0.35s ease both;
+  }
+  .report-card.report-urgent { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.06); }
+  .report-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .report-type {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 99px;
+    font-size: 11px; font-weight: 800;
+    background: rgba(124,58,237,0.15); color: var(--accent2);
+    border: 1px solid rgba(124,58,237,0.3);
+  }
+  .report-type[data-type="تنبيه عاجل"] { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.35); }
+  .report-type[data-type="معلومة"] { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.35); }
+  .report-type[data-type="تحديث جدولي"] { background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.35); }
+  .report-date { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; }
+  .report-title { font-size: 15px; font-weight: 800; line-height: 1.5; margin-bottom: 4px; overflow-wrap: anywhere; }
+  .report-body { font-size: 13px; color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .report-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+  .report-author { font-size: 11px; color: var(--text-secondary); font-weight: 700; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  /* صورة الملف الشخصي الموحدة (البلاغات + المنشورات) — تتجدد عند تغييرها */
+  .avatar-slot {
+    position: relative; width: 34px; height: 34px; flex-shrink: 0;
+    border-radius: 50%; overflow: hidden;
+    border: 2px solid rgba(167,139,250,0.5);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; line-height: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    color: #fff; vertical-align: middle;
+  }
+  .avatar-slot.sm { width: 26px; height: 26px; font-size: 11.5px; border-width: 1.5px; }
+  .avatar-slot .avatar-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .report-author-name { font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .report-del {
+    padding: 5px 10px; border-radius: 8px; cursor: pointer;
+    font-family: var(--font); font-size: 11px; font-weight: 700;
+    background: rgba(239,68,68,0.12); color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .report-del:active { transform: scale(0.94); }
+  .reports-owner-hint { font-size: 11.5px; color: var(--text-muted); margin: 8px 0 12px; display: flex; align-items: center; gap: 6px; }
+
+  /* ── مرفقات البلاغ: شرائح + لوحات ── */
+  .att-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .att-chip {
+    flex: 1; min-width: 74px; padding: 11px 6px; border-radius: 13px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text-secondary); font-family: var(--font);
+    font-size: 12.5px; font-weight: 800; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .att-chip:active { transform: scale(0.94); }
+  .att-chip.on { background: rgba(124,58,237,0.20); border-color: var(--border-active); color: var(--accent2); box-shadow: 0 0 14px rgba(124,58,237,0.18); }
+  .att-hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+
+  /* قائمة الملفات داخل النافذة */
+  .rep-files-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .rep-file-row {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 11px; padding: 8px 11px; font-size: 12.5px;
+    animation: cardFade 0.25s ease both;
+  }
+  .rep-file-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rep-file-row .sz { font-size: 10.5px; color: var(--text-muted); }
+  .rep-file-row .rm { cursor: pointer; color: #ef4444; font-weight: 800; padding: 2px 7px; }
+
+  /* تسجيل الصوت */
+  .voice-box { display: flex; align-items: center; gap: 12px; }
+  .voice-btn {
+    flex: 1; padding: 13px; border-radius: 13px;
+    border: 1.5px dashed var(--border-active);
+    background: rgba(124,58,237,0.10); color: var(--accent2);
+    font-family: var(--font); font-weight: 800; font-size: 13.5px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .voice-btn:active { transform: scale(0.97); }
+  .voice-btn.rec {
+    background: rgba(239,68,68,0.16); border-color: rgba(239,68,68,0.7); color: #f87171;
+    animation: pulseOpacity 1.2s infinite;
+  }
+  .voice-timer { font-size: 15px; font-weight: 800; color: var(--text-primary); min-width: 54px; direction: ltr; text-align: center; }
+  .voice-player audio { width: 100%; height: 40px; border-radius: 10px; }
+  .voice-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .voice-alt {
+    flex: 1; padding: 9px; border-radius: 11px;
+    border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+    color: var(--text-secondary); font-family: var(--font);
+    font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  .voice-alt.danger { color: #ef4444; border-color: rgba(239,68,68,0.35); }
+
+  /* الاستفتاء داخل النافذة */
+  .poll-options { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .poll-opt-row { display: flex; gap: 8px; align-items: center; }
+  .poll-opt-row .form-input { flex: 1; }
+  .poll-opt-row .rm { color: #ef4444; cursor: pointer; font-weight: 800; padding: 5px 9px; font-size: 14px; }
+  .poll-add {
+    margin-top: 10px; width: 100%; padding: 11px; border-radius: 12px;
+    border: 1.5px dashed var(--border); background: rgba(255,255,255,0.04);
+    color: var(--text-secondary); font-family: var(--font);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .poll-add:active { transform: scale(0.98); }
+
+  /* ── عرض المرفقات داخل بطاقة البلاغ ── */
+  .report-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .report-gallery[data-count="1"] { grid-template-columns: 1fr; }
+  .report-gallery[data-count="2"] { grid-template-columns: 1fr 1fr; }
+  .report-gallery img {
+    width: 100%; height: 92px; border-radius: 12px; object-fit: cover;
+    cursor: pointer; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    transition: transform 0.2s, filter 0.2s;
+    display: block;
+  }
+  .report-gallery[data-count="1"] img { height: 200px; }
+  .report-gallery[data-count="2"] img { height: 130px; }
+  .report-gallery img:active { transform: scale(0.97); }
+  .report-gallery img:hover { filter: brightness(1.08); }
+  .report-img-more {
+    position: relative;
+  }
+  .report-img-more::after {
+    content: '+' attr(data-extra);
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55); color: #fff;
+    font-size: 18px; font-weight: 800; border-radius: 12px;
+  }
+  .report-files { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .report-voice { margin-top: 10px; }
+  .report-voice audio { width: 100%; height: 40px; border-radius: 10px; }
+  .report-poll {
+    margin-top: 12px; background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-radius: 14px; padding: 12px;
+  }
+  .report-poll-q { font-size: 13.5px; font-weight: 800; margin-bottom: 10px; }
+  .poll-bar {
+    position: relative; overflow: hidden;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 11px; padding: 9px 12px; margin-bottom: 8px;
+    cursor: pointer; transition: transform 0.15s, border-color 0.2s;
+  }
+  .poll-bar:active { transform: scale(0.98); }
+  .poll-bar.mine { border-color: var(--accent2); cursor: default; }
+  .poll-bar .fill {
+    position: absolute; top: 0; bottom: 0; right: 0; width: 0;
+    background: linear-gradient(270deg, rgba(124,58,237,0.40), rgba(167,139,250,0.28));
+    transition: width 0.7s cubic-bezier(0.2,0.9,0.3,1);
+  }
+  .poll-bar.mine .fill { background: linear-gradient(270deg, rgba(167,139,250,0.55), rgba(124,58,237,0.40)); }
+  .poll-bar .txt {
+    position: relative; display: flex; justify-content: space-between; gap: 10px;
+    font-size: 12.5px; font-weight: 700; color: var(--text-primary);
+  }
+  .poll-meta { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+
+  /* 4 عناصر في الشريط السفلي — ضبط المسافات على الشاشات الضيقة */
+  @media (max-width: 380px) {
+    .bottom-nav { padding: 10px 10px; }
+    .bottom-nav-item { min-width: 54px; padding: 4px 8px; }
+  }
+
   /* ══════════════════ قسم الملازم ══════════════════ */
   .subject-grid {
     display: grid;
@@ -1701,7 +1879,7 @@
     <div class="header-actions">
       <!-- Install App Button -->
       <button class="btn-install" id="btn-install" style="display: none;" title="تثبيت التطبيق">⬇️ تثبيت</button>
-      
+
       <!-- Notification bell -->
       <button class="btn-notif" id="btn-notif" title="الإشعارات">
         🔔
@@ -1744,6 +1922,26 @@
         </div>
       </div>
       <div class="days-list" id="days-list"></div>
+    </div>
+
+    <!-- ── قسم البلاغات ── -->
+    <div id="view-reports" style="display:none">
+      <div class="section-header">
+        <div>
+          <div class="section-title">البلاغات 📣</div>
+          <div class="section-sub">تابع آخر البلاغات والتنبيهات</div>
+        </div>
+      </div>
+      <div id="reports-owner-zone" style="display:none">
+        <button class="btn-publish" onclick="openReportModal()">📝 نشر بلاغ جديد</button>
+        <div class="reports-owner-hint">👑 أنت مالك الموقع — البلاغات التي تنشرها تظهر لجميع المستخدمين فوراً.</div>
+      </div>
+      <div class="reports-empty" id="reports-empty">
+        <div class="reports-empty-ico">📣</div>
+        <div class="reports-empty-title">لا توجد بلاغات حالياً</div>
+        <div>ستظهر هنا البلاغات الجديدة فور وصولها</div>
+      </div>
+      <div class="reports-list" id="reports-list"></div>
     </div>
 
     <!-- ── قسم الملازم ── -->
@@ -1812,6 +2010,7 @@
             <div class="acc-info-row"><span class="k" data-i18n="shift">نوع الدوام</span><span class="v" id="acc-v-shift">—</span></div>
             <div class="acc-info-row"><span class="k" data-i18n="stage">المرحلة الدراسية</span><span class="v" id="acc-v-stage">—</span></div>
             <div class="acc-info-row"><span class="k" data-i18n="section">الشعبة</span><span class="v" id="acc-v-section">—</span></div>
+            <div class="acc-info-row"><span class="k">المعرّف الثابت (ID)</span><span class="v" id="acc-v-userid">—</span></div>
           </div>
         </div>
 
@@ -1902,6 +2101,10 @@
   <button class="bottom-nav-item active" id="nav-home" onclick="setActiveNav('home')">
     <span class="nav-icon">🏠</span>
     <span class="nav-label">الجدول</span>
+  </button>
+  <button class="bottom-nav-item" id="nav-reports" onclick="setActiveNav('reports')">
+    <span class="nav-icon">📣</span>
+    <span class="nav-label">البلاغات</span>
   </button>
   <button class="bottom-nav-item" id="nav-schedule" onclick="setActiveNav('schedule')">
     <span class="nav-icon">📚</span>
@@ -2016,11 +2219,7 @@
         <li data-r="dots"><span>○</span><span data-i18n="ruleDots">لا تبدأ أو تنتهِ بنقطة ولا نقطتان متتاليتان</span></li>
       </ul>
     </div>
-    <div class="acc-field" style="margin-bottom:14px">
-      <label for="acc-u-pass" data-i18n="currentPassword">كلمة السر الحالية (للتأكيد)</label>
-      <input class="acc-input" id="acc-u-pass" type="password" autocomplete="new-password">
-    </div>
-    <div class="acc-warn" id="acc-u-cooldown" data-i18n="cooldownNote">يمكنك تغيير اسم المستخدم مرة واحدة كل 14 يوماً فقط.</div>
+    <div class="acc-warn" id="acc-u-cooldown">يمكنك تغيير اسم المستخدم في أي وقت وبدون كلمة السر — لن يتغيّر معرّفك الثابت (ID) ولا بياناتك ولا بريد دخولك الداخلي.</div>
     <div class="acc-err" id="acc-u-err"></div>
     <div class="acc-actions">
       <button class="acc-btn ghost" onclick="closeModal('acc-username-modal')" data-i18n="cancel">إلغاء</button>
@@ -2128,7 +2327,7 @@
   </div>
 </div>
 
-<!-- زر إضافة ملزمة (لجميع المسجلين — الزائر يُطلب منه تسجيل الدخول) -->
+<!-- زر إضافة ملزمة (لصاحب الموقع baqer فقط) -->
 <button class="fab-add-material" id="fab-add-material" onclick="openMaterialModal()">
   <span>+</span><span>إضافة ملزمة</span>
 </button>
@@ -2206,6 +2405,90 @@
       <button class="btn-mat-edit" id="material-detail-edit">✏️ تعديل</button>
       <button class="btn-mat-delete" id="material-detail-delete">🗑️ حذف</button>
     </div>
+  </div>
+</div>
+
+<!-- ── نشر بلاغ (للمالك فقط) ── -->
+<div class="modal-overlay" id="report-modal" onclick="handleModalOverlayClick(event,'report-modal')">
+  <div class="modal-box" id="report-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="report-modal-title">📣 نشر بلاغ</div>
+
+    <div class="form-group">
+      <label class="form-label">نوع البلاغ</label>
+      <select class="form-select" id="rep-type">
+        <option value="تنبيه عاجل">🔴 تنبيه عاجل</option>
+        <option value="معلومة">🔵 معلومة</option>
+        <option value="تحديث جدولي">🟡 تحديث جدولي</option>
+        <option value="أخرى">🟣 أخرى</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">عنوان البلاغ</label>
+      <input class="form-input" id="rep-title" placeholder="مثال: تغيير موعد الحصة اليوم" maxlength="120" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">التفاصيل (اختياري)</label>
+      <textarea class="form-textarea" id="rep-body" placeholder="اكتب تفاصيل البلاغ هنا..." maxlength="600" autocomplete="off"></textarea>
+    </div>
+
+    <!-- شرائح المرفقات -->
+    <div class="form-group">
+      <label class="form-label">إرفاق (اختياري)</label>
+      <div class="att-chips">
+        <button type="button" class="att-chip" id="chip-images" onclick="toggleAttPanel('images')">📷 صور</button>
+        <button type="button" class="att-chip" id="chip-files" onclick="toggleAttPanel('files')">📄 ملفات</button>
+        <button type="button" class="att-chip" id="chip-voice" onclick="toggleAttPanel('voice')">🎙️ صوت</button>
+        <button type="button" class="att-chip" id="chip-poll" onclick="toggleAttPanel('poll')">📊 استفتاء</button>
+      </div>
+    </div>
+
+    <!-- لوح: الصور -->
+    <div class="form-group att-panel hidden" id="att-panel-images">
+      <div class="upload-zone" onclick="document.getElementById('rep-images-input').click()">
+        <div class="upload-icon">🖼️</div>
+        <div>اضغط لاختيار صور (حتى 6 صور)</div>
+        <input type="file" id="rep-images-input" accept="image/*" multiple hidden onchange="handleReportImages(this)">
+      </div>
+      <div class="upload-preview" id="rep-images-preview"></div>
+    </div>
+
+    <!-- لوح: الملفات -->
+    <div class="form-group att-panel hidden" id="att-panel-files">
+      <div class="upload-zone" onclick="document.getElementById('rep-files-input').click()">
+        <div class="upload-icon">📎</div>
+        <div>اضغط لاختيار ملفات (حتى 6 ملفات)</div>
+        <input type="file" id="rep-files-input" multiple hidden onchange="handleReportFiles(this)">
+      </div>
+      <div class="rep-files-list" id="rep-files-list"></div>
+    </div>
+
+    <!-- لوح: الصوت -->
+    <div class="form-group att-panel hidden" id="att-panel-voice">
+      <div class="voice-box">
+        <button type="button" class="voice-btn" id="voice-btn" onclick="toggleVoiceRecord()">🎙️ ابدأ التسجيل</button>
+        <div class="voice-timer" id="voice-timer">00:00</div>
+      </div>
+      <div class="voice-player hidden" id="voice-player" style="margin-top:10px">
+        <audio id="voice-audio" controls preload="metadata"></audio>
+        <div class="voice-actions">
+          <button type="button" class="voice-alt" onclick="resetVoice()">🔁 إعادة التسجيل</button>
+          <button type="button" class="voice-alt danger" onclick="removeVoice()">🗑️ حذف الصوت</button>
+        </div>
+      </div>
+      <div class="att-hint">الحد الأقصى 60 ثانية — يُرفع تلقائياً عند النشر.</div>
+    </div>
+
+    <!-- لوح: الاستفتاء -->
+    <div class="form-group att-panel hidden" id="att-panel-poll">
+      <input class="form-input" id="poll-question" placeholder="سؤال الاستفتاء؟ مثال: نفضّل المحاضرة صباحاً" maxlength="160" autocomplete="off">
+      <div class="poll-options" id="poll-options"></div>
+      <button type="button" class="poll-add" onclick="addPollOption()">+ إضافة خيار</button>
+      <div class="att-hint">من خيارين إلى 6 — يصوّت الجميع (مرة واحدة لكل شخص).</div>
+    </div>
+
+    <button class="btn-submit" id="btn-do-report">🚀 نشر البلاغ</button>
+    <button class="btn-submit" style="background:rgba(255,255,255,0.06);box-shadow:none;margin-top:8px;color:var(--text-secondary)" onclick="cancelReportModal()">إلغاء</button>
   </div>
 </div>
 
@@ -2511,7 +2794,7 @@ import {
   updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthChanged, signOut as firebaseSignOut, updateEmail, updatePassword, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthChanged, signOut as firebaseSignOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // ── FIREBASE INIT ──
 const firebaseConfig = {
@@ -2532,6 +2815,108 @@ try {
 const fireAuth = getAuth(app);
 const AUTH_DOMAIN = "@alfaclass.app";
 const AUTH_OWNER = "baqer";
+
+// ── المعرّف الثابت (ID) لكل حساب — يُنشأ مرة واحدة ولا يتغيّر أبداً ──
+const OWNER_USER_ID = 666; // معرّف صاحب الموقع baqer
+const _userIdCache = {};   // كاش داخل الجلسة لمنع التعيين المزدوج
+
+async function _generateUniqueId() {
+  for (let i = 0; i < 8; i++) {
+    const candidate = Math.floor(100000 + Math.random() * 900000); // رقم من 6 أرقام
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), where('userId', '==', candidate)));
+      if (snap.empty) return candidate;
+    } catch (e) { return candidate; } // عند منع قواعد القراءة: اقبل المرشح (أفضل محاولة)
+  }
+  return Math.floor(100000 + Math.random() * 900000);
+}
+
+// ── الهوية: المعرّف الرقمي هو مفتاح المستند في Firestore (لا اليوزر) ──
+async function migrateUserDocToId(found) {
+  const uidNum = Number(found.data.userId);
+  if (!Number.isFinite(uidNum) || /^\d+$/.test(found.id)) return false;
+  try {
+    await setDoc(doc(db, 'users', String(uidNum)), found.data); // نسخ إلى مسار المعرّف
+    await deleteDoc(doc(db, 'users', found.id));                // حذف المسار القديم (اليوزر)
+    found.id = String(uidNum);
+    return true;
+  } catch (e) { console.warn('migrateUserDocToId:', e); return false; }
+}
+
+// تهيئة الحقول الثابتة (userId + emailPrefix) ثم الترحيل إلى مسار المعرّف الرقمي
+async function _canonicalizeUserDoc(found) {
+  const d = found.data;
+  const updates = {};
+  if (!d.userId) {
+    const isOwner = String(d.username || '') === AUTH_OWNER;
+    updates.userId = isOwner ? OWNER_USER_ID : await _generateUniqueId();
+  }
+  if (!d.emailPrefix && d.username) updates.emailPrefix = d.username; // البريد الداخلي يبقى أوليّاً
+  if (Object.keys(updates).length) {
+    try { await setDoc(doc(db, 'users', found.id), updates, { merge: true }); Object.assign(d, updates); } catch (e) {}
+  }
+  if (d.userId && !/^\d+$/.test(found.id)) await migrateUserDocToId(found);
+  return found;
+}
+
+// البحث عن المستند: بالمسار المباشر ثم بحقل username (يغطي المستندات المنقولة)
+async function resolveUserDoc(key) {
+  const k = String(key || '').trim().toLowerCase();
+  if (!k) return null;
+  let direct = null;
+  try {
+    const s = await getDoc(doc(db, 'users', k));
+    if (s.exists()) direct = { id: s.id, data: s.data() };
+  } catch (e) {}
+  let byName = null;
+  try {
+    const snap = await getDocs(query(collection(db, 'users'), where('username', '==', k), limit(1)));
+    if (!snap.empty) byName = { id: snap.docs[0].id, data: snap.docs[0].data() };
+  } catch (e) {}
+  let byEmail = null; // يغطي استعادة الجلسة بالبريد القديم بعد تغيير اليوزر
+  if (!byName && !direct) {
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), where('emailPrefix', '==', k), limit(1)));
+      if (!snap.empty) byEmail = { id: snap.docs[0].id, data: snap.docs[0].data() };
+    } catch (e) {}
+  }
+  // فضّل المسار المُرقمن (رقمي) عند وجود النسختين
+  let best = null;
+  if (direct && /^\d+$/.test(direct.id)) best = direct;
+  else if (byName && /^\d+$/.test(byName.id)) best = byName;
+  else best = direct || byName || byEmail;
+  if (!best) return null;
+  return _canonicalizeUserDoc(best);
+}
+
+// بريد الدخول الداخلي الثابت (لا يتغيّر بتغيير اليوزر) — يُستخدم قبل تسجيل الدخول
+async function resolveLoginPrefix(key) {
+  try {
+    const found = await resolveUserDoc(key);
+    if (!found) return null;
+    return found.data.emailPrefix || found.data.username || null;
+  } catch (e) { console.warn('resolveLoginPrefix:', e); return null; }
+}
+
+function ensureUserId(username) {
+  const name = String(username || '').toLowerCase();
+  if (!name) return Promise.resolve(null);
+  if (!_userIdCache[name]) {
+    _userIdCache[name] = (async () => {
+      try {
+        const found = await resolveUserDoc(name);
+        const id = found ? found.data.userId : null;
+        if (!id) delete _userIdCache[name]; // لا نكاش النتائج الفارغة/الفاشلة
+        return id;
+      } catch (e) {
+        console.warn('ensureUserId:', e);
+        delete _userIdCache[name];
+        return null;
+      }
+    })();
+  }
+  return _userIdCache[name];
+}
 
 // ── ENABLE OFFLINE PERSISTENCE (IndexedDB) ──
 enableIndexedDbPersistence(db).catch((err) => {
@@ -2648,6 +3033,7 @@ function loadSession() {
       icon: localStorage.getItem('icon') || '',
       isAdmin: localStorage.getItem('isAdmin') === 'true',
       isSuperAdmin: localStorage.getItem('isSuperAdmin') === 'true',
+      userId: localStorage.getItem('userId') || '',
       code: localStorage.getItem('username') || ''
     };
   }
@@ -2662,6 +3048,7 @@ function saveSession(user) {
   localStorage.setItem('icon', user.icon || '');
   localStorage.setItem('isAdmin', user.isAdmin ? 'true' : 'false');
   localStorage.setItem('isSuperAdmin', user.isSuperAdmin ? 'true' : 'false');
+  localStorage.setItem('userId', user.userId || '');
 }
 
 function clearSession() {
@@ -2672,6 +3059,7 @@ function clearSession() {
   localStorage.removeItem('icon');
   localStorage.removeItem('isAdmin');
   localStorage.removeItem('isSuperAdmin');
+  localStorage.removeItem('userId');
   currentUser = null;
 }
 
@@ -2747,7 +3135,8 @@ function applyUserProfile(profile, fallbackName, uid) {
     icon: '',
     isAdmin: isOwner,
     isSuperAdmin: isOwner,
-    code: profile.username || fallbackName
+    code: profile.username || fallbackName,
+    userId: profile.userId ? String(profile.userId) : ''
   };
   currentUser = user;
   saveSession(user);
@@ -2760,12 +3149,19 @@ function applyUserProfile(profile, fallbackName, uid) {
   const uname = profile.username || fallbackName;
   if (profile.deletePendingAt) accResolvePendingDelete(uname, profile.deletePendingAt);
   accPurgeExpiredDeletions();
+  // تهيئة المعرّف الثابت مبكراً (يُنشأ مرة واحدة فقط ولا يتغيّر أبداً)
+  ensureUserId(uname).then(id => {
+    if (id && accProfile && String(accProfile.username || accProfile._id) === uname) {
+      accProfile.userId = id;
+      if (accVisible()) accRender();
+    }
+  }).catch(() => {});
 }
 
 async function loadProfileAndApply(name, uid) {
   try {
-    const snap = await getDoc(doc(db, 'users', name));
-    if (snap.exists()) applyUserProfile(snap.data(), name, uid);
+    const found = await resolveUserDoc(name); // بالمسار أو بحقل username + ترحيل تلقائي
+    if (found) applyUserProfile(found.data, name, uid);
     else applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
   } catch (e) {
     applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
@@ -2797,7 +3193,9 @@ async function doLogin() {
   const btn = document.getElementById('btn-do-login');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
   try {
-    const cred = await signInWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password);
+    const prefix = await resolveLoginPrefix(username); // يدعم تغيير اليوزر لاحقاً
+    if (!prefix) { showAuthErr('auth-login-err', 'الحساب غير موجود — تحقق من اسم المستخدم'); return; }
+    const cred = await signInWithEmailAndPassword(fireAuth, prefix + AUTH_DOMAIN, password);
     await loadProfileAndApply(username, cred.user.uid);
     closeModal('login-modal');
     uEl.value = ''; pEl.value = '';
@@ -2846,17 +3244,20 @@ window.doAuthSignup = async function() {
   const btn = document.getElementById('btn-do-signup');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
   try {
-    const existing = await getDoc(doc(db, 'users', username));
-    if (existing.exists()) { showAuthErr('auth-sign-err','اسم المستخدم مأخوذ، اختر اسماً آخر.'); return; }
+    const dup = await getDocs(query(collection(db, 'users'), where('username', '==', username), limit(1)));
+    if (!dup.empty) { showAuthErr('auth-sign-err','اسم المستخدم مأخوذ، اختر اسماً آخر.'); return; }
     window.__signing = true;
     const cred = await createUserWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password);
-    await setDoc(doc(db, 'users', username), {
+    const newUserId = username === AUTH_OWNER ? OWNER_USER_ID : await _generateUniqueId();
+    // المعرّف الرقمي هو مفتاح المستند في Firestore (لا يعتمد على اليوزر)
+    await setDoc(doc(db, 'users', String(newUserId)), {
       username, fullName, shift, section,
       role: username === AUTH_OWNER ? 'owner' : 'student',
-      uid: cred.user.uid, createdAt: new Date()
+      uid: cred.user.uid, createdAt: new Date(),
+      userId: newUserId, emailPrefix: username // بريد الدخول الثابت (لا يتغيّر بتغيير اليوزر)
     });
     window.__signing = false;
-    applyUserProfile({ fullName, username, role: username === AUTH_OWNER ? 'owner' : 'student', shift, section }, username, cred.user.uid);
+    applyUserProfile({ fullName, username, role: username === AUTH_OWNER ? 'owner' : 'student', shift, section, userId: newUserId }, username, cred.user.uid);
     closeModal('login-modal');
     showToast('✅','مرحباً', `${fullName} — تم إنشاء الحساب بنجاح`);
     requestNotifPermission();
@@ -2978,7 +3379,7 @@ function renderDays(anim = 'fade') {
         <div class="post-list" id="posts-${day.id}">
           <div class="day-empty">لا يوجد محتوى</div>
         </div>
-        <button class="btn-publish" onclick="openPublishModal('${day.id}')">+ نشر تحضير</button>
+        ${currentUser?.isAdmin ? `<button class="btn-publish" onclick="openPublishModal('${day.id}')">+ نشر تحضير</button>` : ''}
       </div>
     `;
     fragment.appendChild(card);
@@ -3155,8 +3556,8 @@ function renderPostsForDay(dayId, posts) {
 
     const mediaHTML = buildMediaHTML(post);
     const noteHTML = post.note ? `<div class="post-note">${formatNote(post.note)}</div>` : '';
-    const postIcon = post.authorIcon ? post.authorIcon : (post.author === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : '');
-    const authorIconHTML = postIcon ? `<img src="${postIcon}" class="author-badge" alt="شعار">` : '';
+    const legacyIcon = post.authorIcon || (post.author === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : '');
+    const authorAvatarHTML = `<span class="avatar-slot sm" data-author-id="${sanitizeText(post.authorId || '').replace(/"/g, '&quot;')}" data-author-name="${sanitizeText(post.author || '').replace(/"/g, '&quot;')}">${sanitizeText((String(post.author || '؟').trim())[0] || '؟')}${legacyIcon ? `<img class="avatar-photo" src="${legacyIcon}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`;
     
     let actionsHtml = '';
     if (currentUser) {
@@ -3175,13 +3576,14 @@ function renderPostsForDay(dayId, posts) {
       <div class="post-subject">${sanitizeText(post.subject || '')}</div>
       ${noteHTML}
       ${mediaHTML}
-      <div class="post-author">بواسطة: <span style="color:${post.authorColor || '#aaa'}">${sanitizeText(post.author || '')}${authorIconHTML}</span></div>
+      <div class="post-author">${authorAvatarHTML}<span style="color:${post.authorColor || '#aaa'}">${sanitizeText(post.author || '')}</span></div>
       ${actionsHtml}
     `;
     fragment.appendChild(item);
   });
   container.appendChild(fragment);
   applyLazyCovers(container); // أغلفة ملفات PDF/فيديو المؤجلة
+  enhanceAvatars(container);  // صور الملفات الشخصية (تتجدد عند تغييرها)
 
   // تحميل عدد الاستفسارات لكل منشور بشكل غير متزامن
   if (currentUser) {
@@ -3701,8 +4103,12 @@ function pubProgressStop() {
 // ── PUBLISH ──
 window.openPublishModal = function(dayId) {
   if (!currentUser) {
-    showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول لنشر التحضير — الناشر مسؤول عمّا ينشره');
+    showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول أولاً');
     showAuthPanel('login'); openModal('login-modal');
+    return;
+  }
+  if (!currentUser?.isAdmin) {
+    showToast('⛔', 'مقيّد', 'النشر مخصص لصاحب الموقع baqer فقط');
     return;
   }
   document.getElementById('pub-day-id').value = dayId;
@@ -3821,7 +4227,7 @@ window.deleteOfflinePostHandler = async function(id) {
 };
 
 async function processPublish(data, isBackgroundSync = false, onProgress = null) {
-  const { type, subject, note, dayId, editId, files, author, authorColor, authorIcon, createdAt } = data;
+  const { type, subject, note, dayId, editId, files, author, authorColor, authorIcon, authorId, createdAt } = data;
   
   const mediaUrls = [...(data.existingMediaUrls || [])];
   if (files && files.length > 0) {
@@ -3852,6 +4258,7 @@ async function processPublish(data, isBackgroundSync = false, onProgress = null)
     type, subject, note, dayId,
     mediaUrls,
     author, authorColor, authorIcon,
+    ...(authorId ? { authorId } : {}),
     createdAt: new Date(createdAt),
     ...(data.clientSig ? { clientSig: data.clientSig } : {})
   };
@@ -3901,6 +4308,7 @@ if (navigator.onLine) {
 
 document.getElementById('btn-do-publish').addEventListener('click', async () => {
   const btn = document.getElementById('btn-do-publish');
+  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر مخصص لصاحب الموقع baqer فقط'); return; }
   const dayId = document.getElementById('pub-day-id').value;
   const editId = document.getElementById('pub-edit-id').value;
   
@@ -3920,6 +4328,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     author: currentUser.name,
     authorColor: currentUser.color,
     authorIcon: currentUser.icon || '',
+    authorId: currentUser.userId || currentUser.code || '',
     createdAt: Date.now(),
     clientSig: editId ? '' : `sig-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   };
@@ -3990,6 +4399,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 
 // ── DELETE ──
 window.deletePost = async function(postId, mediaUrls) {
+  if (!currentUser?.isAdmin) return;
   const okDel = await confirmDialog({
     icon: '🗑️', title: 'حذف المنشور',
     message: 'سيُحذف هذا المنشور نهائياً مع كل مرفقاته من الموقع. لا يمكن التراجع عن هذا الإجراء.',
@@ -4720,7 +5130,7 @@ window.openSubjectDetail = function(subject) {
   document.getElementById('materials-subject-title').textContent      = subject;
 
   const fab = document.getElementById('fab-add-material');
-  if (fab) fab.classList.add('show');
+  if (fab) fab.classList.toggle('show', !!currentUser?.isAdmin);
 
   renderSemesterTabs();
   renderTypeChips();
@@ -4899,8 +5309,12 @@ window.openMaterialDetail = function(mat) {
 // ── فتح modal إضافة/تعديل ملزمة ──
 window.openMaterialModal = function(existingMat = null) {
   if (!currentUser) {
-    showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول لنشر الملزمة — الناشر مسؤول عمّا ينشره');
+    showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول أولاً');
     showAuthPanel('login'); openModal('login-modal');
+    return;
+  }
+  if (!currentUser?.isAdmin) {
+    showToast('⛔', 'مقيّد', 'النشر مخصص لصاحب الموقع baqer فقط');
     return;
   }
   initMaterialSelects();
@@ -4959,6 +5373,7 @@ document.getElementById('mat-file')?.addEventListener('change', function() {
 // نشر/تعديل ملزمة — يُغلق الواجهة فوراً ويُكمل الرفع والنشر في الخلفية
 document.getElementById('btn-do-material')?.addEventListener('click', async () => {
   const btn      = document.getElementById('btn-do-material');
+  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر مخصص لصاحب الموقع baqer فقط'); return; }
   const editId   = document.getElementById('mat-edit-id').value;
   const subject  = document.getElementById('mat-subject').value;
   const semester = document.getElementById('mat-semester').value;
@@ -5046,6 +5461,7 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
 
 // حذف ملزمة
 async function deleteMaterial(id) {
+  if (!currentUser?.isAdmin) return;
   const okDel = await confirmDialog({
     icon: '📚', title: 'حذف الملزمة',
     message: 'سيُحذف ملف الملزمة وبياناتها نهائياً من قسم الملازم. لا يمكن التراجع عن هذا الإجراء.',
@@ -5156,7 +5572,7 @@ function accApplyLang(lang) {
     if (el.dataset.ar === undefined) el.dataset.ar = el.textContent;
     el.textContent = (accLang === 'en' && ACC_EN[el.dataset.i18n]) ? ACC_EN[el.dataset.i18n] : el.dataset.ar;
   });
-  const navMap = { 'nav-home': 'Schedule', 'nav-schedule': 'Notes', 'nav-user': 'Account' };
+  const navMap = { 'nav-home': 'Schedule', 'nav-reports': 'Alerts', 'nav-schedule': 'Notes', 'nav-user': 'Account' };
   Object.keys(navMap).forEach(id => {
     const l = document.querySelector('#' + id + ' .nav-label'); if (!l) return;
     if (l.dataset.ar === undefined) l.dataset.ar = l.textContent;
@@ -5206,15 +5622,25 @@ function accSegSet(id, val) { document.querySelectorAll('#' + id + ' button').fo
 // ═══════════ تحميل الملف الشخصي وعرضه ═══════════
 async function accLoadProfile() {
   if (!currentUser) { accProfile = null; return; }
-  const username = String(currentUser.code || '').toLowerCase();
-  let data;
-  try {
-    const snap = await getDoc(doc(db, 'users', username));
-    data = snap.exists() ? snap.data() : { username, fullName: currentUser.name, role: 'student' };
-  } catch (e) {
-    data = { username, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
+  const key = String(currentUser.code || '').toLowerCase();
+  let resolved = null, data = null;
+  try { resolved = await resolveUserDoc(key); } catch (e) { resolved = null; }
+  if (resolved) {
+    data = resolved.data;
+  } else {
+    data = { username: key, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
+    resolved = { id: key, data };
   }
-  accProfile = Object.assign({}, data, { _id: username });
+  // الترحيل إلى مسار المعرّف الرقمي (Firestore يعتمد على الأيدي لا اليوزرات)
+  if (data.userId && !/^\d+$/.test(resolved.id)) {
+    const moved = await migrateUserDocToId(resolved);
+    if (moved) resolved = { id: String(data.userId), data };
+  }
+  if (!data.userId) {
+    const id = await ensureUserId(key);
+    if (id) data.userId = id;
+  }
+  accProfile = Object.assign({}, data, { _id: resolved.id }); // _id = مسار المستند (رقمي بعد الترحيل)
 }
 function accFillForm() {
   const p = accProfile || {};
@@ -5237,8 +5663,8 @@ function accRender() {
   const p = accProfile;
   const name = p.fullName || currentUser.name || '—';
   accEl('acc-name').textContent = name;
-  accEl('acc-username').textContent = '@' + p._id;
-  accEl('acc-row-username').textContent = '@' + p._id;
+  accEl('acc-username').textContent = '@' + (p.username || p._id) + (p.userId ? '  ·  ID ' + p.userId : '');
+  accEl('acc-row-username').textContent = '@' + (p.username || p._id);
   accEl('acc-badge').textContent = accRoleBadge(p);
   const av = accEl('acc-avatar'), photo = p.photoURL || localStorage.getItem('accAvatar') || '';
   av.style.backgroundImage = photo ? 'url("' + photo.replace(/"/g, '%22') + '")' : '';
@@ -5262,6 +5688,7 @@ function accFillInfo() {
   set('acc-v-shift',       p.shift   || '');
   set('acc-v-stage',       accT(p.stage || ''));
   set('acc-v-section',     p.section || '');
+  set('acc-v-userid',      p.userId ? '#' + p.userId : ''); // معرّف ثابت لا يتغيّر
 }
 // فتح نافذة «إدارة الحساب» لتعديل البيانات
 function accOpenManage() {
@@ -5280,7 +5707,8 @@ async function accOpen(autoLogin = false) {
     }
     return;
   }
-  if (!accProfile || accProfile._id !== String(currentUser.code || '').toLowerCase()) await accLoadProfile();
+  const currentUname = String(currentUser.code || '').toLowerCase();
+  if (!accProfile || String(accProfile.username || accProfile._id).toLowerCase() !== currentUname) await accLoadProfile();
   accFillForm();
   accRender();
 }
@@ -5288,7 +5716,7 @@ async function accOpen(autoLogin = false) {
 window.__accOnAuth = function () {
   const u = currentUser ? String(currentUser.code || '').toLowerCase() : null;
   if (!u) accProfile = null;
-  else if (accProfile && accProfile._id !== u) accProfile = null;
+  else if (accProfile && String(accProfile.username || accProfile._id).toLowerCase() !== u) accProfile = null;
   if (accVisible()) accOpen();
 };
 // ═══════════ حفظ البيانات الشخصية ═══════════
@@ -5297,9 +5725,10 @@ function accApplyToSession() {
   const p = accProfile, isOwner = p.role === 'owner';
   currentUser.name = p.fullName || currentUser.name;
   currentUser.role = isOwner ? 'مالك الموقع' : (p.shift || 'طالب');
-  currentUser.code = p._id;
+  currentUser.code = p.username || p._id;          // اليوزر (لا مسار المستند)
+  currentUser.userId = p.userId ? String(p.userId) : (currentUser.userId || '');
   saveSession(currentUser);
-  localStorage.setItem('username', p._id);
+  localStorage.setItem('username', p.username || p._id);
   localStorage.setItem('shift', p.shift || '');
   localStorage.setItem('section', p.section || '');
   updateHeaderUI(true);            // ← تحديث فوري للاسم في الهيدر
@@ -5386,52 +5815,41 @@ function accCooldownLeftDays() {
   return left > 0 ? Math.ceil(left / 86400000) : 0;
 }
 function accOpenUsername() {
-  accEl('acc-u-input').value = ''; accEl('acc-u-pass').value = ''; accSetErr('acc-u-err', '');
+  accEl('acc-u-input').value = ''; accSetErr('acc-u-err', '');
   accUpdateRules();
-  const left = accCooldownLeftDays(), warn = accEl('acc-u-cooldown'), btn = accEl('acc-u-save');
-  btn.disabled = left > 0;
-  warn.classList.toggle('red', left > 0);
-  if (left > 0) warn.textContent = accLang === 'en' ? ('You can change your username again in ' + left + ' day(s).') : ('يمكنك تغيير اسم المستخدم مجدداً بعد ' + left + ' يوم.');
-  else warn.textContent = accLang === 'en' ? ACC_EN.cooldownNote : 'يمكنك تغيير اسم المستخدم مرة واحدة كل 14 يوماً فقط.';
+  const warn = accEl('acc-u-cooldown');
+  if (warn) {
+    warn.classList.remove('red');
+    warn.textContent = accLang === 'en'
+      ? 'Change your username any time without a password — your fixed ID, data, and sign-in stay unchanged.'
+      : 'يمكنك تغيير اسم المستخدم في أي وقت وبدون كلمة السر — لن يتغيّر معرّفك الثابت (ID) ولا بياناتك ولا بريد دخولك.';
+  }
   openModal('acc-username-modal');
-}
-async function accReauth(password) {
-  const u = fireAuth.currentUser;
-  if (!u || !u.email) throw { code: 'auth/no-current-user' };
-  await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, password));
-  return u;
 }
 async function accSaveUsername() {
   if (!accProfile) return;
   accSetErr('acc-u-err', '');
-  const old = accProfile._id;
+  const old = accProfile.username || accProfile._id;
   const nu = accEl('acc-u-input').value.trim().toLowerCase().replace(/^\.+|\.+$/g, '');
-  const pass = accEl('acc-u-pass').value;
-  if (accCooldownLeftDays() > 0) { accSetErr('acc-u-err', 'لا يمكن التغيير الآن، لم تنتهِ مدة الانتظار.'); return; }
+  // بدون كلمة سر وبدون مهلة انتظار — في أي وقت
   if (!accUpdateRules()) { accSetErr('acc-u-err', 'اسم المستخدم لا يطابق الشروط أعلاه.'); return; }
   if (nu === old) { accSetErr('acc-u-err', 'هذا هو اسم المستخدم الحالي.'); return; }
-  if (!pass) { accSetErr('acc-u-err', 'أدخل كلمة السر الحالية للتأكيد.'); return; }
 
   const btn = accEl('acc-u-save');
   accBusy(btn, true);
   try {
-    if ((await getDoc(doc(db, 'users', nu))).exists()) throw { code: 'auth/email-already-in-use' };
-    const user = await accReauth(pass);
-    const oldEmail = user.email;
-    await updateEmail(user, nu + AUTH_DOMAIN);           // تغيير بريد الدخول الداخلي
-    try {
-      const data = Object.assign(accProfileData(), { username: nu, previousUsername: old, usernameChangedAt: new Date() });
-      await setDoc(doc(db, 'users', nu), data);          // نسخ المستند تحت الاسم الجديد
-      await deleteDoc(doc(db, 'users', old));            // حذف المستند القديم
-      accProfile = Object.assign({}, data, { _id: nu });
-    } catch (inner) {
-      try { await updateEmail(user, oldEmail); } catch (e2) {}   // تراجع عن تغيير البريد عند الفشل
-      throw inner;
-    }
+    const dup = await getDocs(query(collection(db, 'users'), where('username', '==', nu), limit(1)));
+    if (!dup.empty) throw { code: 'auth/email-already-in-use' };
+    // تغيير الحقل فقط — مسار المستند (المعرّف الرقمي) وبريد الدخول لا يتغيّران
+    await setDoc(doc(db, 'users', accProfile._id), {
+      username: nu, previousUsername: old, usernameChangedAt: new Date()
+    }, { merge: true });
+    accProfile.username = nu;
+    accProfile.previousUsername = old;
     accApplyToSession();
     accRender();
     closeModal('acc-username-modal');
-    showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + nu);
+    showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + nu + ' — سجّل دخولك به من الآن');
   } catch (e) {
     accSetErr('acc-u-err', accErrMsg(e));
   } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.saveShort : 'حفظ'); }
@@ -5514,6 +5932,8 @@ async function accUploadAvatar(file) {
       if (!res.ok || !j.secure_url) throw new Error('upload');
       await setDoc(doc(db, 'users', accProfile._id), { photoURL: j.secure_url }, { merge: true });
       accProfile.photoURL = j.secure_url; localStorage.removeItem('accAvatar');
+      invalidateAuthorPhotos(accProfile._id);   // أبطل كاش الصورة القديم
+      setTimeout(refreshAllAuthorAvatars, 400); // حدّث البلاغات والمنشورات المعروضة فوراً
       showToast('✅', 'تم', 'تم تحديث صورتك الشخصية');
     } catch (upErr) {
       // احتياطي: حفظ نسخة مصغرة على هذا الجهاز فقط
@@ -5586,12 +6006,14 @@ async function accConfirmDelete() {
 async function accResolvePendingDelete(username, pendingAt) {
   const ts = accToMs(pendingAt);
   if (!username || !ts) return;
+  let docKey = username;
+  try { const found = await resolveUserDoc(username); if (found) docKey = found.id; } catch (e) {}
   if ((Date.now() - ts) < DELETE_GRACE_DAYS * 86400000) {
     localStorage.removeItem('deletePendingAt');
-    try { await updateDoc(doc(db, 'users', username), { deletePendingAt: null }); } catch (e) {}
+    try { await updateDoc(doc(db, 'users', docKey), { deletePendingAt: null }); } catch (e) {}
     showToast('✅', 'أُلغي الحذف', 'سجّلت الدخول خلال المهلة، فأُلغي حذف حسابك.');
   } else {
-    accFinalizeDelete(username);
+    accFinalizeDelete(docKey);
   }
 }
 // تنفيذ الحذف النهائي بعد انتهاء المهلة
@@ -5679,6 +6101,571 @@ accBuildForm();
 accApplyLang(accLang);             // تطبيق اللغة المحفوظة
 accApplyTheme(accTheme);
 
+// ══════════════════ قسم البلاغات ══════════════════
+// النشر والحذف مخصصان لمالك الموقع (baqer) — العرض متاح للجميع
+let unsubReports = null;
+let reportsData = [];
+let reportsSeenAt = Number(localStorage.getItem('reportsSeenAt') || 0);
+
+function subscribeReports() {
+  if (unsubReports) return;
+  const q = query(collection(db, 'reports'), limit(50));
+  unsubReports = onSnapshot(q, (snap) => {
+    reportsData = [];
+    snap.forEach(d => reportsData.push({ ...d.data(), id: d.id }));
+    // ترتيب من الأحدث للأقدم محلياً (بدون الحاجة لفهرس Firestore)
+    reportsData.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+    renderReports();
+  }, (err) => {
+    console.error('خطأ في تحميل البلاغات:', err);
+    renderReports();
+  });
+}
+
+function updateReportsBadge() {
+  const badge = document.getElementById('reports-badge');
+  if (!badge) return;
+  const unseen = reportsData.filter(r => (Number(r.createdAt) || 0) > reportsSeenAt).length;
+  badge.textContent = unseen > 9 ? '9+' : String(unseen);
+  badge.classList.toggle('show', unseen > 0);
+}
+
+function renderReports() {
+  const list = document.getElementById('reports-list');
+  const empty = document.getElementById('reports-empty');
+  const ownerZone = document.getElementById('reports-owner-zone');
+  if (ownerZone) ownerZone.style.display = currentUser?.isAdmin ? 'block' : 'none';
+  if (!list) return;
+  updateReportsBadge();
+
+  if (reportsData.length === 0) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  list.innerHTML = reportsData.map(r => {
+    const t = new Date(Number(r.createdAt) || Date.now());
+    const dateStr = `${t.getDate()} ${monthNames[t.getMonth()]}`;
+    const timeStr = t.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+    const type = r.type || 'أخرى';
+    const urgent = type === 'تنبيه عاجل' ? ' report-urgent' : '';
+    return `
+      <div class="report-card${urgent}">
+        <div class="report-head">
+          <span class="report-type" data-type="${sanitizeText(type)}">${sanitizeText(type)}</span>
+          <span class="report-date">${dateStr} — ${timeStr}</span>
+        </div>
+        <div class="report-title">${sanitizeText(r.title || '')}</div>
+        ${r.body ? `<div class="report-body">${sanitizeText(r.body)}</div>` : ''}
+        ${safeReportAttachments(r)}
+        <div class="report-foot">
+          <span class="report-author">${reportAuthorHtml(r)}</span>
+          ${currentUser?.isAdmin ? `<button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+  // حركة سلسة: ملء أشرطة الاستفتاء من 0 إلى قيمتها الحقيقية
+  requestAnimationFrame(() => {
+    list.querySelectorAll('.poll-bar .fill[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
+  });
+  enhanceAvatars(list); // صور الملفات الشخصية (تتجدد عند تغييرها في الملف الشخصي)
+}
+
+// ── شرائح المرفقات (فتح/غلق اللوحات) ──
+window.toggleAttPanel = function(name) {
+  const chip = document.getElementById('chip-' + name);
+  const panel = document.getElementById('att-panel-' + name);
+  if (!chip || !panel) return;
+  const on = !chip.classList.contains('on');
+  chip.classList.toggle('on', on);
+  panel.classList.toggle('hidden', !on);
+  if (on && name === 'poll') { renderPollOptions(); document.getElementById('poll-question')?.focus(); }
+  if (!on) {
+    if (name === 'images') { reportImages = []; renderReportImages(); }
+    if (name === 'files')  { reportFiles = []; renderReportFiles(); }
+    if (name === 'voice')  { clearReportVoice(); }
+    if (name === 'poll')   { pollOptionsDraft = ['', '']; }
+  }
+};
+
+// ── الصور (حتى 6) ──
+window.handleReportImages = function(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  const room = 6 - reportImages.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 صور لكل بلاغ'); return; }
+  reportImages = reportImages.concat(files.slice(0, room));
+  if (files.length > room) showToast('⚠️', 'تنبيه', 'تم الإبقاء على أولى الصور فقط (الحد 6)');
+  renderReportImages();
+};
+function renderReportImages() {
+  const c = document.getElementById('rep-images-preview');
+  if (!c) return;
+  c.innerHTML = '';
+  reportImages.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    item.appendChild(img);
+    const rm = document.createElement('div');
+    rm.className = 'remove-file'; rm.textContent = '×';
+    rm.onclick = () => { reportImages.splice(i, 1); renderReportImages(); };
+    item.appendChild(rm);
+    c.appendChild(item);
+  });
+}
+
+// ── الملفات (حتى 6) ──
+window.handleReportFiles = function(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  const room = 6 - reportFiles.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 ملفات لكل بلاغ'); return; }
+  reportFiles = reportFiles.concat(files.slice(0, room));
+  if (files.length > room) showToast('⚠️', 'تنبيه', 'تم الإبقاء على أولى الملفات فقط (الحد 6)');
+  renderReportFiles();
+};
+function renderReportFiles() {
+  const c = document.getElementById('rep-files-list');
+  if (!c) return;
+  c.innerHTML = reportFiles.map((f, i) => `
+    <div class="rep-file-row">
+      <span>📄</span>
+      <span class="name">${sanitizeText(f.name)}</span>
+      <span class="sz">${formatFileSize(f.size)}</span>
+      <span class="rm" onclick="removeReportFile(${i})" title="إزالة">✕</span>
+    </div>`).join('');
+}
+window.removeReportFile = function(i) { reportFiles.splice(i, 1); renderReportFiles(); };
+
+// ── تسجيل الصوت (بصمة صوت — حتى 60 ثانية) ──
+window.toggleVoiceRecord = async function() {
+  if (reportVoiceRec && reportVoiceRec.state === 'recording') { stopReportVoice(false); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+    showToast('🎙️', 'الصوت', 'المتصفح لا يدعم التسجيل الصوتي');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let rec;
+    try {
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+                 : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch (e) { rec = new MediaRecorder(stream); }
+
+    const chunks = [];
+    reportVoiceDiscard = false;
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (reportVoiceTimer) { clearInterval(reportVoiceTimer); reportVoiceTimer = null; }
+      const b = document.getElementById('voice-btn');
+      if (b) { b.textContent = '🎙️ ابدأ التسجيل'; b.classList.remove('rec'); }
+      reportVoiceRec = null;
+      if (reportVoiceDiscard) return;
+      if (reportVoiceSec < 1) { showToast('🎙️', 'الصوت', 'التسجيل قصير جداً — أعد المحاولة'); return; }
+      const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+      reportVoice = { blob, url: URL.createObjectURL(blob), duration: reportVoiceSec };
+      const au = document.getElementById('voice-audio');
+      const pl = document.getElementById('voice-player');
+      if (au) au.src = reportVoice.url;
+      if (pl) pl.classList.remove('hidden');
+    };
+    rec.start();
+    reportVoiceRec = rec;
+    reportVoiceSec = 0;
+    updateVoiceTimer();
+    reportVoiceTimer = setInterval(() => {
+      reportVoiceSec++;
+      updateVoiceTimer();
+      if (reportVoiceSec >= VOICE_MAX_SEC) stopReportVoice(false);
+      const modal = document.getElementById('report-modal');
+      if (modal && !modal.classList.contains('open')) stopReportVoice(true); // أُغلقت النافذة
+    }, 1000);
+    const b = document.getElementById('voice-btn');
+    if (b) { b.textContent = '⏹️ إيقاف التسجيل'; b.classList.add('rec'); }
+    const pl = document.getElementById('voice-player'); if (pl) pl.classList.add('hidden');
+  } catch (e) {
+    showToast('🎙️', 'الميكروفون', 'تعذّر الوصول إلى الميكروفون — تحقق من أذونات المتصفح');
+  }
+};
+function updateVoiceTimer() { const t = document.getElementById('voice-timer'); if (t) t.textContent = fmtVoiceTime(reportVoiceSec); }
+function stopReportVoice(discard) {
+  reportVoiceDiscard = discard;
+  if (reportVoiceRec && reportVoiceRec.state === 'recording') { try { reportVoiceRec.stop(); } catch (e) {} }
+}
+function clearReportVoice() {
+  if (reportVoiceTimer) { clearInterval(reportVoiceTimer); reportVoiceTimer = null; }
+  reportVoiceDiscard = true;
+  if (reportVoiceRec && reportVoiceRec.state === 'recording') { try { reportVoiceRec.stop(); } catch (e) {} }
+  reportVoiceRec = null;
+  if (reportVoice && reportVoice.url) { try { URL.revokeObjectURL(reportVoice.url); } catch (e) {} }
+  reportVoice = null;
+  const au = document.getElementById('voice-audio');
+  if (au) { try { au.pause(); au.removeAttribute('src'); au.load(); } catch (e) {} }
+  const pl = document.getElementById('voice-player'); if (pl) pl.classList.add('hidden');
+  const b = document.getElementById('voice-btn'); if (b) { b.textContent = '🎙️ ابدأ التسجيل'; b.classList.remove('rec'); }
+  const tm = document.getElementById('voice-timer'); if (tm) tm.textContent = '00:00';
+}
+window.resetVoice = function() { clearReportVoice(); window.toggleVoiceRecord(); };
+window.removeVoice = function() { clearReportVoice(); };
+
+// ── الاستفتاء ──
+function renderPollOptions() {
+  const box = document.getElementById('poll-options');
+  if (!box) return;
+  box.innerHTML = pollOptionsDraft.map((v, i) => `
+    <div class="poll-opt-row">
+      <input class="form-input" maxlength="60" placeholder="الخيار ${i + 1}" value="${sanitizeText(v).replace(/"/g, '&quot;')}" oninput="setPollOption(${i}, this.value)" autocomplete="off">
+      ${pollOptionsDraft.length > 2 ? `<span class="rm" onclick="removePollOption(${i})" title="حذف الخيار">✕</span>` : ''}
+    </div>`).join('');
+  const add = document.querySelector('#att-panel-poll .poll-add');
+  if (add) add.style.display = pollOptionsDraft.length >= 6 ? 'none' : 'block';
+}
+window.setPollOption = function(i, v) { pollOptionsDraft[i] = v; };
+window.addPollOption = function() { if (pollOptionsDraft.length >= 6) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 خيارات'); return; } pollOptionsDraft.push(''); renderPollOptions(); };
+window.removePollOption = function(i) { if (pollOptionsDraft.length <= 2) return; pollOptionsDraft.splice(i, 1); renderPollOptions(); };
+
+function buildReportPoll() {
+  const chip = document.getElementById('chip-poll');
+  if (!chip || !chip.classList.contains('on')) return { ok: true, poll: null };
+  const q = (document.getElementById('poll-question')?.value || '').trim();
+  const opts = pollOptionsDraft.map(s => (s || '').trim()).filter(Boolean);
+  if (q.length < 3) return { ok: false, err: 'اكتب سؤال الاستفتاء (3 أحرف على الأقل)' };
+  if (opts.length < 2) return { ok: false, err: 'أضف خيارين على الأقل للاستفتاء' };
+  return { ok: true, poll: { question: q, options: opts.map((t, i) => ({ id: i, text: t, votes: 0, voters: [] })) } };
+}
+
+// ── صورة الملف الشخصي للمُنشئ (بديل كلمة «بواسطة») ──
+function reportAuthorHtml(r) {
+  const name = sanitizeText(r.author || 'مالك الموقع');
+  const color = sanitizeText(r.authorColor || '');
+  const photo = typeof r.authorPhoto === 'string' ? r.authorPhoto : '';
+  const authorId = typeof r.authorId === 'string' ? r.authorId : '';
+  const authorName = String(r.author || '').replace(/"/g, '&quot;');
+  const letter = sanitizeText((String(r.author || 'م').trim())[0] || 'م');
+  const img = photo
+    ? `<img class="avatar-photo" src="${photo}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
+    : '';
+  return `<span class="avatar-slot" data-author-id="${authorId.replace(/"/g, '&quot;')}" data-author-name="${authorName}">${letter}${img}</span>` +
+         `<span class="report-author-name" style="${color ? 'color:' + color : ''}">${name}</span>`;
+}
+
+// ── خدمة صور الملفات الشخصية (مصدر واحد + كاش يتجدد عند تغيير الصورة) ──
+const _authorPhotoCache = new Map();   // username → Promise<url|null>
+let _usersPhotoMap = null;             // الاسم الكامل → رابط الصورة (قراءة دفعة واحدة)
+
+async function _fetchAuthorPhoto(key) {
+  try {
+    const snap = await getDoc(doc(db, 'users', key));
+    if (snap.exists()) return snap.data().photoURL || null;
+    // مرجع قديم بصيغة يوزر (بعد ترحيل المستند إلى مسار المعرّف الرقمي)
+    const q = await getDocs(query(collection(db, 'users'), where('username', '==', key), limit(1)));
+    if (!q.empty) return q.docs[0].data().photoURL || null;
+    return null;
+  } catch (e) { return null; }
+}
+function loadAuthorPhoto(authorId) {
+  if (!authorId) return Promise.resolve(null);
+  if (!_authorPhotoCache.has(authorId)) _authorPhotoCache.set(authorId, _fetchAuthorPhoto(authorId));
+  return _authorPhotoCache.get(authorId);
+}
+async function loadUsersPhotoMap() {
+  if (_usersPhotoMap !== null) return _usersPhotoMap;
+  const m = new Map();
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    snap.forEach(d => { const u = d.data(); if (u.fullName && !m.has(u.fullName)) m.set(u.fullName, u.photoURL || ''); });
+  } catch (e) { /* قد تمنع القواعد القراءة — نكتفي بالمسار بالـ id */ }
+  _usersPhotoMap = m;
+  return m;
+}
+async function loadAuthorPhotoByName(name) {
+  if (!name) return null;
+  const m = await loadUsersPhotoMap();
+  return m.get(name) || null;
+}
+// استُدعى بعد تغيير الصورة في الملف الشخصي: يُبطل الكاش ويعيد رسم كل شيء معروض
+function invalidateAuthorPhotos(authorId) {
+  if (authorId) _authorPhotoCache.delete(authorId);
+  _usersPhotoMap = null;
+}
+function refreshAllAuthorAvatars() {
+  try { renderReports(); } catch (e) {}          // البلاغات (إن كانت محمّلة)
+  try { refreshOfflinePosts(); } catch (e) {}     // منشورات الجدول المرئية
+}
+// إثراء عام: يملأ كل عنصر .avatar-slot بصورة حية من الملف الشخصي
+function enhanceAvatars(root = document) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.avatar-slot').forEach(slot => {
+    if (slot.dataset.resolved === '1') return;
+    const id = (slot.dataset.authorId || '').trim();
+    const name = (slot.dataset.authorName || '').trim();
+    if (!id && !name) { slot.dataset.resolved = '1'; return; }
+    slot.dataset.resolved = '1'; // يمنع التكرار (يُعاد عند إعادة الرسم الكامل)
+    const apply = (url) => {
+      if (!url || !slot.isConnected) return;
+      const cur = slot.querySelector('.avatar-photo');
+      if (cur) { if (cur.getAttribute('src') !== url) cur.src = url; return; } // تحديث عند التغيير
+      const im = document.createElement('img');
+      im.className = 'avatar-photo';
+      im.loading = 'lazy';
+      im.referrerPolicy = 'no-referrer';
+      im.src = url;
+      im.onerror = () => im.remove(); // فشلت الصورة → يبقى الحرف الأول
+      slot.appendChild(im);
+    };
+    (id ? loadAuthorPhoto(id) : loadAuthorPhotoByName(name)).then(apply);
+  });
+}
+
+// ── عرض المرفقات داخل بطاقة البلاغ ──
+function fmtVoiceTime(sec) {
+  sec = Math.max(0, Math.round(Number(sec) || 0));
+  return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+}
+function getMyVoterKey() {
+  try {
+    let g = localStorage.getItem('guestId');
+    if (!g) { g = Math.floor(1000 + Math.random() * 9000).toString(); localStorage.setItem('guestId', g); }
+    return (currentUser && currentUser.code) || g;
+  } catch (e) { return 'guest'; }
+}
+// حماية: أي خطأ في المرفقات لا يُسقط عرض قائمة البلاغات
+function safeReportAttachments(r) {
+  try { return reportAttachmentsHtml(r); }
+  catch (e) { console.error('خطأ في عرض مرفقات البلاغ:', e); return ''; }
+}
+function reportAttachmentsHtml(r) {
+  let html = '';
+  const rawImgs = r.images ?? r.imageUrls ?? [];
+  const imgs = (Array.isArray(rawImgs) ? rawImgs : (rawImgs ? [rawImgs] : []))
+    .filter(u => typeof u === 'string' && u.length > 0);
+  if (imgs.length) {
+    const safeUrls = JSON.stringify(imgs).replace(/"/g, '&quot;');
+    // أول صورة تظهر كغلاف كبير، والبقية مصغّرات (حتى 6)
+    const shown = imgs.slice(0, 6);
+    const extra = imgs.length - shown.length;
+    html += `<div class="report-gallery" data-count="${Math.min(shown.length, 6)}">` +
+      shown.map((u, i) => {
+        const more = (extra > 0 && i === shown.length - 1) ? ` report-img-more` : '';
+        const extraAttr = (extra > 0 && i === shown.length - 1) ? ` data-extra="${extra}"` : '';
+        return `<img class="${more.trim()}"${extraAttr} src="${u}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onclick="openLightbox(${safeUrls}, ${i})" onerror="this.style.opacity='0.35'" alt="صورة البلاغ">`;
+      }).join('') +
+      `</div>`;
+  }
+  const files = Array.isArray(r.files) ? r.files : [];
+  if (files.length) {
+    html += `<div class="report-files">` + files.map(f => {
+      const url = String(f.url || '');
+      const nm = String(f.name || 'ملف').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const size = f.size ? ` <span style="opacity:.6;font-size:10px">(${formatFileSize(f.size)})</span>` : '';
+      return `<span class="media-file-link" style="cursor:pointer" onclick="downloadFileWithProgress('${url}', '${nm}', this, ${f.size || 0})">📎 ${sanitizeText(f.name || 'ملف')}${size}</span>`;
+    }).join('') + `</div>`;
+  }
+  if (r.voiceUrl) {
+    html += `<div class="report-voice"><audio controls preload="metadata" src="${r.voiceUrl}"></audio>` +
+      (r.voiceDuration ? `<div class="att-hint">🎙️ مدة التسجيل: ${fmtVoiceTime(r.voiceDuration)}</div>` : '') +
+      `</div>`;
+  }
+  if (r.poll && Array.isArray(r.poll.options) && r.poll.options.length >= 2) {
+    html += reportPollHtml(r);
+  }
+  return html;
+}
+function reportPollHtml(r) {
+  const p = r.poll;
+  const total = p.options.reduce((s, o) => s + (Number(o.votes) || 0), 0);
+  const myKey = getMyVoterKey();
+  const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(myKey));
+  const bars = p.options.map((o, i) => {
+    const v = Number(o.votes) || 0;
+    const pct = total ? Math.round((v * 100) / total) : 0;
+    const mine = votedIdx === i ? ' mine' : '';
+    const clickable = votedIdx < 0 ? ` onclick="votePoll('${r.id}', ${i})"` : '';
+    return `
+      <div class="poll-bar${mine}"${clickable}>
+        <div class="fill" data-w="${pct}"></div>
+        <div class="txt"><span>${sanitizeText(o.text || '')}</span><span>${pct}% · ${v}</span></div>
+      </div>`;
+  }).join('');
+  return `
+    <div class="report-poll">
+      <div class="report-poll-q">📊 ${sanitizeText(p.question || 'استفتاء')}</div>
+      ${bars}
+      <div class="poll-meta">${votedIdx < 0 ? 'اضغط على خيارك للتصويت (مرة واحدة)' : '✓ تم تصويتك — شكراً لك'} · المجموع: ${total} صوت</div>
+    </div>`;
+}
+window.votePoll = async function(reportId, idx) {
+  try {
+    const ref = doc(db, 'reports', reportId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const p = snap.data().poll;
+    if (!p || !Array.isArray(p.options)) return;
+    const key = getMyVoterKey();
+    if (p.options.some(o => Array.isArray(o.voters) && o.voters.includes(key))) {
+      showToast('ℹ️', 'استفتاء', 'لقد صوّتت سابقاً — صوتك مسجّل');
+      return;
+    }
+    if (!p.options[idx]) return;
+    await updateDoc(ref, {
+      [`poll.options.${idx}.voters`]: arrayUnion(key),
+      [`poll.options.${idx}.votes`]: increment(1)
+    });
+    showToast('✅', 'استفتاء', 'تم تسجيل صوتك بنجاح');
+  } catch (e) {
+    console.error(e);
+    showToast('❌', 'خطأ', 'تعذّر تسجيل صوتك — حاول مجدداً');
+  }
+};
+
+function openReportsView() {
+  subscribeReports();
+  const ownerZone = document.getElementById('reports-owner-zone');
+  if (ownerZone) ownerZone.style.display = currentUser?.isAdmin ? 'block' : 'none';
+  // تعليم البلاغات كمقروءة (يُخفي عدّاد الـ badge)
+  reportsSeenAt = Date.now();
+  try { localStorage.setItem('reportsSeenAt', String(reportsSeenAt)); } catch (e) {}
+  renderReports();
+}
+
+// ── حالة نافذة نشر البلاغ (صور / ملفات / صوت / استفتاء) ──
+let reportImages = [];            // File[]
+let reportFiles  = [];            // File[]
+let reportVoice  = null;          // { blob, url, duration }
+let reportVoiceRec = null;        // MediaRecorder
+let reportVoiceTimer = null, reportVoiceSec = 0, reportVoiceDiscard = false;
+let pollOptionsDraft = ['', ''];  // نصوص خيارات الاستفتاء
+const VOICE_MAX_SEC = 60;
+
+function resetReportModal() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('rep-type', 'تنبيه عاجل'); set('rep-title', ''); set('rep-body', ''); set('poll-question', '');
+  reportImages = []; reportFiles = [];
+  renderReportImages(); renderReportFiles();
+  clearReportVoice();
+  pollOptionsDraft = ['', '']; renderPollOptions();
+  ['images', 'files', 'voice', 'poll'].forEach(n => {
+    const chip = document.getElementById('chip-' + n);
+    const panel = document.getElementById('att-panel-' + n);
+    if (chip) chip.classList.remove('on');
+    if (panel) panel.classList.add('hidden');
+  });
+}
+
+window.cancelReportModal = function() { resetReportModal(); closeModal('report-modal'); };
+
+window.openReportModal = function() {
+  if (!currentUser?.isAdmin) {
+    showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص لمالك الموقع فقط');
+    return;
+  }
+  resetReportModal();
+  openModal('report-modal');
+};
+
+document.getElementById('btn-do-report')?.addEventListener('click', async () => {
+  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص لمالك الموقع فقط'); return; }
+  const btn = document.getElementById('btn-do-report');
+  const type = document.getElementById('rep-type').value;
+  const title = document.getElementById('rep-title').value.trim();
+  const body  = document.getElementById('rep-body').value.trim();
+  if (title.length < 3) { showToast('⚠️', 'خطأ', 'اكتب عنوان البلاغ (3 أحرف على الأقل)'); return; }
+
+  const pollRes = buildReportPoll();
+  if (!pollRes.ok) { showToast('⚠️', 'خطأ', pollRes.err); return; }
+
+  const imgs = reportImages.slice();
+  const fls  = reportFiles.slice();
+  const voice = reportVoice;
+  const poll = pollRes.poll;
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  closeModal('report-modal');
+  resetReportModal(); // نظّر فوراً — النسخ محفوظة في متغيرات محلية
+  bgPublishStart('⏳ جارٍ الرفع 0%');
+  pubProgressStart([]);
+  showToast('⏳', 'جارٍ النشر', 'جارٍ رفع المرفقات ونشر البلاغ في الخلفية...');
+
+  try {
+    const total = imgs.length + fls.length + (voice ? 1 : 0);
+    let done = 0;
+    const step = (pctInFile = 0) => {
+      if (total === 0) { pubProgressReal(100); return; }
+      pubProgressReal(Math.min(99, Math.round(((done + pctInFile / 100) / total) * 100)));
+    };
+
+    const imageUrls = [];
+    for (const f of imgs) { imageUrls.push(await uploadToCloudinary(f, p => step(p))); done++; step(); }
+
+    const fileItems = [];
+    for (const f of fls) {
+      const url = await uploadToCloudinary(f, p => step(p));
+      fileItems.push({ url, name: f.name, size: f.size });
+      done++; step();
+    }
+
+    let voiceUrl = '', voiceDuration = 0;
+    if (voice) {
+      const mime = voice.blob.type || '';
+      const ext = mime.includes('mp4') ? 'm4a' : (mime.includes('ogg') ? 'ogg' : 'webm');
+      const vf = new File([voice.blob], `report-voice-${Date.now()}.${ext}`, { type: mime || 'audio/webm' });
+      voiceUrl = await uploadToCloudinary(vf, p => step(p));
+      voiceDuration = voice.duration;
+      done++; step();
+    }
+    if (total === 0) pubProgressReal(100);
+
+    await addDoc(collection(db, 'reports'), {
+      type, title, body,
+      images: imageUrls,
+      files: fileItems,
+      voiceUrl, voiceDuration,
+      poll,
+      author: currentUser.name,
+      authorColor: currentUser.color || '',
+      authorId: currentUser.userId || currentUser.code || '',
+      authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
+      createdAt: Date.now()
+    });
+
+    pubProgressDone(); // العدّاد يبلغ 100
+    setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
+    showToast('✅', 'تم النشر', 'ظهر البلاغ لجميع المستخدمين فوراً');
+  } catch (e) {
+    console.error(e);
+    pubProgressStop();
+    bgPublishFinish('❌ فشل النشر', 'err');
+    showToast('❌', 'خطأ', e.message || 'فشل نشر البلاغ — حاول مجدداً');
+  } finally {
+    btn.disabled = false; btn.textContent = '🚀 نشر البلاغ';
+  }
+});
+
+window.deleteReport = async function(id) {
+  if (!currentUser?.isAdmin) return;
+  const okDel = await confirmDialog({
+    icon: '📣', title: 'حذف البلاغ',
+    message: 'سيُحذف هذا البلاغ نهائياً ولن يظهر لأحد. لا يمكن التراجع عن هذا الإجراء.',
+    confirmText: 'حذف'
+  });
+  if (!okDel) return;
+  try {
+    await deleteDoc(doc(db, 'reports', id));
+    showToast('🗑️', 'حذف', 'تم حذف البلاغ');
+  } catch (e) {
+    showToast('❌', 'خطأ', 'فشل حذف البلاغ');
+  }
+};
+
 // ── BOTTOM NAV ──
 window.setActiveNav = function(id) {
   document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
@@ -5689,9 +6676,11 @@ window.setActiveNav = function(id) {
   const homeView  = document.getElementById('view-home');
   const matsView  = document.getElementById('view-materials');
   const accView   = document.getElementById('view-account');
-  if (homeView) homeView.style.display  = 'none';
-  if (matsView) matsView.style.display  = 'none';
-  if (accView)  accView.style.display   = 'none';
+  const repView   = document.getElementById('view-reports');
+  if (repView)  repView.style.display  = 'none';
+  if (homeView) homeView.style.display = 'none';
+  if (matsView) matsView.style.display = 'none';
+  if (accView)  accView.style.display  = 'none';
 
   const fab = document.getElementById('fab-add-material');
   if (fab) fab.classList.remove('show');
@@ -5705,11 +6694,15 @@ window.setActiveNav = function(id) {
     if (materialsCurrentSubject) {
       document.getElementById('materials-subjects-screen').style.display = 'none';
       document.getElementById('materials-subject-detail').style.display  = 'block';
-      if (fab) fab.classList.add('show');
+      if (fab && currentUser?.isAdmin) fab.classList.add('show');
     } else {
       document.getElementById('materials-subjects-screen').style.display = 'block';
       document.getElementById('materials-subject-detail').style.display  = 'none';
     }
+  } else if (id === 'reports') {
+    // البلاغات
+    if (repView) repView.style.display = 'block';
+    openReportsView();
   } else if (id === 'user') {
     // الحساب والملف الشخصي
     if (accView) accView.style.display = 'block';
@@ -6894,6 +7887,7 @@ function init() {
     autoDeleteExpiredPosts();
     requestNotifPermission();
     refreshOfflinePosts();
+    subscribeReports(); // الاشتراك في البلاغات لتحديث العدّاد في الخلفية
   });
 
   // الدردشة الآن تُفتح عند الضغط على "استفسار" - لا حاجة للاشتراك المسبق
