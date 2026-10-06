@@ -1,0 +1,12 @@
+# robots.txt — منصة ألفاكلاس (AlfaClass)
+# https://broksil.github.io/AlfaClass/
+
+User-agent: *
+Allow: /
+
+# منع أرشفة ملفات النظام (ليست صفحات محتوى)
+Disallow: /sw.js
+Disallow: /firebase-messaging-sw.js
+
+# خريطة الموقع
+Sitemap: https://broksil.github.io/AlfaClass/sitemap.xml
