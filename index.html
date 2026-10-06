@@ -777,6 +777,48 @@
   }
   .btn-publish:active { transform: scale(0.97); }
 
+  /* ── مؤشر «جارٍ النشر» في الخلفية ── */
+  .bg-publish-pill {
+    position: fixed;
+    bottom: calc(96px + var(--safe-bottom));
+    right: 18px;
+    z-index: 1002;
+    display: none;
+    align-items: center; gap: 8px;
+    max-width: calc(100vw - 36px);
+    padding: 11px 16px;
+    border-radius: 99px;
+    background: rgba(12,12,28,0.94);
+    border: 1px solid rgba(124,58,237,0.55);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 13px; font-weight: 700;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .bg-publish-pill.show { display: flex; }
+  .bg-publish-pill.ok  { border-color: rgba(34,197,94,0.75); }
+  .bg-publish-pill.err { border-color: rgba(239,68,68,0.75); }
+  .bg-publish-pill .bg-pub-spin {
+    width: 14px; height: 14px; flex: 0 0 14px;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: #a78bfa;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .bg-publish-pill.ok .bg-pub-spin, .bg-publish-pill.err .bg-pub-spin { display: none; }
+
+  /* بادج «جارٍ الرفع» داخل بطاقة الملزمة */
+  .mat-uploading-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 6px; padding: 3px 9px; border-radius: 99px;
+    font-size: 11px; font-weight: 700;
+    color: #a78bfa; background: rgba(168,85,247,0.14);
+    border: 1px solid rgba(168,85,237,0.35);
+    animation: pulseOpacity 1.5s infinite;
+  }
+
   /* ── MODAL (shared) ── */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 950;
@@ -2026,7 +2068,7 @@
   </div>
 </div>
 
-<!-- زر إضافة ملزمة (للمشرفين فقط) -->
+<!-- زر إضافة ملزمة (لجميع المسجلين — الزائر يُطلب منه تسجيل الدخول) -->
 <button class="fab-add-material" id="fab-add-material" onclick="openMaterialModal()">
   <span>+</span><span>إضافة ملزمة</span>
 </button>
@@ -2109,6 +2151,12 @@
 
 <!-- Toast container -->
 <div id="toast-container"></div>
+
+<!-- Background publish status pill -->
+<div class="bg-publish-pill" id="bg-publish-pill">
+  <span class="bg-pub-spin"></span>
+  <span id="bg-publish-text">جارٍ النشر...</span>
+</div>
 
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
@@ -2223,12 +2271,12 @@
       <label class="form-label">المادة</label>
       <select class="form-select" id="pub-subject" onchange="handleSubjectChange()">
         <option value="" disabled selected hidden>اختر المادة...</option>
-        <option value="أساسيات حاسوب">أساسيات حاسوب</option>
-        <option value="رياضيات مالية">رياضيات مالية</option>
-        <option value="محاسبة مالية">محاسبة مالية</option>
-        <option value="تشريعات">تشريعات</option>
-        <option value="حقوق إنسان">حقوق إنسان</option>
-        <option value="قراءات">قراءات</option>
+        <option value="المحاسبة المتوسطة">المحاسبة المتوسطة</option>
+        <option value="النظام المحاسبي الموحد">النظام المحاسبي الموحد</option>
+        <option value="الحكومية">الحكومية</option>
+        <option value="الخطر">الخطر</option>
+        <option value="التطبيقات">التطبيقات</option>
+        <option value="الجرائم">الجرائم</option>
         <option value="آخر">آخر</option>
       </select>
     </div>
@@ -2360,7 +2408,7 @@
     <div class="chat-input-row">
       <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()">📎</button>
       <input type="file" id="chat-file-input" hidden accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple onchange="handleChatImageUpload(this)">
-      <textarea id="chat-input" class="chat-input" placeholder="اكتب رسالتك هنا..." rows="1" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" oninput="handleChatTyping(); autoResizeChatInput(this);" onkeydown="if(event.key==='Enter' && !event.shiftKey && window.innerWidth autocomplete="off"> 768) { event.preventDefault(); sendChatMessage(); }"></textarea>
+      <textarea id="chat-input" class="chat-input" placeholder="اكتب رسالتك هنا..." rows="1" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" autocomplete="off" oninput="handleChatTyping(); autoResizeChatInput(this);" onkeydown="if(event.key==='Enter' && !event.shiftKey && window.innerWidth < 768) { event.preventDefault(); sendChatMessage(); }"></textarea>
       <button class="chat-send-btn" onclick="sendChatMessage()">🚀</button>
     </div>
   </div>
@@ -2425,110 +2473,6 @@ const CLOUD_NAME = "dnblfxhcs";
 const UPLOAD_PRESET = "alfaclass_upload";
 const LARGE_UPLOAD_THRESHOLD = 9 * 1024 * 1024;
 const UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024;
-
-// ── ADMINS (codes hashed in comparison only) ──
-const ADMINS = [
-  // المشرفين (يمكنهم النشر)
-  { name: "باقر محمد زامل",          role: "المساعد", code: "81472", color: "#ff6b6b", isAdmin: true, superAdmin: true },
-  { name: "رضا فلاح حسن",             role: "الممثل",  code: "33444", color: "#c0392b", isAdmin: true },
-  { name: "حيدر محمد عبد الرحيم", role: "طالب",  code: "40004", color: "#00bfff", isAdmin: true, icon: "صور/حيدر.png" },
-  { name: "أساور أحمد عباس",          role: "طالبة", code: "30003", color: "#ff69b4", isAdmin: true },
-  
-  // الطلاب (لا يمكنهم النشر - للعرض فقط)
-  { name: "أديان علي محمود",          role: "طالبة", code: "12121", color: "#d946ef", isAdmin: false },
-  { name: "أساور أحمد عباس",          role: "طالبة", code: "30003", color: "#ff69b4", isAdmin: false },
-  { name: "أساور حازم محمد",          role: "طالبة", code: "45454", color: "#ec4899", isAdmin: false },
-  { name: "أمير عبد الرسول",          role: "طالب",  code: "11222", color: "#3b82f6", isAdmin: false },
-  { name: "أمير فيصل غازي",           role: "طالب",  code: "70007", color: "#0ea5e9", isAdmin: false },
-  { name: "آية أحمد طالب",            role: "طالبة", code: "26262", color: "#8b5cf6", isAdmin: false },
-  { name: "بلسم سالم محمد",           role: "طالبة", code: "89898", color: "#d946ef", isAdmin: false },
-  { name: "تبارك أحمد لفتة",          role: "طالبة", code: "20002", color: "#ec4899", isAdmin: false },
-  { name: "حسين غانم بدر",            role: "طالب",  code: "67676", color: "#14b8a6", isAdmin: false },
-  { name: "حسين محمد باني",           role: "طالب",  code: "33773", color: "#3b82f6", isAdmin: false },
-  { name: "حوراء سعد محسن",           role: "طالبة", code: "50005", color: "#8b5cf6", isAdmin: false },
-  { name: "حوراء عباس لطيف",          role: "طالبة", code: "34343", color: "#d946ef", isAdmin: false },
-  { name: "حيدر عبد المرتضى",         role: "طالب",  code: "99119", color: "#0ea5e9", isAdmin: false },
-  { name: "رسل خلدون أنور",           role: "طالبة", code: "77888", color: "#ec4899", isAdmin: false },
-  { name: "رفل أمجد حافظ",            role: "طالبة", code: "15151", color: "#d946ef", isAdmin: false },
-  { name: "رقية محمد عبد الخضر",      role: "طالبة", code: "60006", color: "#8b5cf6", isAdmin: false },
-  { name: "رنا عصام سايه مير",        role: "طالبة", code: "22333", color: "#ec4899", isAdmin: false },
-  { name: "زبيدة أحمد عبد الخالق",    role: "طالبة", code: "59595", color: "#d946ef", isAdmin: false },
-  { name: "زهراء حيدر عبد الرزاق",    role: "طالبة", code: "80008", color: "#8b5cf6", isAdmin: false },
-  { name: "زهراء علي راضي",           role: "طالبة", code: "48484", color: "#ec4899", isAdmin: false },
-  { name: "زهراء محمد حسن",           role: "طالبة", code: "11551", color: "#d946ef", isAdmin: false },
-  { name: "زمن ياس خضر",              role: "طالبة", code: "37373", color: "#8b5cf6", isAdmin: false },
-  { name: "زينب قاسم محمد",           role: "طالبة", code: "88999", color: "#ec4899", isAdmin: false },
-  { name: "زينب ناصر عزيز",           role: "طالبة", code: "90009", color: "#d946ef", isAdmin: false },
-  { name: "سجاد صادق جعفر",           role: "طالب",  code: "23232", color: "#3b82f6", isAdmin: false },
-  { name: "سيف قاسم عريان",           role: "طالب",  code: "44555", color: "#0ea5e9", isAdmin: false },
-  { name: "شمس علي عبد المطلب",       role: "طالبة", code: "51545", color: "#8b5cf6", isAdmin: false },
-  { name: "شهد حامد جبار",            role: "طالبة", code: "10001", color: "#ec4899", isAdmin: false },
-  { name: "شيرين أحمد محمد",          role: "طالبة", code: "66777", color: "#d946ef", isAdmin: false },
-  { name: "شيرين سمير كاظم",          role: "طالبة", code: "22662", color: "#8b5cf6", isAdmin: false },
-  { name: "شيماء أسعد كريم",          role: "طالبة", code: "78787", color: "#ec4899", isAdmin: false },
-  { name: "علي طيف سعد",              role: "طالب",  code: "55995", color: "#14b8a6", isAdmin: false },
-  { name: "داليا علاء عبد الله",      role: "طالبة", code: "44884", color: "#d946ef", isAdmin: false },
-  { name: "محمد باقر محمد",           role: "طالب",  code: "2031", color: "#3b82f6", isAdmin: false },
-  { name: "البتول احمد عبدالله",      role: "طالبة", code: "84512", color: "#ec4899", isAdmin: false },
-  { name: "ايناس غالب عوده",          role: "طالبة", code: "39201", color: "#8b5cf6", isAdmin: false },
-  { name: "جبار واثق لطيف",           role: "طالب",  code: "71648", color: "#14b8a6", isAdmin: false },
-  { name: "حسين حاتم كريم",           role: "طالب",  code: "50392", color: "#3b82f6", isAdmin: false },
-  { name: "حميد عبد الكريم حميد",     role: "طالب",  code: "12845", color: "#0ea5e9", isAdmin: false },
-  { name: "رؤى علي عبود",             role: "طالبة", code: "93720", color: "#d946ef", isAdmin: false },
-  { name: "زهراء حاتم طعيمه",         role: "طالبة", code: "46193", color: "#ec4899", isAdmin: false },
-  { name: "زهراء علي صبيح",           role: "طالبة", code: "20584", color: "#8b5cf6", isAdmin: false },
-  { name: "زهراء محمد قاسم",          role: "طالبة", code: "68317", color: "#d946ef", isAdmin: false },
-  { name: "زينب علي سعد",             role: "طالبة", code: "57209", color: "#ec4899", isAdmin: false },
-  { name: "سجى مهدي اشليش",           role: "طالبة", code: "31486", color: "#8b5cf6", isAdmin: false },
-  { name: "سما طه ياسين",             role: "طالبة", code: "85930", color: "#d946ef", isAdmin: false },
-  { name: "شمس شوان احمد",            role: "طالبة", code: "24075", color: "#ec4899", isAdmin: false },
-  { name: "شهد جمال حسين",            role: "طالبة", code: "79561", color: "#8b5cf6", isAdmin: false },
-  { name: "طه حيدر يونس",             role: "طالب",  code: "13824", color: "#14b8a6", isAdmin: false },
-  { name: "عائشه صالح ابراهيم",       role: "طالبة", code: "90257", color: "#d946ef", isAdmin: false },
-  { name: "عباس رعد شعلان",           role: "طالب",  code: "45719", color: "#3b82f6", isAdmin: false },
-  { name: "عذراء عبد الستار جبار",    role: "طالبة", code: "62183", color: "#ec4899", isAdmin: false },
-  { name: "علي حسن داود",             role: "طالب",  code: "38406", color: "#0ea5e9", isAdmin: false },
-  { name: "علي سمير عبد الحسين",      role: "طالب",  code: "81952", color: "#14b8a6", isAdmin: false },
-  { name: "علي شهاب أحمد",            role: "طالب",  code: "56037", color: "#3b82f6", isAdmin: false },
-  { name: "علي قيس سلمان",            role: "طالب",  code: "29741", color: "#0ea5e9", isAdmin: false },
-  { name: "غفران شكر عبد الخالق",     role: "طالبة", code: "74108", color: "#8b5cf6", isAdmin: false },
-  { name: "فاضل احمد جواد",           role: "طالب",  code: "15692", color: "#14b8a6", isAdmin: false },
-  { name: "فاطمه حيدر علي",           role: "طالبة", code: "60325", color: "#d946ef", isAdmin: false },
-  { name: "فاطمة عباس عامل",          role: "طالبة", code: "92840", color: "#ec4899", isAdmin: false },
-  { name: "فاطمه زكي عبد الجبار",     role: "طالبة", code: "37516", color: "#8b5cf6", isAdmin: false },
-  { name: "فاطمه ضياء هاني",          role: "طالبة", code: "84063", color: "#d946ef", isAdmin: false },
-  { name: "فرح علي جارالله",          role: "طالبة", code: "51928", color: "#ec4899", isAdmin: false },
-  { name: "فله محمد جوري",            role: "طالبة", code: "26470", color: "#8b5cf6", isAdmin: false },
-  { name: "فيصل محمد فيصل",           role: "طالب",  code: "73815", color: "#3b82f6", isAdmin: false },
-  { name: "فيض خيري عجاج",            role: "طالبة", code: "48259", color: "#d946ef", isAdmin: false },
-  { name: "قسيم ضياء حسن",            role: "طالب",  code: "19534", color: "#0ea5e9", isAdmin: false },
-  { name: "لمى حيدر كافي",            role: "طالبة", code: "65081", color: "#ec4899", isAdmin: false },
-  { name: "لينا فواز هاشم",           role: "طالبة", code: "97426", color: "#8b5cf6", isAdmin: false },
-  { name: "محمد جاسم محمد",           role: "طالب",  code: "30168", color: "#14b8a6", isAdmin: false },
-  { name: "محمد عبد الجبار محمد",     role: "طالب",  code: "82594", color: "#3b82f6", isAdmin: false },
-  { name: "محمد مازن العيبي",         role: "طالب",  code: "54710", color: "#0ea5e9", isAdmin: false },
-  { name: "محمد مهدي عبد الصاحب",     role: "طالب",  code: "28963", color: "#14b8a6", isAdmin: false },
-  { name: "مروه كاظم عزيز",           role: "طالبة", code: "71205", color: "#d946ef", isAdmin: false },
-  { name: "مريم حمادي مسلم",          role: "طالبة", code: "43658", color: "#ec4899", isAdmin: false },
-  { name: "مريم عدي عامر",            role: "طالبة", code: "96017", color: "#8b5cf6", isAdmin: false },
-  { name: "مريم مروان عدنان",         role: "طالبة", code: "18492", color: "#d946ef", isAdmin: false },
-  { name: "مصطفى علي صبري",           role: "طالب",  code: "67935", color: "#3b82f6", isAdmin: false },
-  { name: "مقتدى احمد صدام",          role: "طالب",  code: "35280", color: "#0ea5e9", isAdmin: false },
-  { name: "نادية حميد هاشم",          role: "طالبة", code: "80641", color: "#ec4899", isAdmin: false },
-  { name: "نبأ اكرم خليل",            role: "طالبة", code: "52196", color: "#8b5cf6", isAdmin: false },
-  { name: "نبأ علي لطيف",             role: "طالبة", code: "25837", color: "#d946ef", isAdmin: false },
-  { name: "نبأ ولاء سليم",            role: "طالبة", code: "79042", color: "#ec4899", isAdmin: false },
-  { name: "نرجس سعد علي",             role: "طالبة", code: "41579", color: "#8b5cf6", isAdmin: false },
-  { name: "نور ابراهيم موزان",        role: "طالبة", code: "94825", color: "#d946ef", isAdmin: false },
-  { name: "نور الزهراء بلال كريم",    role: "طالبة", code: "16350", color: "#ec4899", isAdmin: false },
-  { name: "نور طالب عاكول",           role: "طالبة", code: "69184", color: "#8b5cf6", isAdmin: false },
-  { name: "نور هشام عبد الحافظ",      role: "طالبة", code: "32709", color: "#d946ef", isAdmin: false },
-  { name: "هبة محمد عبد الخالق",      role: "طالبة", code: "85416", color: "#ec4899", isAdmin: false },
-  { name: "هبه ياسين جسام",           role: "طالبة", code: "57093", color: "#8b5cf6", isAdmin: false },
-  { name: "هدير سعدي جمعة",           role: "طالبة", code: "24638", color: "#d946ef", isAdmin: false },
-  { name: "وسام فاضل عبد الحسين",     role: "طالب",  code: "78152", color: "#3b82f6", isAdmin: false },
-  { name: "يسرى قاسم هادي",           role: "طالبة", code: "40967", color: "#ec4899", isAdmin: false }
-];
 
 // ── STATE ──
 let currentUser = null;
@@ -2960,7 +2904,7 @@ function renderDays(anim = 'fade') {
         <div class="post-list" id="posts-${day.id}">
           <div class="day-empty">لا يوجد محتوى</div>
         </div>
-        ${currentUser?.isAdmin ? `<button class="btn-publish" onclick="openPublishModal('${day.id}')">+ نشر تحضير</button>` : ''}
+        <button class="btn-publish" onclick="openPublishModal('${day.id}')">+ نشر تحضير</button>
       </div>
     `;
     fragment.appendChild(card);
@@ -3073,19 +3017,24 @@ function subscribeToData(dayIds) {
       // تحديث العرض للأيام المفتوحة حالياً فقط
       const currentDayIds = getWeekDays(weekOffset).map(d => d.id);
       currentDayIds.forEach(id => {
-        const fPosts = postsByDay[id] || [];
-        const oPosts = localOfflinePosts.filter(p => p.dayId === id).map(p => ({...p, isOffline: true}));
-        renderPostsForDay(id, [...fPosts, ...oPosts]);
+        renderPostsForDay(id, buildDayFeed(id, postsByDay[id] || []));
       });
     });
   } else {
     // إذا كانت المنشورات محملة مسبقاً، فقط حدث عرض الأيام المطلوبة
     dayIds.forEach(id => {
-      const fPosts = currentPosts[id] || [];
-      const oPosts = localOfflinePosts.filter(p => p.dayId === id).map(p => ({...p, isOffline: true}));
-      renderPostsForDay(id, [...fPosts, ...oPosts]);
+      renderPostsForDay(id, buildDayFeed(id, currentPosts[id] || []));
     });
   }
+}
+
+// بناء قائمة منشورات اليوم: فايربيس + المعلّقة محلياً (تُخفى المعلّقة إذا وصلت نسختها الحقيقية)
+function buildDayFeed(dayId, fPosts) {
+  const sigs = new Set((fPosts || []).map(p => p.clientSig).filter(Boolean));
+  const oPosts = localOfflinePosts
+    .filter(p => p.dayId === dayId && !(p.clientSig && sigs.has(p.clientSig)))
+    .map(p => ({ ...p, isOffline: true }));
+  return [...(fPosts || []), ...oPosts];
 }
 
 function renderPostsForDay(dayId, posts) {
@@ -3148,7 +3097,7 @@ function renderPostsForDay(dayId, posts) {
 
     item.innerHTML = `
       <span class="post-type-badge" data-type="${sanitizeText(post.type || '')}">${sanitizeText(post.type || '')}</span>
-      ${post.isOffline ? '<span class="offline-badge" title="بانتظار توفر الإنترنت للرفع">⏳ قيد الانتظار</span>' : ''}
+      ${post.isOffline ? `<span class="offline-badge" id="up-badge-${post.id}" title="${uploadingPct.has(post.id) ? 'جارٍ الرفع' : 'بانتظار توفر الإنترنت للرفع'}">${uploadingPct.has(post.id) ? `⏳ جارٍ الرفع ${uploadingPct.get(post.id) || 0}%` : '⏳ قيد الانتظار'}</span>` : ''}
       <div class="post-subject">${sanitizeText(post.subject || '')}</div>
       ${noteHTML}
       ${mediaHTML}
@@ -3607,9 +3556,79 @@ function clearDraft() {
   localStorage.removeItem('publishDraft');
 }
 
+// ── مؤشر «جارٍ النشر» في الخلفية (يستمر بعد إغلاق نافذة النشر) ──
+let bgPublishActive = 0, bgPublishHideTimer = null;
+function bgPublishShow(text) {
+  const pill = document.getElementById('bg-publish-pill');
+  if (!pill) return;
+  clearTimeout(bgPublishHideTimer);
+  document.getElementById('bg-publish-text').textContent = text;
+  pill.className = 'bg-publish-pill show';
+}
+function bgPublishText(text) {
+  const pill = document.getElementById('bg-publish-pill');
+  if (!pill || !pill.classList.contains('show')) return; // لا يظهر تلقائياً أثناء المزامنة الصامتة
+  document.getElementById('bg-publish-text').textContent = text;
+}
+function bgPublishStart(text) { bgPublishActive++; bgPublishShow(text); }
+function bgPublishFinish(text, state = 'ok') {
+  bgPublishActive = Math.max(0, bgPublishActive - 1);
+  const pill = document.getElementById('bg-publish-pill');
+  if (!pill) return;
+  if (bgPublishActive > 0) { bgPublishText(`⏳ جارٍ النشر... (${bgPublishActive} قيد الرفع)`); return; }
+  document.getElementById('bg-publish-text').textContent = text;
+  pill.className = 'bg-publish-pill show ' + state;
+  bgPublishHideTimer = setTimeout(() => { pill.className = 'bg-publish-pill'; }, 4000);
+}
+
+// ── عدّاد «جارٍ الرفع» من 0 إلى 100 + حالة النشر المؤقت ──
+const uploadingPct = new Map();     // المفتاح (id مؤقت) → نسبة الرفع الحالية
+let uploadingMaterials = [];        // الملازم قيد الرفع (تظهر في الشبكة فوراً)
+let pubProgressTimer = null, pubProgressEst = 0, pubProgressRealVal = 0, pubProgressKeys = [];
+
+function pubProgressApply(pct) {
+  const pill = document.getElementById('bg-publish-pill');
+  if (pill && pill.classList.contains('show')) {
+    const t = document.getElementById('bg-publish-text');
+    if (t) t.textContent = `⏳ جارٍ الرفع ${pct}%`;
+  }
+  pubProgressKeys.forEach(key => {
+    uploadingPct.set(key, pct);
+    const el = document.getElementById('up-badge-' + key);
+    if (el) el.textContent = `⏳ جارٍ الرفع ${pct}%`;
+  });
+}
+function pubProgressStart(keys = []) {
+  if (pubProgressTimer) clearInterval(pubProgressTimer);
+  pubProgressKeys = keys;
+  pubProgressEst = 0; pubProgressRealVal = 0;
+  pubProgressApply(0);
+  // عدّاد تصاعدي تقريبي يتقدم حتى 95%، والنسبة الحقيقية من الرفع تُكمله حتى 100
+  pubProgressTimer = setInterval(() => {
+    pubProgressEst = Math.min(95, pubProgressEst + 2);
+    pubProgressApply(Math.max(pubProgressEst, pubProgressRealVal));
+  }, 300);
+}
+function pubProgressReal(pct) {
+  pubProgressRealVal = Math.max(pubProgressRealVal, Math.min(100, Math.round(pct || 0)));
+  pubProgressApply(Math.max(pubProgressEst, pubProgressRealVal));
+}
+function pubProgressDone() {
+  if (pubProgressTimer) { clearInterval(pubProgressTimer); pubProgressTimer = null; }
+  pubProgressApply(100);
+}
+function pubProgressStop() {
+  if (pubProgressTimer) { clearInterval(pubProgressTimer); pubProgressTimer = null; }
+  pubProgressKeys = [];
+}
+
 // ── PUBLISH ──
 window.openPublishModal = function(dayId) {
-  if (!currentUser?.isAdmin) return;
+  if (!currentUser) {
+    showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول لنشر التحضير — الناشر مسؤول عمّا ينشره');
+    showAuthPanel('login'); openModal('login-modal');
+    return;
+  }
   document.getElementById('pub-day-id').value = dayId;
   document.getElementById('pub-edit-id').value = '';
   document.getElementById('publish-modal-title').textContent = '📝 نشر تحضير';
@@ -3648,7 +3667,7 @@ window.openEditModal = function(postId) {
     document.getElementById('type-custom-wrap').classList.remove('hidden');
     document.getElementById('pub-type-custom').value = post.type;
   }
-  document.getElementById('pub-subject').value = ['أساسيات حاسوب','رياضيات مالية','محاسبة مالية','تشريعات','حقوق إنسان','قراءات','آخر'].includes(post.subject) ? post.subject : 'آخر';
+  document.getElementById('pub-subject').value = ['المحاسبة المتوسطة','النظام المحاسبي الموحد','الحكومية','الخطر','التطبيقات','الجرائم','آخر'].includes(post.subject) ? post.subject : 'آخر';
   if (document.getElementById('pub-subject').value === 'آخر') {
     document.getElementById('subject-custom-wrap').classList.remove('hidden');
     document.getElementById('pub-subject-custom').value = post.subject;
@@ -3676,9 +3695,10 @@ async function saveOfflinePost(postData) {
   const db = await openOfflineDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('offlinePosts', 'readwrite');
-    tx.objectStore('offlinePosts').add(postData);
-    tx.oncomplete = () => resolve();
-    tx.onerror = e => reject(e.target.error);
+    const req = tx.objectStore('offlinePosts').add(postData);
+    tx.oncomplete = () => resolve(req.result); // id السجل حتى نتتبعه أثناء الرفع
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
   });
 }
 
@@ -3707,9 +3727,7 @@ async function refreshOfflinePosts() {
     localOfflinePosts = await getOfflinePosts();
     const dayIds = getWeekDays(weekOffset).map(d=>d.id);
     dayIds.forEach(id => {
-      const fPosts = currentPosts[id] || [];
-      const oPosts = localOfflinePosts.filter(p => p.dayId === id).map(p => ({...p, isOffline: true}));
-      renderPostsForDay(id, [...fPosts, ...oPosts]);
+      renderPostsForDay(id, buildDayFeed(id, currentPosts[id] || []));
     });
   } catch(e) { console.error('Failed to load offline posts', e); }
 }
@@ -3721,7 +3739,7 @@ window.deleteOfflinePostHandler = async function(id) {
   showToast('🗑️', 'حذف', 'تم حذف المنشور المعلق');
 };
 
-async function processPublish(data, isBackgroundSync = false) {
+async function processPublish(data, isBackgroundSync = false, onProgress = null) {
   const { type, subject, note, dayId, editId, files, author, authorColor, authorIcon, createdAt } = data;
   
   const mediaUrls = [...(data.existingMediaUrls || [])];
@@ -3730,7 +3748,9 @@ async function processPublish(data, isBackgroundSync = false) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!isBackgroundSync) setUploadStatus(`⬆️ جارٍ رفع: ${file.name}`);
-      const url = await uploadToCloudinary(file);
+      const url = await uploadToCloudinary(file, isBackgroundSync ? (p) => {
+        if (onProgress) onProgress(Math.min(100, Math.round(((i + p / 100) / files.length) * 100)));
+      } : null);
       let fType = 'file';
       if (file.type.startsWith('image/')) fType = 'image';
       else if (file.type.startsWith('video/')) fType = 'video';
@@ -3745,12 +3765,14 @@ async function processPublish(data, isBackgroundSync = false) {
       document.getElementById('upload-progress-fill').style.width = '0';
     }
   }
+  if (isBackgroundSync && onProgress) onProgress(100); // اكتمال الرفع ← العدّاد يبلغ 100
 
   const postData = {
     type, subject, note, dayId,
     mediaUrls,
     author, authorColor, authorIcon,
-    createdAt: new Date(createdAt)
+    createdAt: new Date(createdAt),
+    ...(data.clientSig ? { clientSig: data.clientSig } : {})
   };
 
   if (editId) {
@@ -3773,6 +3795,7 @@ async function syncOfflinePosts() {
   let successCount = 0;
   
   for (const post of offlinePosts) {
+    if (uploadingPct.has(post.id)) continue; // قيد الرفع الآن في هذه الجلسة — لا تُكرر النشر
     try {
       await processPublish(post, true);
       await deleteOfflinePost(post.id);
@@ -3816,7 +3839,8 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     author: currentUser.name,
     authorColor: currentUser.color,
     authorIcon: currentUser.icon || '',
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    clientSig: editId ? '' : `sig-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   };
 
   // إذا لم يكن هناك إنترنت، نحفظ محلياً ونغلق النافذة
@@ -3832,17 +3856,55 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
 
-  try {
-    await processPublish(dataPayload, false);
-    closeModal('publish-modal');
-  } catch (e) {
-    console.error(e);
-    showToast('❌','خطأ', e.message || 'فشل النشر، حاول مجدداً');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = editId ? '💾 حفظ' : '🚀 نشر';
-    clearUploadStatus();
+  // إغلاق الواجهة فوراً + ظهور المنشور مباشرة في القائمة أثناء الرفع
+  closeModal('publish-modal');
+  clearDraft();
+  clearUploadStatus();
+
+  let queueId = null;
+  if (!editId) {
+    try {
+      queueId = await saveOfflinePost({ ...dataPayload });
+      uploadingPct.set(queueId, 0);
+      await refreshOfflinePosts(); // يظهر المنشور فوراً بحالة «جارٍ الرفع 0%»
+    } catch (e) { queueId = null; }
   }
+
+  bgPublishStart('⏳ جارٍ الرفع 0%');
+  pubProgressStart(queueId !== null ? [queueId] : []);
+  showToast('⏳', 'جارٍ الرفع', 'ظهر المنشور في القائمة — جارٍ رفع الملفات ونشره في الخلفية، ويمكنك مواصلة التصفح');
+
+  processPublish(dataPayload, true, (pct) => pubProgressReal(pct))
+    .then(async () => {
+      pubProgressDone(); // العدّاد يبلغ 100
+      if (queueId !== null) {
+        uploadingPct.delete(queueId);
+        await deleteOfflinePost(queueId);
+        await refreshOfflinePosts(); // يحل المنشور الحقيقي محل المؤقت
+        queueId = null;
+      }
+      setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
+      showToast('✅', 'تم النشر', editId ? `تم حفظ التعديل: ${type} - ${subject}` : `تم نشر: ${type} - ${subject}`);
+      playSyncSound();
+    })
+    .catch(async (e) => {
+      console.error(e);
+      pubProgressStop();
+      if (queueId !== null) {
+        uploadingPct.delete(queueId);
+        await refreshOfflinePosts().catch(() => {}); // يعود بحالة «قيد الانتظار» ويُنشر تلقائياً لاحقاً
+        bgPublishFinish('📡 محفوظ — سيُنشر تلقائياً', 'ok');
+        showToast('📡', 'تم الحفظ', 'تعذّر الرفع الآن — المنشور محفوظ وسيُنشر تلقائياً عند توفر الإنترنت');
+      } else {
+        bgPublishFinish('❌ فشل النشر', 'err');
+        showToast('❌', 'خطأ', e.message || 'فشل النشر، حاول مجدداً');
+      }
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = document.getElementById('pub-edit-id').value ? '💾 حفظ' : '🚀 نشر';
+      clearUploadStatus();
+    });
 });
 
 // ── DELETE ──
@@ -4349,8 +4411,8 @@ if (messaging) {
 
 // ══════════════════ قسم الملازم ══════════════════
 
-const SUBJECTS       = ['أساسيات حاسوب','رياضيات مالية','محاسبة مالية','تشريعات','حقوق إنسان','قراءات','أخرى'];
-const SUBJECT_ICONS  = { 'أساسيات حاسوب':'💻','رياضيات مالية':'🧮','محاسبة مالية':'📊','تشريعات':'⚖️','حقوق إنسان':'🕊️','قراءات':'📖','أخرى':'🗂️' };
+const SUBJECTS       = ['المحاسبة المتوسطة','النظام المحاسبي الموحد','الحكومية','الخطر','التطبيقات','الجرائم','أخرى'];
+const SUBJECT_ICONS  = { 'المحاسبة المتوسطة':'📊','النظام المحاسبي الموحد':'📘','الحكومية':'🏛️','الخطر':'⚠️','التطبيقات':'📱','الجرائم':'🔍','أخرى':'🗂️' };
 const SEMESTERS      = ['الفصل الأول','الفصل الثاني'];
 const MATERIAL_TYPES = ['كتاب مادة','ملازم مؤشرة','أسئلة','ملخص','أخرى'];
 const MATERIAL_TYPE_COLORS = { 'كتاب مادة':'#3b82f6','ملازم مؤشرة':'#a855f7','أسئلة':'#f59e0b','ملخص':'#22c55e','أخرى':'#6b7280' };
@@ -4383,6 +4445,10 @@ function subscribeMaterials() {
   unsubMaterials = onSnapshot(collection(db, 'materials'), snap => {
     allMaterials = [];
     snap.forEach(d => allMaterials.push({ ...d.data(), id: d.id }));
+    // إخفاء الملزمة المؤقتة إذا وصلت نسختها الحقيقية من Firestore
+    const _sigs = new Set(allMaterials.map(m => m.clientSig).filter(Boolean));
+    uploadingMaterials = uploadingMaterials.filter(m => !(m.clientSig && _sigs.has(m.clientSig)));
+    uploadingMaterials.forEach(m => allMaterials.push(m));
     renderSubjectGrid();
     if (materialsCurrentSubject) renderMaterialsGrid();
   });
@@ -4420,7 +4486,7 @@ window.openSubjectDetail = function(subject) {
   document.getElementById('materials-subject-title').textContent      = subject;
 
   const fab = document.getElementById('fab-add-material');
-  if (fab) fab.classList.toggle('show', !!currentUser?.isAdmin);
+  if (fab) fab.classList.add('show');
 
   renderSemesterTabs();
   renderTypeChips();
@@ -4496,12 +4562,15 @@ function renderMaterialsGrid() {
       card.className = 'material-card';
       card.innerHTML = `
         <div class="material-cover">
-          ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : (isImg ? `<img src="${mat.fileUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}">` : '📄')}
+          ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : (isImg ? `<img src="${mat.fileUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}">` : (mat.previewUrl ? `<img src="${mat.previewUrl}" alt="${sanitizeText(mat.name)}">` : '📄'))}
         </div>
         <div class="material-type-dot" style="background:${color}"></div>
         <div class="material-name">${sanitizeText(mat.name)}</div>
+        ${mat.uploading ? `<span class="mat-uploading-badge" id="up-badge-${mat.id}">⏳ جارٍ الرفع ${uploadingPct.get(mat.id) || 0}%</span>` : ''}
       `;
-      card.onclick = () => openMaterialDetail(mat);
+      card.onclick = () => mat.uploading
+        ? showToast('⏳', 'جارٍ الرفع', 'الملزمة قيد الرفع — تفاصيلها متاحة بعد اكتمال النشر')
+        : openMaterialDetail(mat);
       grid.appendChild(card);
     });
   }
@@ -4589,7 +4658,11 @@ window.openMaterialDetail = function(mat) {
 
 // ── فتح modal إضافة/تعديل ملزمة ──
 window.openMaterialModal = function(existingMat = null) {
-  if (!currentUser?.isAdmin) return;
+  if (!currentUser) {
+    showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول لنشر الملزمة — الناشر مسؤول عمّا ينشره');
+    showAuthPanel('login'); openModal('login-modal');
+    return;
+  }
   initMaterialSelects();
 
   const titleEl   = document.getElementById('material-modal-title');
@@ -4643,7 +4716,7 @@ document.getElementById('mat-file')?.addEventListener('change', function() {
   }
 });
 
-// نشر/تعديل ملزمة
+// نشر/تعديل ملزمة — يُغلق الواجهة فوراً ويُكمل الرفع والنشر في الخلفية
 document.getElementById('btn-do-material')?.addEventListener('click', async () => {
   const btn      = document.getElementById('btn-do-material');
   const editId   = document.getElementById('mat-edit-id').value;
@@ -4655,20 +4728,42 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
   const idx      = document.getElementById('mat-index').value.trim();
   let   fileUrl  = document.getElementById('mat-file-url').value;
   let   fileName = document.getElementById('mat-file-name').value;
+  const pendingFile = pendingMaterialFile; // نسخة مستقلة حتى لا تتأثر إذا فُتحت النافذة مجدداً
 
   if (!subject || !semester || !type || !name) { showToast('⚠️','خطأ','أكمل الحقول المطلوبة'); return; }
 
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
 
+  // إغلاق الواجهة فوراً + ظهور الملزمة مباشرة في الشبكة أثناء الرفع
+  closeModal('material-modal');
+  pendingMaterialFile = null;
+
+  let tempId = null;
+  if (!editId) {
+    tempId = 'tmp-' + Date.now();
+    uploadingPct.set(tempId, 0);
+    uploadingMaterials.push({
+      id: tempId, subject, semester, type, name,
+      description: desc, index: idx, fileUrl: '', fileName: fileName || '',
+      uploading: true,
+      clientSig: tempId,
+      previewUrl: (pendingFile && pendingFile.type.startsWith('image/')) ? URL.createObjectURL(pendingFile) : '',
+      createdAt: new Date()
+    });
+    renderSubjectGrid();
+    if (materialsCurrentSubject === subject) renderMaterialsGrid();
+  }
+
+  bgPublishStart('⏳ جارٍ الرفع 0%');
+  pubProgressStart(tempId ? [tempId] : []);
+  showToast('⏳', 'جارٍ الرفع', 'ظهرت الملزمة في القائمة — جارٍ الرفع والنشر في الخلفية، ويمكنك مواصلة التصفح');
+
   try {
-    if (pendingMaterialFile) {
-      document.getElementById('mat-progress-bar').classList.add('show');
-      fileUrl  = await uploadToCloudinary(pendingMaterialFile, (pct) => {
-        document.getElementById('mat-progress-fill').style.width = pct + '%';
-      });
-      fileName = pendingMaterialFile.name;
-      document.getElementById('mat-progress-bar').classList.remove('show');
+    if (pendingFile) {
+      fileUrl  = await uploadToCloudinary(pendingFile, (pct) => pubProgressReal(pct));
+      fileName = pendingFile.name;
     }
+    pubProgressReal(100);
 
     const data = { subject, semester, type, name, description: desc, index: idx, fileUrl, fileName, updatedAt: new Date() };
 
@@ -4677,16 +4772,28 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
       showToast('✅','تعديل','تم تعديل الملزمة بنجاح');
     } else {
       data.createdAt = new Date();
+      data.createdBy = currentUser?.name || '';
+      data.clientSig = tempId;
       await addDoc(collection(db, 'materials'), data);
       showToast('✅','نشر','تم نشر الملزمة بنجاح');
     }
 
-    closeModal('material-modal');
-    pendingMaterialFile = null;
+    pubProgressDone(); // العدّاد يبلغ 100
+    setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
   } catch(e) {
+    pubProgressStop();
+    bgPublishFinish('❌ فشل النشر — حاول مجدداً', 'err');
     showToast('❌','خطأ', e.message || 'فشل النشر');
   } finally {
-    btn.disabled = false; btn.textContent = editId ? '💾 حفظ' : '🚀 نشر';
+    if (tempId) {
+      uploadingPct.delete(tempId);
+      const i = uploadingMaterials.findIndex(m => m.id === tempId);
+      if (i > -1) uploadingMaterials.splice(i, 1);
+      renderSubjectGrid();
+      if (materialsCurrentSubject === subject) renderMaterialsGrid();
+    }
+    btn.disabled = false;
+    btn.textContent = document.getElementById('mat-edit-id').value ? '💾 حفظ' : '🚀 نشر';
   }
 });
 
@@ -5346,7 +5453,7 @@ window.setActiveNav = function(id) {
     if (materialsCurrentSubject) {
       document.getElementById('materials-subjects-screen').style.display = 'none';
       document.getElementById('materials-subject-detail').style.display  = 'block';
-      if (fab && currentUser?.isAdmin) fab.classList.add('show');
+      if (fab) fab.classList.add('show');
     } else {
       document.getElementById('materials-subjects-screen').style.display = 'block';
       document.getElementById('materials-subject-detail').style.display  = 'none';
