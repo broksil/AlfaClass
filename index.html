@@ -679,6 +679,7 @@
   .post-item[data-type="امتحان"] { border-color: var(--c-exam); }
   .post-item[data-type="واجب"] { border-color: var(--c-hw); }
   .post-item[data-type="تحضير"] { border-color: var(--c-prep); }
+  .post-item[data-type="ملزمة"] { border-color: var(--c-prep); }
 
   .post-type-badge {
     display: inline-flex; align-items: center;
@@ -695,6 +696,7 @@
   .post-type-badge[data-type="امتحان"] { color: var(--c-exam); background: rgba(236,72,153,0.12); }
   .post-type-badge[data-type="واجب"] { color: var(--c-hw); background: rgba(34,197,94,0.12); }
   .post-type-badge[data-type="تحضير"] { color: var(--c-prep); background: rgba(168,85,247,0.12); }
+  .post-type-badge[data-type="ملزمة"] { color: var(--c-prep); background: rgba(168,85,247,0.12); }
 
   .offline-badge {
     float: left;
@@ -817,6 +819,63 @@
     color: #a78bfa; background: rgba(168,85,247,0.14);
     border: 1px solid rgba(168,85,237,0.35);
     animation: pulseOpacity 1.5s infinite;
+  }
+
+  /* ── واجهة التأكيد المخصصة ── */
+  .confirm-dialog { position: fixed; inset: 0; z-index: 1100; display: none; align-items: center; justify-content: center; padding: 24px; }
+  .confirm-dialog.open { display: flex; }
+  .confirm-dialog.closing .confirm-backdrop { animation: cfdFadeOut .18s ease forwards; }
+  .confirm-dialog.closing .confirm-card { animation: cfdPopOut .16s ease forwards; }
+  .confirm-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(5,5,15,0.72);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    opacity: 0; animation: cfdFadeIn .22s ease forwards;
+  }
+  .confirm-card {
+    --cd: #ef4444; --cd-glow: rgba(239,68,68,0.35); --cd-soft: rgba(239,68,68,0.13); --cd-line: rgba(239,68,68,0.45);
+    position: relative; width: 100%; max-width: 360px;
+    background: linear-gradient(160deg, rgba(24,24,46,0.98), rgba(12,12,28,0.98));
+    border: 1px solid rgba(239,68,68,0.32);
+    border-radius: 24px; padding: 26px 22px 20px; text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    transform: translateY(14px) scale(0.94); opacity: 0;
+    animation: cfdPop .3s cubic-bezier(.2,.9,.25,1.2) forwards;
+  }
+  .confirm-card.accent { --cd: #a855f7; --cd-glow: rgba(168,85,247,0.35); --cd-soft: rgba(168,85,247,0.13); --cd-line: rgba(168,85,247,0.45); border-color: rgba(168,85,247,0.35); }
+  .confirm-card.warn   { --cd: #f59e0b; --cd-glow: rgba(245,158,11,0.30); --cd-soft: rgba(245,158,11,0.13); --cd-line: rgba(245,158,11,0.45); border-color: rgba(245,158,11,0.35); }
+  .confirm-icon {
+    width: 76px; height: 76px; margin: 0 auto 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.14), var(--cd-soft) 60%), var(--cd-soft);
+    border: 1px solid var(--cd-line);
+    box-shadow: 0 0 26px var(--cd-glow);
+    animation: cfdPulse 2.4s ease-in-out infinite;
+  }
+  .confirm-title { font-size: 18px; font-weight: 900; color: var(--text-primary, #fff); margin-bottom: 8px; }
+  .confirm-msg { font-size: 13.5px; line-height: 1.7; color: var(--text-secondary, #b9b9c9); word-break: break-word; }
+  .confirm-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .confirm-btn {
+    flex: 1; padding: 12px 14px; border-radius: 14px; border: none;
+    font-family: var(--font); font-size: 14px; font-weight: 800; cursor: pointer;
+    transition: transform .15s, filter .2s, background .2s, color .2s;
+  }
+  .confirm-btn:active { transform: scale(0.94); }
+  .confirm-btn:focus-visible { outline: 2px solid var(--accent2, #a78bfa); outline-offset: 2px; }
+  .confirm-btn.ghost { background: rgba(255,255,255,0.07); color: var(--text-secondary, #b9b9c9); border: 1px solid rgba(255,255,255,0.12); }
+  .confirm-btn.ghost:hover { background: rgba(255,255,255,0.13); color: #fff; }
+  .confirm-btn.solid { color: #fff; background: linear-gradient(135deg, var(--cd), #7f1d1d); box-shadow: 0 8px 22px var(--cd-glow); }
+  .confirm-card.accent .confirm-btn.solid { background: linear-gradient(135deg, #a855f7, #4f46e5); }
+  .confirm-card.warn .confirm-btn.solid { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .confirm-btn.solid:hover { filter: brightness(1.1); }
+  @keyframes cfdFadeIn { to { opacity: 1; } }
+  @keyframes cfdFadeOut { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes cfdPop { to { transform: translateY(0) scale(1); opacity: 1; } }
+  @keyframes cfdPopOut { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(8px) scale(0.96); opacity: 0; } }
+  @keyframes cfdPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @media (prefers-reduced-motion: reduce) {
+    .confirm-backdrop, .confirm-card, .confirm-icon { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   }
 
   /* ── MODAL (shared) ── */
@@ -2158,6 +2217,20 @@
   <span id="bg-publish-text">جارٍ النشر...</span>
 </div>
 
+<!-- Confirm dialog (واجهة التأكيد المخصصة) -->
+<div class="confirm-dialog" id="confirm-dialog" aria-hidden="true">
+  <div class="confirm-backdrop" id="confirm-backdrop"></div>
+  <div class="confirm-card" id="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-msg">
+    <div class="confirm-icon" id="confirm-icon">⚠️</div>
+    <div class="confirm-title" id="confirm-title">تأكيد</div>
+    <div class="confirm-msg" id="confirm-msg">هل أنت متأكد؟</div>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-btn ghost" id="confirm-cancel">إلغاء</button>
+      <button type="button" class="confirm-btn solid" id="confirm-ok">تأكيد</button>
+    </div>
+  </div>
+</div>
+
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
   <div class="lightbox-header" onclick="event.stopPropagation()">
@@ -3107,6 +3180,7 @@ function renderPostsForDay(dayId, posts) {
     fragment.appendChild(item);
   });
   container.appendChild(fragment);
+  applyLazyCovers(container); // أغلفة ملفات PDF/فيديو المؤجلة
 
   // تحميل عدد الاستفسارات لكل منشور بشكل غير متزامن
   if (currentUser) {
@@ -3156,13 +3230,14 @@ function buildMediaHTML(post) {
       
       if (isPdf) {
         const thumbUrl = _getThumbnailUrl(item.url);
+        const lazyCover = !thumbUrl; // لا يوجد غلاف فوري → غلاف مؤجل يُولَّد في المتصفح
         html += `
         <div class="media-file-wrap" onclick="downloadFileWithProgress('${item.url}', '${sanitizeText(name)}', this, ${item.size || 0})">
           ${thumbUrl
             ? `<img src="${thumbUrl}" loading="lazy" alt="PDF Cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-            : ''}
-          <div class="file-info-badge" style="${thumbUrl ? '' : 'position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:36px;gap:4px;'}">
-             ${thumbUrl ? '' : '📄'}
+            : (lazyCover ? `<img data-cover-url="${item.url}" style="display:none" loading="lazy" alt="PDF Cover">` : '')}
+          <div class="file-info-badge" style="${(thumbUrl || lazyCover) ? '' : 'position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:36px;gap:4px;'}">
+             ${(thumbUrl || lazyCover) ? '' : '📄'}
              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${sanitizeText(name)}</span>
              ${sizeStr ? `<span style="opacity:0.7; font-size:9px; white-space:nowrap;">${sizeStr}</span>` : ''}
           </div>
@@ -3733,7 +3808,12 @@ async function refreshOfflinePosts() {
 }
 
 window.deleteOfflinePostHandler = async function(id) {
-  if (!confirm('هل تريد حذف هذا المنشور المعلق؟')) return;
+  const okDel = await confirmDialog({
+    icon: '⏳', title: 'حذف منشور معلق',
+    message: 'سيُحذف هذا المنشور المحفوظ محلياً ولن يُنشر لاحقاً. لا يمكن التراجع عن هذا الإجراء.',
+    confirmText: 'حذف المنشور'
+  });
+  if (!okDel) return;
   await deleteOfflinePost(id);
   refreshOfflinePosts();
   showToast('🗑️', 'حذف', 'تم حذف المنشور المعلق');
@@ -3909,7 +3989,12 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 
 // ── DELETE ──
 window.deletePost = async function(postId, mediaUrls) {
-  if (!confirm('هل تريد حذف هذا المنشور؟')) return;
+  const okDel = await confirmDialog({
+    icon: '🗑️', title: 'حذف المنشور',
+    message: 'سيُحذف هذا المنشور نهائياً مع كل مرفقاته من الموقع. لا يمكن التراجع عن هذا الإجراء.',
+    confirmText: 'حذف'
+  });
+  if (!okDel) return;
   try {
     await deleteDoc(doc(db, 'posts', postId));
     showToast('🗑️','حذف','تم حذف المنشور');
@@ -3968,20 +4053,164 @@ async function _r2getUrl(key) {
 }
 
 /**
- * يُعيد رابط الصورة المصغّرة (Thumbnail) للملف:
- * - Cloudinary: يُحوّل .pdf → .jpg تلقائياً (Cloudinary Magic)
- * - R2: لا يدعم التحويل، يُعيد null → سيُعرض أيقونة بدلاً من صورة
+ * يُعيد رابط غلاف (أول صفحة) للملف:
+ * - Cloudinary: تحويل فعلي للصفحة الأولى إلى JPG عبر f_jpg,pg_1
+ * - R2 أو غيره: يُعيد null → يُولَّد الغلاف لاحقاً في المتصفح (applyLazyCovers)
  */
 function _getThumbnailUrl(url) {
   if (!url) return null;
-  // روابط Cloudinary تحتوي على cloudinary.com أو res.cloudinary.com
-  if (url.includes('cloudinary.com')) {
-    return url.replace(/\.(pdf|PDF)$/, '.jpg');
+  if (url.includes('cloudinary.com') && /\.pdf(\?|#|$)/i.test(url)) {
+    return url.replace('/upload/', '/upload/f_jpg,pg_1,w_600,q_auto/');
   }
-  // R2 أو أي مصدر آخر: لا thumbnail
   return null;
 }
 
+
+// ══════════════ أغلفة الملفات: غلاف PDF (الصفحة الأولى) أو أول إطار فيديو ══════════════
+const _COVER_PREFIX = 'alfaCover:';
+let _pdfjsLoad = null;
+
+function _coverCacheGet(url) {
+  try { return localStorage.getItem(_COVER_PREFIX + url); } catch (e) { return null; }
+}
+function _coverCacheSet(url, dataUrl) {
+  try { localStorage.setItem(_COVER_PREFIX + url, dataUrl); return; } catch (e) {}
+  try { // الامتلاء: نظّف الأغلفة الأقدم ثم أعد المحاولة مرة واحدة
+    Object.keys(localStorage).filter(k => k.startsWith(_COVER_PREFIX)).slice(0, 25).forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(_COVER_PREFIX + url, dataUrl);
+  } catch (e) {}
+}
+
+// تحميل pdf.js عند الحاجة فقط (لا يُحمَّل إلا عند أول غلاف PDF غير Cloudinary)
+function _loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (_pdfjsLoad) return _pdfjsLoad;
+  _pdfjsLoad = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      if (!window.pdfjsLib) { _pdfjsLoad = null; reject(new Error('pdf.js غير متاح')); return; }
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = () => { _pdfjsLoad = null; reject(new Error('تعذّر تحميل pdf.js')); };
+    document.head.appendChild(s);
+  });
+  return _pdfjsLoad;
+}
+
+// رسم الصفحة الأولى من PDF كصورة JPG (مخزّنة في localStorage)
+async function _renderPdfCover(url) {
+  const cached = _coverCacheGet(url);
+  if (cached) return cached;
+  const pdfjs = await _loadPdfJs();
+  const doc = await pdfjs.getDocument({ url }).promise;
+  const page = await doc.getPage(1);
+  const base = page.getViewport({ scale: 1 });
+  const viewport = page.getViewport({ scale: Math.min(2, 560 / base.width) });
+  const canvas = document.createElement('canvas');
+  canvas.width  = Math.max(1, Math.round(viewport.width));
+  canvas.height = Math.max(1, Math.round(viewport.height));
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+  try { await doc.destroy(); } catch (e) {}
+  _coverCacheSet(url, dataUrl);
+  return dataUrl;
+}
+
+// التقاط أول إطار من الفيديو كغلاف (مخزّن في localStorage)
+function _renderVideoCover(url) {
+  const cached = _coverCacheGet(url);
+  if (cached) return Promise.resolve(cached);
+  return new Promise((resolve, reject) => {
+    const v = document.createElement('video');
+    let settled = false;
+    const timer = setTimeout(() => finish(new Error('انتهت مهلة غلاف الفيديو')), 15000);
+    function finish(err, data) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { v.removeAttribute('src'); v.load(); } catch (e) {}
+      err ? reject(err) : resolve(data);
+    }
+    v.crossOrigin = 'anonymous';
+    v.muted = true; v.defaultMuted = true;
+    v.preload = 'auto';
+    v.playsInline = true;
+    v.onloadeddata = () => {
+      try { v.currentTime = Math.min(0.25, (v.duration || 1) * 0.05); }
+      catch (e) { finish(e); }
+    };
+    v.onseeked = () => {
+      try {
+        const w = Math.min(560, v.videoWidth || 560);
+        const h = Math.round((v.videoHeight || 315) * (w / (v.videoWidth || 560)));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(v, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        _coverCacheSet(url, dataUrl);
+        finish(null, dataUrl);
+      } catch (e) { finish(e); }
+    };
+    v.onerror = () => finish(v.error || new Error('video error'));
+    v.src = url;
+  });
+}
+
+// الغلاف المناسب لنوع الملف: صورة → نفسها، PDF → صفحة أولى، فيديو → أول إطار
+function getFileCover(url) {
+  if (!url) return Promise.resolve(null);
+  const clean = String(url).split('?')[0].split('#')[0].toLowerCase();
+  if (/\.(jpg|jpeg|png|gif|webp|avif|bmp)$/.test(clean)) return Promise.resolve(url);
+  if (clean.endsWith('.pdf')) {
+    const cloudThumb = _getThumbnailUrl(url);
+    if (cloudThumb) return Promise.resolve(cloudThumb);
+    return _renderPdfCover(url).catch(() => null);
+  }
+  if (/\.(mp4|webm|mov|m4v|ogv)$/.test(clean)) return _renderVideoCover(url).catch(() => null);
+  return Promise.resolve(null);
+}
+
+// تطبيق الأغلفة المؤجلة على العناصر الحاملة لـ data-cover-url (مرة واحدة لكل عنصر)
+function applyLazyCovers(root = document) {
+  if (!root || !root.querySelectorAll) return;
+  const targets = [];
+  if (root.hasAttribute && root.hasAttribute('data-cover-url')) targets.push(root);
+  root.querySelectorAll('[data-cover-url]').forEach(el => targets.push(el));
+  targets.forEach(el => {
+    const url = el.getAttribute('data-cover-url');
+    el.removeAttribute('data-cover-url');
+    if (!url) return;
+    el.dataset.coverFor = url; // رمز التحقق: يمنع استبدال غلاف أحدث بغلاف قديم متأخر
+    getFileCover(url).then(cover => {
+      if (!el.isConnected || el.dataset.coverFor !== url) return; // تغيّر العنصر أثناء التوليد
+      delete el.dataset.coverFor;
+      if (cover) {
+        if (el.tagName === 'IMG') {
+          el.src = cover;
+          el.style.display = '';
+        } else {
+          el.innerHTML = `<img src="${cover}" alt="غلاف الملف" loading="lazy">`;
+        }
+      } else if (el.tagName === 'IMG') {
+        // فشل توليد الغلاف: أظهر البادج الكاملة بدل مربع فارغ
+        const badge = el.parentElement && el.parentElement.querySelector('.file-info-badge');
+        if (badge) {
+          badge.style.cssText = 'position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:36px;gap:4px;';
+          if (!badge.querySelector('.cover-fallback-emoji')) {
+            const em = document.createElement('div');
+            em.className = 'cover-fallback-emoji';
+            em.textContent = '📄';
+            badge.prepend(em);
+          }
+        }
+        el.remove();
+      }
+      // صناديق البطاقات: تبقى 📄 كما هي عند الفشل
+    }).catch(() => {});
+  });
+}
 
 const _enc    = new TextEncoder();
 const _R2_PART = 5 * 1024 * 1024; // 5MB حد أدنى لكل جزء في Multipart
@@ -4187,11 +4416,15 @@ function renderPreviews(type) {
       const rm = document.createElement('div');
       rm.className = 'remove-file';
       rm.textContent = '×';
-      rm.onclick = () => {
-        if (confirm('هل أنت متأكد من رغبتك في إزالة هذا المرفق عند الحفظ؟')) {
-          editingMediaUrls.splice(idx, 1);
-          renderPreviews(type);
-        }
+      rm.onclick = async () => {
+        const okDel = await confirmDialog({
+          icon: '📎', title: 'إزالة المرفق',
+          message: 'سيُزال هذا المرفق من المنشور فور الحفظ.',
+          confirmText: 'إزالة', variant: 'warn'
+        });
+        if (!okDel) return;
+        editingMediaUrls.splice(idx, 1);
+        renderPreviews(type);
       };
       item.appendChild(rm);
       container.appendChild(item);
@@ -4448,7 +4681,7 @@ function subscribeMaterials() {
     // إخفاء الملزمة المؤقتة إذا وصلت نسختها الحقيقية من Firestore
     const _sigs = new Set(allMaterials.map(m => m.clientSig).filter(Boolean));
     uploadingMaterials = uploadingMaterials.filter(m => !(m.clientSig && _sigs.has(m.clientSig)));
-    uploadingMaterials.forEach(m => allMaterials.push(m));
+    uploadingMaterials.slice().reverse().forEach(m => allMaterials.unshift(m)); // أولاً لتكون ظاهرة في المقدمة
     renderSubjectGrid();
     if (materialsCurrentSubject) renderMaterialsGrid();
   });
@@ -4557,11 +4790,12 @@ function renderMaterialsGrid() {
       const isImg  = mat.fileUrl && mat.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
       const isPdf  = mat.fileUrl && mat.fileUrl.toLowerCase().endsWith('.pdf');
       const thumbUrl = isPdf ? _getThumbnailUrl(mat.fileUrl) : (isImg ? mat.fileUrl : null);
+      const lazyCover = mat.fileUrl && !thumbUrl && !mat.previewUrl; // غلاف مؤجل (R2/فيديو/غيره)
 
       const card   = document.createElement('div');
       card.className = 'material-card';
       card.innerHTML = `
-        <div class="material-cover">
+        <div class="material-cover"${lazyCover ? ` data-cover-url="${mat.fileUrl}"` : ''}>
           ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : (isImg ? `<img src="${mat.fileUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}">` : (mat.previewUrl ? `<img src="${mat.previewUrl}" alt="${sanitizeText(mat.name)}">` : '📄'))}
         </div>
         <div class="material-type-dot" style="background:${color}"></div>
@@ -4574,6 +4808,8 @@ function renderMaterialsGrid() {
       grid.appendChild(card);
     });
   }
+
+  applyLazyCovers(grid); // أغلفة الملفات المؤجلة (PDF/فيديو)
 
   // Pagination
   if (pagination) {
@@ -4610,6 +4846,9 @@ window.openMaterialDetail = function(mat) {
   coverEl.innerHTML = thumbUrl
     ? `<img src="${thumbUrl}" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">`
     : (isImg ? `<img src="${mat.fileUrl}" alt="${sanitizeText(mat.name)}">` : '📄');
+  // غلاف مؤجل إن لم يوجد رابط غلاف فوري (R2/فيديو/غيره)
+  if (mat.fileUrl && !thumbUrl) { coverEl.setAttribute('data-cover-url', mat.fileUrl); applyLazyCovers(coverEl); }
+  else { coverEl.removeAttribute('data-cover-url'); delete coverEl.dataset.coverFor; } // ألغِ انتظار أي غلاف سابق
 
   const color = MATERIAL_TYPE_COLORS[mat.type] || '#6b7280';
   badgesEl.innerHTML = `
@@ -4739,24 +4978,28 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
   pendingMaterialFile = null;
 
   let tempId = null;
+
   if (!editId) {
+    // بطاقة مؤقتة داخل مجلد المادة في قسم الملازم — تظهر فوراً ببادج «جارٍ الرفع 0%»
     tempId = 'tmp-' + Date.now();
     uploadingPct.set(tempId, 0);
-    uploadingMaterials.push({
+    const tempMat = {
       id: tempId, subject, semester, type, name,
       description: desc, index: idx, fileUrl: '', fileName: fileName || '',
       uploading: true,
       clientSig: tempId,
       previewUrl: (pendingFile && pendingFile.type.startsWith('image/')) ? URL.createObjectURL(pendingFile) : '',
       createdAt: new Date()
-    });
+    };
+    uploadingMaterials.push(tempMat);
+    allMaterials.unshift(tempMat); // لتظهر فوراً في مقدمة مجلد المادة
     renderSubjectGrid();
     if (materialsCurrentSubject === subject) renderMaterialsGrid();
   }
 
   bgPublishStart('⏳ جارٍ الرفع 0%');
-  pubProgressStart(tempId ? [tempId] : []);
-  showToast('⏳', 'جارٍ الرفع', 'ظهرت الملزمة في القائمة — جارٍ الرفع والنشر في الخلفية، ويمكنك مواصلة التصفح');
+  pubProgressStart([tempId].filter(Boolean));
+  showToast('⏳', 'جارٍ الرفع', 'ظهرت الملزمة في قسم الملازم (مجلد المادة) — جارٍ رفع الملف في الخلفية');
 
   try {
     if (pendingFile) {
@@ -4778,6 +5021,7 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
       showToast('✅','نشر','تم نشر الملزمة بنجاح');
     }
 
+    // نشر الملزمة في قسم الملازم فقط (لا منشور في جدول التحضير)
     pubProgressDone(); // العدّاد يبلغ 100
     setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
   } catch(e) {
@@ -4789,6 +5033,8 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
       uploadingPct.delete(tempId);
       const i = uploadingMaterials.findIndex(m => m.id === tempId);
       if (i > -1) uploadingMaterials.splice(i, 1);
+      const j = allMaterials.findIndex(m => m.id === tempId);
+      if (j > -1) allMaterials.splice(j, 1); // إزالة البطاقة المؤقتة من الشبكة
       renderSubjectGrid();
       if (materialsCurrentSubject === subject) renderMaterialsGrid();
     }
@@ -4799,7 +5045,12 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
 
 // حذف ملزمة
 async function deleteMaterial(id) {
-  if (!confirm('هل تريد حذف هذه الملزمة؟')) return;
+  const okDel = await confirmDialog({
+    icon: '📚', title: 'حذف الملزمة',
+    message: 'سيُحذف ملف الملزمة وبياناتها نهائياً من قسم الملازم. لا يمكن التراجع عن هذا الإجراء.',
+    confirmText: 'حذف الملزمة'
+  });
+  if (!okDel) return;
   try {
     await deleteDoc(doc(db, 'materials', id));
     closeModal('material-detail-modal');
@@ -5480,6 +5731,64 @@ window.showToast = function(icon, title, desc, onclick) {
     toast.classList.add('removing');
     toast.addEventListener('animationend', () => toast.remove());
   }, 3500);
+};
+
+// ── واجهة التأكيد المخصصة (بديل confirm النظامي) ──
+// الاستخدام: const ok = await confirmDialog({ icon:'🗑️', title:'...', message:'...', confirmText:'حذف' });
+let _confirmResolver = null;
+window.confirmDialog = function(opts = {}) {
+  return new Promise(resolve => {
+    const dlg       = document.getElementById('confirm-dialog');
+    const card      = document.getElementById('confirm-card');
+    const okBtn     = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    const backdrop  = document.getElementById('confirm-backdrop');
+    if (!dlg || !card || !okBtn || !cancelBtn) { resolve(window.confirm(opts.message || 'هل أنت متأكد؟')); return; }
+
+    if (_confirmResolver) { try { _confirmResolver(false); } catch (e) {} } // أغلق أي تأكيد معلّق سابقاً
+
+    document.getElementById('confirm-icon').textContent = opts.icon || '⚠️';
+    document.getElementById('confirm-title').textContent = opts.title || 'تأكيد';
+    document.getElementById('confirm-msg').textContent   = opts.message || 'هل أنت متأكد؟';
+    okBtn.textContent     = opts.confirmText || 'تأكيد';
+    cancelBtn.textContent = opts.cancelText  || 'إلغاء';
+    const variant = opts.variant || (opts.danger === false ? 'accent' : 'danger');
+    card.className = 'confirm-card' + (variant === 'danger' ? '' : ' ' + variant);
+
+    const prevFocus = document.activeElement;
+    let settled = false;
+    const finish = (val) => {
+      if (settled) return;
+      settled = true;
+      if (_confirmResolver === finish) _confirmResolver = null;
+      document.removeEventListener('keydown', onKey);
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onNo);
+      backdrop.removeEventListener('click', onNo);
+      dlg.classList.add('closing');
+      setTimeout(() => {
+        if (_confirmResolver) return; // فُتح تأكيد جديد أثناء إغلاق هذا
+        dlg.classList.remove('open', 'closing');
+        dlg.setAttribute('aria-hidden', 'true');
+      }, 200);
+      if (prevFocus && prevFocus.focus) { try { prevFocus.focus({ preventScroll: true }); } catch (e) {} }
+      resolve(val);
+    };
+    const onOk  = () => finish(true);
+    const onNo  = () => finish(false);
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); finish(false); } };
+
+    _confirmResolver = finish;
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onNo);
+    backdrop.addEventListener('click', onNo);
+    document.addEventListener('keydown', onKey);
+
+    dlg.classList.remove('closing');
+    dlg.classList.add('open');
+    dlg.setAttribute('aria-hidden', 'false');
+    try { cancelBtn.focus({ preventScroll: true }); } catch (e) { cancelBtn.focus(); } // التركيز على «إلغاء» لتفادي الحذف بالخطأ
+  });
 };
 
 // ── MODAL HELPERS ──
@@ -6413,7 +6722,12 @@ window.cancelChatContext = function() {
 }
 
 window.deleteChatMessage = async function(id) {
-  if(!confirm('هل تريد حذف هذه الرسالة نهائياً؟')) return;
+  const okDel = await confirmDialog({
+    icon: '💬', title: 'حذف الرسالة',
+    message: 'ستُحذف هذه الرسالة نهائياً من محادثة التحضير.',
+    confirmText: 'حذف'
+  });
+  if (!okDel) return;
   if (!currentChatPostId) return;
   try {
      await deleteDoc(doc(db, 'enquiries', id));
