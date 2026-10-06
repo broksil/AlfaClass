@@ -339,6 +339,22 @@
     box-shadow: var(--shadow-card);
     animation: cardFade 0.35s ease both;
   }
+
+.report-new-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  background: #3b82f6;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  animation: pulse-gentle 2.5s ease-in-out infinite;
+}
+@keyframes pulse-gentle {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+}
   .report-card.report-urgent { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.06); }
   .report-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .report-type {
@@ -377,7 +393,6 @@
     border: 1px solid rgba(239,68,68,0.3);
   }
   .report-del:active { transform: scale(0.94); }
-  .reports-owner-hint { font-size: 11.5px; color: var(--text-muted); margin: 8px 0 12px; display: flex; align-items: center; gap: 6px; }
 
   /* ── مرفقات البلاغ: شرائح + لوحات ── */
   .att-chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -1934,7 +1949,6 @@
       </div>
       <div id="reports-owner-zone" style="display:none">
         <button class="btn-publish" onclick="openReportModal()">📝 نشر بلاغ جديد</button>
-        <div class="reports-owner-hint">👑 أنت مالك الموقع — البلاغات التي تنشرها تظهر لجميع المستخدمين فوراً.</div>
       </div>
       <div class="reports-empty" id="reports-empty">
         <div class="reports-empty-ico">📣</div>
@@ -3385,6 +3399,21 @@ function renderDays(anim = 'fade') {
     fragment.appendChild(card);
   });
   list.appendChild(fragment);
+
+  // ── فتح بطاقة «باجر» (اليوم التالي) تلقائياً عند دخول الجدول (بدون ضغط الطالب) ──
+  if (weekOffset === 0) {
+    const todayStr = formatDate(new Date());
+    // أول يوم بعد اليوم (يتجاوز الجمعة المخفية تلقائياً لأنها غير موجودة بالقائمة)
+    const tomorrow = days.find(d => d.id > todayStr);
+    if (tomorrow) {
+      const detail = document.getElementById(`detail-${tomorrow.id}`);
+      if (detail && !detail.classList.contains('open')) {
+        detail.classList.add('open');
+        openDayId = tomorrow.id;
+        incrementView(tomorrow.id); // المحتوى معروض فعلياً → تُحتسب المشاهدة
+      }
+    }
+  }
 
   // Subscribe to posts for visible days
   subscribeToData(days.map(d=>d.id));
@@ -4954,14 +4983,21 @@ function renderNotifPanel() {
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
         <div style="flex:1; line-height:1.4;">
           <div style="font-weight:700; color:var(--text-primary); font-size:13px;">${n.text}</div>
-          <div style="color:var(--text-muted); font-size:10px; margin-top:4px;">مجدول لـ: ${targetDateStr}</div>
+          <div style="color:var(--text-muted); font-size:10px; margin-top:4px;">${n.dayId ? `مجدول لـ: ${targetDateStr}` : 'عام'}</div>
         </div>
         <div style="color:var(--text-secondary); font-size:10px; white-space:nowrap; background:rgba(255,255,255,0.06); padding:3px 6px; border-radius:6px; border:1px solid var(--border);">
           ${pubDateStr}
         </div>
       </div>
     `;
-    item.onclick = () => { jumpToDay(n.dayId); closeNotifPanel(); };
+    item.onclick = () => {
+      closeNotifPanel();
+      if (n.dayId) {
+        jumpToDay(n.dayId);
+      } else if (n.id && n.id.startsWith('report_')) {
+        window.setActiveNav('reports');
+      }
+    };
     list.appendChild(item);
   });
 }
@@ -6090,6 +6126,21 @@ document.addEventListener('click', ev => {
   }
 });
 accEl('acc-avatar-file').addEventListener('change', e => accUploadAvatar(e.target.files[0]));
+
+// ── إشعار "جديد" للبلاغات (يختفي عند قراءة البلاغ من قبل المستخدم) ──
+const REPORTS_READ_KEY = 'alfa_reports_reads';
+let reportsRead = new Set(JSON.parse(localStorage.getItem(REPORTS_READ_KEY) || '[]'));
+
+function isReportRead(reportId) {
+  return reportsRead.has(reportId);
+}
+
+function markReportAsRead(reportId) {
+  if (!reportId) return;
+  reportsRead.add(reportId);
+  try { localStorage.setItem(REPORTS_READ_KEY, JSON.stringify([...reportsRead])); } catch (e) {}
+  renderReports();
+}
 accEl('acc-lang-switch').addEventListener('change', e => accApplyLang(e.target.checked ? 'en' : 'ar'));
 accEl('acc-u-input').addEventListener('input', accUpdateRules);
 accEl('acc-np-pass').addEventListener('input', accUpdatePassRules);
@@ -6113,6 +6164,38 @@ function subscribeReports() {
   unsubReports = onSnapshot(q, (snap) => {
     reportsData = [];
     snap.forEach(d => reportsData.push({ ...d.data(), id: d.id }));
+    // إشعارات للبلاغات الجديدة (إشعار عام لجميع المستخدمين)
+    snap.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        const title = data.title || 'بلاغ جديد';
+        const body = data.body ? (data.body.length > 60 ? data.body.slice(0, 60) + '…' : data.body) : 'تم نشر بلاغ جديد';
+        showToast('📣', title, body);
+        notifCount = (notifCount || 0) + 1;
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+          badge.textContent = notifCount > 9 ? '9+' : notifCount;
+          badge.classList.add('show');
+        }
+        playNotifSound();
+        if (!notifications.find(n => n.id === ('report_' + change.doc.id))) {
+          notifications.push({
+            id: 'report_' + change.doc.id,
+            text: `📣 ${title}`,
+            dayId: null,
+            time: change.doc.data().createdAt?.toMillis ? change.doc.data().createdAt.toMillis() : Date.now()
+          });
+        }
+        // تحديث القائمة عند فتح اللوحة
+        const panel = document.getElementById('notif-panel');
+        if (panel && panel.classList.contains('open')) {
+          renderNotifPanel();
+        }
+      } else if (change.type === 'removed') {
+        // إزالة الإشعار عند حذف البلاغ
+        notifications = notifications.filter(n => n.id !== ('report_' + change.doc.id));
+      }
+    });
     // ترتيب من الأحدث للأقدم محلياً (بدون الحاجة لفهرس Firestore)
     reportsData.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
     renderReports();
@@ -6153,10 +6236,11 @@ function renderReports() {
     const type = r.type || 'أخرى';
     const urgent = type === 'تنبيه عاجل' ? ' report-urgent' : '';
     return `
-      <div class="report-card${urgent}">
+      <div class="report-card${urgent}" data-report-id="${sanitizeText(r.id)}">
         <div class="report-head">
           <span class="report-type" data-type="${sanitizeText(type)}">${sanitizeText(type)}</span>
           <span class="report-date">${dateStr} — ${timeStr}</span>
+          ${!isReportRead(r.id) ? '<span class="report-new-badge">جديد</span>' : ''}
         </div>
         <div class="report-title">${sanitizeText(r.title || '')}</div>
         ${r.body ? `<div class="report-body">${sanitizeText(r.body)}</div>` : ''}
@@ -6172,6 +6256,17 @@ function renderReports() {
     list.querySelectorAll('.poll-bar .fill[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
   });
   enhanceAvatars(list); // صور الملفات الشخصية (تتجدد عند تغييرها في الملف الشخصي)
+}
+// ── الإشارة على اختيار بطاقة البلاغ (إشارة للقراءة) ──
+if (document.getElementById('reports-list')) {
+  document.getElementById('reports-list').addEventListener('click', (e) => {
+    const card = e.target.closest('.report-card');
+    if (!card) return;
+    const delBtn = e.target.closest('.report-del');
+    if (delBtn) return; // لا نُشير إلى القراءة عند الضغط على حذف
+    const id = card.dataset.reportId;
+    if (id) markReportAsRead(id);
+  });
 }
 
 // ── شرائح المرفقات (فتح/غلق اللوحات) ──
