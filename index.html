@@ -192,16 +192,20 @@
   .btn-notif:active { transform: scale(0.90); }
 
   .notif-badge {
-    position: absolute; top: -4px; right: -4px;
-    width: 18px; height: 18px;
-    background: #ef4444;
-    border-radius: 50%;
-    font-size: 10px; font-weight: 700;
+    position: absolute; top: -5px; right: -5px;
+    min-width: 19px; height: 19px; padding: 0 5px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 999px;
+    font-size: 10px; font-weight: 800; color: #fff;
     align-items: center; justify-content: center;
     border: 2px solid var(--bg-primary);
+    box-shadow: 0 3px 10px rgba(239,68,68,0.55);
     display: none;
+    transition: transform 0.2s ease;
   }
-  .notif-badge.show { display: flex; }
+  .notif-badge.show { display: flex; animation: badgePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .btn-notif:active .notif-badge { transform: scale(0.85); }
+  @keyframes badgePop { 0% { transform: scale(0.3); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
 
   /* زر تسجيل الدخول */
   .btn-login {
@@ -340,20 +344,53 @@
     animation: cardFade 0.35s ease both;
   }
 
-.report-new-badge {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 800;
-  color: #fff;
-  background: #3b82f6;
-  padding: 2px 7px;
-  border-radius: 999px;
-  margin-left: 6px;
+/* ── علامة «جديد» الموحدة (البلاغات + الملازم) ── */
+.new-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  padding: 2px 9px; border-radius: 999px;
+  margin-left: 6px; line-height: 1.5;
+  box-shadow: 0 2px 10px rgba(59,130,246,0.45);
+  animation: pulse-gentle 2.5s ease-in-out infinite, badgeIn 0.35s ease both;
+  transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease, max-width 0.4s ease, padding 0.4s ease;
+  max-width: 160px; overflow: hidden; white-space: nowrap; vertical-align: middle;
+}
+.new-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #eafaff; box-shadow: 0 0 6px rgba(255,255,255,0.9);
+  animation: blinkDot 1.4s ease-in-out infinite; flex-shrink: 0;
+}
+/* تأثير الاختفاء الناعم (Fade-out) عند تعليم العنصر كمقروء */
+.new-badge.fade-out {
+  animation: badgeOut 0.45s ease forwards;
+  pointer-events: none;
+}
+/* بادج «جديد» فوق بطاقة الملزمة (مطلق أعلى الغلاف) */
+.material-card .new-badge {
+  position: absolute; top: 8px; left: 8px; z-index: 3; margin: 0;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  box-shadow: 0 2px 10px rgba(249,115,22,0.5);
+}
+.material-card .new-badge::before { background: #fff7e6; }
+.report-new-badge { /* توافق مع الاسم القديم */
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  padding: 2px 9px; border-radius: 999px; margin-left: 6px;
+  box-shadow: 0 2px 10px rgba(59,130,246,0.45);
   animation: pulse-gentle 2.5s ease-in-out infinite;
 }
+.report-new-badge.fade-out { animation: badgeOut 0.45s ease forwards; }
 @keyframes pulse-gentle {
   0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.45); }
   50% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+}
+@keyframes blinkDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes badgeIn { from { opacity: 0; transform: translateY(-6px) scale(0.7); } to { opacity: 1; transform: none; } }
+@keyframes badgeOut {
+  0% { opacity: 1; transform: none; max-width: 160px; }
+  100% { opacity: 0; transform: translateX(12px) scale(0.6); filter: blur(3px); max-width: 0; padding-left: 0; padding-right: 0; margin-left: 0; }
 }
   .report-card.report-urgent { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.06); }
   .report-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -1288,14 +1325,15 @@
   /* ── NOTIFICATION PANEL ── */
   #notif-panel {
     position: fixed; top: calc(60px + var(--safe-top)); left: 16px;
-    width: 300px; z-index: 400;
+    width: min(330px, calc(100vw - 32px)); z-index: 400;
     background: var(--bg-glass);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
     border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 16px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    border-radius: 20px;
+    padding: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.28); /* Soft shadow عصري */
     display: none;
-    max-height: 60dvh;
+    max-height: 65dvh;
     overflow-y: auto;
     animation: fadeScale 0.25s ease both;
   }
@@ -1304,19 +1342,88 @@
     from { opacity: 0; transform: scale(0.95) translateY(-8px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
-  .notif-panel-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .notif-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .notif-panel-title { font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+  .notif-mark-all {
+    border: 1px solid var(--border); background: rgba(255,255,255,0.06);
+    color: var(--text-secondary); font-family: var(--font);
+    font-size: 10.5px; font-weight: 700; padding: 5px 10px;
+    border-radius: 999px; cursor: pointer; transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .notif-mark-all:hover { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.4); }
+  .notif-mark-all:active { transform: scale(0.95); }
   .notif-item {
+    position: relative;
     padding: 10px 12px;
     background: rgba(255,255,255,0.04);
-    border-radius: 12px;
+    border-radius: 14px;
     margin-bottom: 8px;
     cursor: pointer;
-    transition: background 0.2s;
     font-size: 12px; line-height: 1.6;
     border: 1px solid var(--border);
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    animation: cardFade 0.3s ease both;
   }
-  .notif-item:hover { background: rgba(255,255,255,0.07); }
+  .notif-item:hover { background: rgba(255,255,255,0.07); transform: translateY(-1px); }
+  /* عنصر غير مقروء — خلفية مميّزة + شريط جانبي أزرق + نقطة حمراء */
+  .notif-item.unread {
+    background: linear-gradient(135deg, rgba(59,130,246,0.16), rgba(59,130,246,0.05));
+    border-color: rgba(59,130,246,0.4);
+    box-shadow: inset 3px 0 0 #3b82f6, 0 2px 12px rgba(59,130,246,0.15);
+  }
+  .notif-item.unread .notif-title { color: var(--text-primary); }
+  .unread-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.8);
+    animation: blinkDot 1.4s ease-in-out infinite;
+  }
+  .notif-item.active {
+    background: rgba(168, 85, 247, 0.14);
+    border-color: rgba(168, 85, 247, 0.45);
+    box-shadow: inset 3px 0 0 #a855f7;
+  }
+  .notif-title { font-weight: 700; color: var(--text-primary); font-size: 13px; }
+  .notif-type {
+    font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px;
+    background: rgba(168, 85, 247, 0.15); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.25);
+  }
+  .notif-time {
+    color: var(--text-secondary); font-size: 10px; white-space: nowrap;
+    background: rgba(255, 255, 255, 0.06); padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border);
+  }
+  .notif-item.active .notif-type {
+    background: #a855f7 !important;
+    color: #ffffff !important;
+    border-color: #a855f7 !important;
+  }
+  .notif-item.active .notif-time {
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
+    border-color: rgba(168, 85, 247, 0.25);
+  }
   .notif-empty { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px; }
+
+  /* ── تأثير تحديد الإشعار المستهدف عند النقر عليه في القائمة ── */
+  .notif-focus-target {
+    position: relative; z-index: 5;
+    animation: notifFocusGlow 1.5s ease-in-out 3; /* 3 نبضات ≈ زمن حذف الشارة */
+    border-radius: 18px;
+  }
+  @keyframes notifFocusGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+    50% { box-shadow: 0 0 0 7px rgba(124,58,237,0.35), 0 0 34px rgba(168,85,247,0.65); }
+  }
+  /* شارة «هذا هو الإشعار» فوق بلاغ محدّد (تأتي من bottom فتبقى مرئية فوق البطاقة) */
+  .notif-focus-label {
+    position: absolute; top: -13px; right: 14px;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff; font-size: 11px; font-weight: 800;
+    padding: 4px 12px; border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(124,58,237,0.55);
+    animation: badgeIn 0.35s ease both;
+    z-index: 6; pointer-events: none; white-space: nowrap;
+  }
 
   /* Loader spinner */
   .spinner {
@@ -1917,7 +2024,10 @@
 
   <!-- Notification panel -->
   <div id="notif-panel">
-    <div class="notif-panel-title">🔔 الإشعارات</div>
+    <div class="notif-panel-head">
+      <div class="notif-panel-title">🔔 الإشعارات <span class="unread-dot" id="notif-head-dot" style="display:none"></span></div>
+      <button class="notif-mark-all" id="notif-mark-all" type="button">✓ تعليم الكل كمقروء</button>
+    </div>
     <div id="notif-list"><div class="notif-empty">لا توجد إشعارات</div></div>
   </div>
 
@@ -2954,6 +3064,7 @@ let openDayId = null;
 let pendingFiles = { images: [], 'enq-images': [] };
 let notifications = [];
 let notifCount = 0;
+let selectedNotifId = null;
 let unsubPosts = null;
 let isPostsSubscribed = false;
 let unsubViewsList = [];
@@ -3079,6 +3190,7 @@ function clearSession() {
 
 function updateHeaderUI(skipRender = false) {
   setTimeout(() => window.__accOnAuth && window.__accOnAuth(), 0); // تحديث صفحة الحساب
+  try { initReadTracking(); } catch (e) { console.warn('initReadTracking:', e); } // مزامنة تتبّع القراءة مع تغيّر الجلسة (UID)
   const loginBtn = document.getElementById('btn-open-login');
   const userInfoEl = document.getElementById('user-info');
   const userNameEl = document.getElementById('user-name');
@@ -3467,10 +3579,6 @@ function subscribeToData(dayIds) {
             
             const age = Date.now() - (data.createdAt?.toMillis?.() || 0);
             if (age < 5 * 60 * 1000) {
-              notifCount++;
-              const badge = document.getElementById('notif-badge');
-              badge.textContent = notifCount > 9 ? '9+' : notifCount;
-              badge.classList.add('show');
               showToastNotif({ id: postId, text: `تم نشر ${data.type} - ${data.subject}`, dayId: data.dayId });
               playNotifSound();
             }
@@ -3481,6 +3589,7 @@ function subscribeToData(dayIds) {
             notifications.push({
               id: postId,
               text: `تم نشر ${data.type} - ${data.subject}`,
+              type: data.type || 'منشور',
               dayId: data.dayId,
               time: data.createdAt?.toMillis?.() || Date.now()
             });
@@ -3498,6 +3607,7 @@ function subscribeToData(dayIds) {
       // ترتيب الإشعارات من الأحدث للأقدم وتحديث الواجهة
       notifications.sort((a, b) => b.time - a.time);
       renderNotifPanel();
+      updateUnreadBadge(); // عدّاد الجرس = غير المقروء فعلياً (بلاغات + منشورات + ملازم)
 
       // ترتيب البيانات محلياً لتجنب الحاجة لفهرس (Index) معقد في فايربيس
       const allFetchedPosts = [];
@@ -3582,6 +3692,7 @@ function renderPostsForDay(dayId, posts) {
     const item = document.createElement('div');
     item.className = 'post-item';
     item.dataset.type = post.type || '';
+    if (!post.isOffline && post.id) item.dataset.postId = post.id; // لتتبّع القراءة عند النقر
 
     const mediaHTML = buildMediaHTML(post);
     const noteHTML = post.note ? `<div class="post-note">${formatNote(post.note)}</div>` : '';
@@ -4938,6 +5049,267 @@ function playChatSound() {
   chatSound.play().catch(e => console.warn('منع المتصفح تشغيل الصوت تلقائياً بسبب سياسة التفاعل'));
 }
 
+// ══════════════════ نظام تتبّع القراءة (Firestore) ══════════════════
+// الهيكلة المختارة لتقليل تكلفة القراءة (Reads):
+//   • مستند واحد لكل مستخدم: user_reads/{uid}
+//       { reports: { <reportId>: <timestamp> }, materials: {...}, posts: {...} }
+//   • تحميل كل حالة القراءة = قراءة واحدة فقط (onSnapshot واحد على المستند)
+//     بدلاً من مجموعة فرعية (قراءة لكل مستند) أو viewed_by داخل المنشور
+//     (يضخّم حجم المستند ويسبب تضارب الكتابة مع كل قارئ جديد).
+//   • تعليم القراءة = كتابة واحدة فقط (setDoc + merge + حقل ديناميكي)، بدون قراءة مسبقة.
+//   • الزائر بلا UID = تخزين محلي فقط (localStorage) بدون أي تكلفة فايربيس.
+const READS_TYPES = ['reports', 'materials', 'posts'];
+let readsState = { reports: {}, materials: {}, posts: {} }; // id -> timestamp
+let _readsUnsub = null;
+let _readsKey = null; // المفتاح الحالي (uid أو guest) لمنع إعادة الاشتراك
+
+function currentReadsUid() {
+  if (currentUser && (currentUser.userId || currentUser.code)) return String(currentUser.userId || currentUser.code);
+  return null; // زائر
+}
+function _readsCacheKey() { return 'alfa_reads_' + (currentReadsUid() || 'guest'); }
+function loadReadsCache() {
+  try {
+    const raw = localStorage.getItem(_readsCacheKey());
+    readsState = raw ? JSON.parse(raw) : { reports: {}, materials: {}, posts: {} };
+  } catch (e) { readsState = { reports: {}, materials: {}, posts: {} }; }
+  READS_TYPES.forEach(t => { if (!readsState[t] || typeof readsState[t] !== 'object') readsState[t] = {}; });
+}
+function saveReadsCache() { try { localStorage.setItem(_readsCacheKey(), JSON.stringify(readsState)); } catch (e) {} }
+function isItemRead(type, id) { return !!(id != null && readsState[type] && readsState[type][id]); }
+
+// تحديد هدف القراءة من معرّف الإشعار (report_x | material_x | معرّف منشور مباشر)
+function notifReadTarget(n) {
+  const nid = String((n && n.id) || '');
+  if (nid.indexOf('report_') === 0)   return ['reports',  nid.slice(7)];
+  if (nid.indexOf('material_') === 0) return ['materials', nid.slice(9)];
+  return ['posts', nid];
+}
+function notifIdFor(type, id) {
+  return type === 'reports' ? ('report_' + id) : type === 'materials' ? ('material_' + id) : String(id);
+}
+function countUnreadNotifications() {
+  let n = 0;
+  notifications.forEach(x => { const t = notifReadTarget(x); if (t[1] && !isItemRead(t[0], t[1])) n++; });
+  return n;
+}
+function updateUnreadBadge(msg) {
+  const n = countUnreadNotifications();
+  const badge = document.getElementById('notif-badge');
+  if (badge) {
+    badge.textContent = n > 9 ? '9+' : String(n);
+    badge.classList.toggle('show', n > 0);
+  }
+  const headDot = document.getElementById('notif-head-dot');
+  if (headDot) headDot.style.display = n > 0 ? '' : 'none';
+  // عرض إشعار منبثق عند ظهور شعار جديد
+  if (msg && n > 0 && badge && badge.classList.contains('show')) {
+    const icons = { ملزمة: '📚', منشور: '📝', بلاغ: '📌', مراجعة: '📋' };
+    const icon = icons[msg] || '🔔';
+    showToast(icon, 'شعار جديد', msg);
+  }
+}
+function fadeOutBadge(el) {
+  if (!el) return;
+  el.classList.add('fade-out');
+  setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 480);
+}
+// إزالة تمييز «غير مقروء» من عنصر اللوحة المقابل بدون إعادة رسم القائمة (سلاسة الحركة)
+function _syncNotifItemRead(type, id) {
+  const el = document.querySelector('#notif-list .notif-item[data-notif-id="' + notifIdFor(type, id) + '"]');
+  if (el) { el.classList.remove('unread'); const d = el.querySelector('.unread-dot'); if (d) d.remove(); }
+}
+function renderReadDependentUI() {
+  try { if (typeof reportsData !== 'undefined' && reportsData && reportsData.length) renderReports(); } catch (e) {}
+  try { if (typeof materialsCurrentSubject !== 'undefined' && materialsCurrentSubject) renderMaterialsGrid(); } catch (e) {}
+  try { renderNotifPanel(); } catch (e) {}
+}
+
+// ترحيل القراءات القديمة (localStorage العام) إلى هوية المستخدم الحالية
+// - دمج محلي دائم لكل هوية (حتى لا تعود البلاغات القديمة «جديدة»)
+// - كتابة إلى فايربيس مرة واحدة فقط لكل جهاز عند توفر UID
+function migrateLegacyReads() {
+  try {
+    const legacy = JSON.parse(localStorage.getItem('alfa_reports_reads') || '[]');
+    if (Array.isArray(legacy) && legacy.length) {
+      let added = false;
+      legacy.forEach(id => { if (id && !readsState.reports[id]) { readsState.reports[id] = Date.now(); added = true; } });
+      if (added) saveReadsCache();
+      const uid = currentReadsUid();
+      if (uid && localStorage.getItem('alfa_reads_legacy_done') !== '1') {
+        setDoc(doc(db, 'user_reads', uid), { reports: readsState.reports }, { merge: true })
+          .then(() => { try { localStorage.setItem('alfa_reads_legacy_done', '1'); } catch (e) {} })
+          .catch(err => console.warn('legacy reads:', err));
+      }
+    } else {
+      try { localStorage.setItem('alfa_reads_legacy_done', '1'); } catch (e) {}
+    }
+  } catch (e) {}
+}
+// تهيئة/تبديل متتبع القراءة — تُستدعى مع كل تغيير في الجلسة (دخول/خروج/زائر)
+function initReadTracking() {
+  const uid = currentReadsUid();
+  const key = uid || 'guest';
+  if (key === _readsKey) return; // نفس الهوية — لا إعادة اشتراك
+  _readsKey = key;
+  if (_readsUnsub) { try { _readsUnsub(); } catch (e) {} _readsUnsub = null; }
+  loadReadsCache();
+  migrateLegacyReads();
+  updateUnreadBadge();
+  renderReadDependentUI();
+  if (!uid) return; // زائر: محلي فقط (صفر قراءات فايربيس)
+  // مزامنة حية: قراءة واحدة فقط لكل تغيير في مستند user_reads/{uid}
+  _readsUnsub = onSnapshot(doc(db, 'user_reads', uid), (snap) => {
+    let changed = false;
+    if (snap.exists()) {
+      const d = snap.data();
+      READS_TYPES.forEach(t => {
+        if (d[t] && typeof d[t] === 'object') {
+          Object.keys(d[t]).forEach(k => {
+            if (!readsState[t][k]) changed = true; // إضافة جديدة من جهاز آخر
+            readsState[t][k] = d[t][k];
+          });
+        }
+      });
+    }
+    saveReadsCache();
+    updateUnreadBadge();
+    // إعادة الرسم فقط عند وصول قراءات جديدة (تجنّب مقاطعة حركة Fade-out الجارية)
+    if (changed) renderReadDependentUI();
+  }, (err) => { console.warn('user_reads snapshot:', err); });
+}
+// تعليم عنصر كمقروء: كتابة واحدة إلى فايربيس + Fade-out ناعم للشارة دون تحديث الصفحة
+function markItemRead(type, id, badgeEl) {
+  if (!id || !readsState[type]) return;
+  const badge = badgeEl || document.querySelector('.new-badge[data-badge-key="' + type + ':' + id + '"]');
+  if (!isItemRead(type, id)) {
+    readsState[type][id] = Date.now();
+    saveReadsCache();
+    updateUnreadBadge();
+    const uid = currentReadsUid();
+    if (uid) {
+      const payload = {}; payload[type] = {}; payload[type][id] = readsState[type][id];
+      setDoc(doc(db, 'user_reads', uid), payload, { merge: true }).catch(err => console.warn('تعليم القراءة:', err));
+    }
+  }
+  _syncNotifItemRead(type, id);
+  if (badge) fadeOutBadge(badge);
+}
+// تعليم كل إشعارات اللوحة كمقروءة (زر «تعليم الكل كمقروء»)
+async function markAllNotificationsRead() {
+  const now = Date.now();
+  const changed = [];
+  notifications.forEach(n => { const t = notifReadTarget(n); if (t[1] && !isItemRead(t[0], t[1])) { readsState[t[0]][t[1]] = now; changed.push(t); } });
+  if (!changed.length) { showToast('✓', 'الإشعارات', 'لا توجد عناصر غير مقروءة'); return; }
+  saveReadsCache();
+  const uid = currentReadsUid();
+  if (uid) {
+    const payload = {};
+    changed.forEach(t => { if (!payload[t[0]]) payload[t[0]] = {}; payload[t[0]][t[1]] = now; });
+    try { await setDoc(doc(db, 'user_reads', uid), payload, { merge: true }); } catch (err) { console.warn('تعليم الكل:', err); }
+  }
+  document.querySelectorAll('#notif-list .notif-item.unread').forEach(el => { el.classList.remove('unread'); const d = el.querySelector('.unread-dot'); if (d) d.remove(); });
+  document.querySelectorAll('.new-badge[data-badge-key]').forEach(b => {
+    const p = b.getAttribute('data-badge-key').split(':');
+    if (isItemRead(p[0], p[1])) fadeOutBadge(b);
+  });
+  updateUnreadBadge();
+  showToast('✓', 'الإشعارات', 'تم تعليم الكل كمقروء');
+}
+
+// ── الانتقال إلى مكان الإشعار وفتحه بشكل مميّز عند النقر عليه ──
+function waitForEl(getter, tries = 40, interval = 250) {
+  return new Promise(resolve => {
+    let t = 0;
+    const tick = () => {
+      let el = null;
+      try { el = getter(); } catch (e) {}
+      if (el) return resolve(el);
+      if (++t >= tries) return resolve(null);
+      setTimeout(tick, interval);
+    };
+    tick();
+  });
+}
+// تأثير توهج نابض على العنصر المستهدف (+ شارة «هذا هو الإشعار» للبلاغات)
+function applyNotifFocus(el, withLabel) {
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (el._focusTimer) clearTimeout(el._focusTimer);
+  el.classList.remove('notif-focus-target');
+  void el.offsetWidth; // إعادة تشغيل الأنيميشن عند تكرار النقر
+  el.classList.add('notif-focus-target');
+  let tag = el.querySelector('.notif-focus-label');
+  if (withLabel && !tag) {
+    tag = document.createElement('span');
+    tag.className = 'notif-focus-label';
+    tag.textContent = '🔔 هذا هو الإشعار';
+    el.appendChild(tag);
+  } else if (!withLabel && tag) {
+    tag.remove();
+    tag = null;
+  }
+  el._focusTimer = setTimeout(() => {
+    el.classList.remove('notif-focus-target');
+    if (tag && tag.parentNode) tag.remove();
+  }, 4600);
+  // التعرض للعالم (اختبار البنية + روابط متفرقة)
+  window.applyNotifFocus = applyNotifFocus;
+
+  // إشعار صوتي للعنصر المستهدف للإشعار (إشارة خفيفة للمنصة)
+  if (el instanceof HTMLElement) {
+    el.setAttribute('data-notif-focus', 'true');
+    // التركيز عند النقر يثبت العنصر كهدف مُبرز (يدعم لوحة المفاتيح والأدوات)
+    if (el.tabIndex !== -1 || el.hasAttribute('tabindex')) {
+      el.focus({ preventScroll: true });
+    }
+  }
+}
+async function openNotificationTarget(n) {
+  if (!n) return;
+  const target = notifReadTarget(n);
+  const type = target[0], id = target[1];
+  if (!id) return;
+  closeNotifPanel();
+  if (type === 'reports') {
+    // البلاغ: الانتقال لقسم البلاغات ثم تحديد البطاقة بتأثير «هذا هو الإشعار»
+    setActiveNav('reports');
+    const card = await waitForEl(() => document.querySelector(`.report-card[data-report-id="${id}"]`));
+    if (card) applyNotifFocus(card, true);
+    else showToast('⚠️', 'البلاغات', 'تعذّر العثور على البلاغ المحدّد');
+  } else if (type === 'materials') {
+    // الملزمة: الانتقال لقسم الملازم → فتح مجلد المادة → تحديد البطاقة → فتح نافذة التفاصيل
+    setActiveNav('schedule');
+    const mat = await waitForEl(() => (typeof allMaterials !== 'undefined' ? allMaterials : []).find(m => String(m.id) === String(id)));
+    if (mat) {
+      openSubjectDetail(mat.subject);
+      // الانتقال إلى الصفحة التي تحتوي على هذه الملزمة (لأن الشبكة مُرقّمة)
+      try {
+        const idx = allMaterials.filter(m => m.subject === mat.subject).findIndex(m => String(m.id) === String(id));
+        if (idx >= 0) {
+          const page = Math.floor(idx / MATERIALS_PER_PAGE) + 1;
+          if (page !== materialsPage) { materialsPage = page; renderMaterialsGrid(); }
+        }
+      } catch (e) {}
+      const card = await waitForEl(() => document.querySelector(`.material-card[data-mat-id="${id}"]`));
+      if (card) applyNotifFocus(card, false);
+      // الفتح بشكل مميّز بعد لمحبزة من تحديد مكانها
+      setTimeout(() => openMaterialDetail(mat), card ? 950 : 150);
+    } else {
+      showToast('⚠️', 'الملازم', 'تعذّر العثور على الملزمة المحدّدة');
+    }
+  } else {
+    // منشور الجدول: الانتقال لليوم وفتحه ثم تحديد المنشور
+    setActiveNav('home');
+    if (n.dayId) jumpToDay(n.dayId);
+    const item = await waitForEl(() => document.querySelector(`.post-item[data-post-id="${id}"]`));
+    if (item) applyNotifFocus(item, false);
+    else showToast('⚠️', 'الجدول', 'تعذّر العثور على المنشور المحدّد');
+  }
+  // التعرض للعالم (تسجيل الدخول الحالي للعناصر + اختبار البنية)
+  window.openNotificationTarget = openNotificationTarget;
+}
+
 // ── NOTIFICATIONS ──
 function showToastNotif(n) {
   const msg = `${n.text} في ${formatDayName(n.dayId)}`;
@@ -4954,6 +5326,7 @@ function formatDayName(dayId) {
 
 function renderNotifPanel() {
   const list = document.getElementById('notif-list');
+  if (!list) return;
   if (notifications.length === 0) {
     list.innerHTML = '<div class="notif-empty">لا توجد إشعارات</div>';
     return;
@@ -4961,15 +5334,17 @@ function renderNotifPanel() {
   list.innerHTML = '';
   
   const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-
-  notifications.forEach(n => {
+  const sorted = notifications.slice().sort((a, b) => (b.time || 0) - (a.time || 0));
+  
+  sorted.forEach(n => {
     const item = document.createElement('div');
-    item.className = 'notif-item';
-    // وقت وتاريخ النشر (اليوم والشهر)
+    const target = notifReadTarget(n);
+    const unread = !!(target[1] && !isItemRead(target[0], target[1]));
+    item.className = 'notif-item' + (unread ? ' unread' : '') + (n.id === selectedNotifId ? ' active' : '');
+    item.setAttribute('data-notif-id', n.id);
     const pubDate = new Date(n.time);
     const pubDateStr = `${pubDate.getDate()} ${monthNames[pubDate.getMonth()]}`;
     
-    // يوم وتاريخ الجدول المستهدف
     let targetDateStr = n.dayId;
     if (n.dayId && n.dayId.includes('-')) {
       const d = new Date(n.dayId);
@@ -4978,30 +5353,44 @@ function renderNotifPanel() {
         ? `${d.getDate()} ${monthNames[d.getMonth()]}` 
         : `${dayName} (${d.getDate()} ${monthNames[d.getMonth()]})`;
     }
-
+    
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('role', 'listitem');
+    const titleText = sanitizeText(n.text || 'إشعار');
+    const typeText = n.type ? `، نوع: ${sanitizeText(n.type)}` : '';
+    const timeText = n.dayId ? `، مجدول لـ ${sanitizeText(n.dayId)}` : '';
+    item.setAttribute('aria-label', `${titleText}${typeText}${timeText}، غير مقروء`);
+    
     item.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
         <div style="flex:1; line-height:1.4;">
-          <div style="font-weight:700; color:var(--text-primary); font-size:13px;">${n.text}</div>
-          <div style="color:var(--text-muted); font-size:10px; margin-top:4px;">${n.dayId ? `مجدول لـ: ${targetDateStr}` : 'عام'}</div>
+          <div class="notif-title">${n.text}</div>
+          <div style="color:var(--text-muted); font-size:10px; margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span class="notif-type">${n.type || 'منشور'}</span>
+            ${n.dayId ? `مجدول لـ: ${targetDateStr}` : 'عام'}
+          </div>
         </div>
-        <div style="color:var(--text-secondary); font-size:10px; white-space:nowrap; background:rgba(255,255,255,0.06); padding:3px 6px; border-radius:6px; border:1px solid var(--border);">
-          ${pubDateStr}
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          ${unread ? '<span class="unread-dot" title="غير مقروء"></span>' : ''}
+          <div class="notif-time">${pubDateStr}</div>
         </div>
       </div>
     `;
-    item.onclick = () => {
+    item.onclick = (e) => {
+      selectedNotifId = n.id;
+      if (unread && target[1]) markItemRead(target[0], target[1]);
+      openNotificationTarget(n);
       closeNotifPanel();
-      if (n.dayId) {
-        jumpToDay(n.dayId);
-      } else if (n.id && n.id.startsWith('report_')) {
-        window.setActiveNav('reports');
-      }
     };
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        item.onclick();
+      }
+    });
     list.appendChild(item);
   });
 }
-
 function jumpToDay(dayId) {
   if (window.location.hash !== '#view') history.pushState(null, null, '#view');
   let targetOffset = null;
@@ -5043,12 +5432,16 @@ window.jumpToDay = jumpToDay;
 document.getElementById('btn-notif').addEventListener('click', (e) => {
   e.stopPropagation();
   const panel = document.getElementById('notif-panel');
-  panel.classList.toggle('open');
-  if (panel.classList.contains('open')) {
-        if (window.location.hash !== '#view') history.pushState(null, null, '#view');
-    notifCount = 0;
-    document.getElementById('notif-badge').classList.remove('show');
-  }
+  panel.classList.add('open');
+  if (window.location.hash !== '#view') history.pushState(null, null, '#view');
+  panel.scrollTop = 0;
+  renderNotifPanel();  // عرض أحدث الإشعارات مع تمييز غير المقروء للـ UID الحالي
+  updateUnreadBadge(); // العدّاد يعكس غير المقروء فعلياً (لا يتصفّر عند الفتح)
+});
+// زر «تعليم الكل كمقروء» داخل لوحة الإشعارات
+document.getElementById('notif-mark-all').addEventListener('click', (e) => {
+  e.stopPropagation();
+  markAllNotificationsRead();
 });
 
 function closeNotifPanel() {
@@ -5129,8 +5522,37 @@ function subscribeMaterials() {
     const _sigs = new Set(allMaterials.map(m => m.clientSig).filter(Boolean));
     uploadingMaterials = uploadingMaterials.filter(m => !(m.clientSig && _sigs.has(m.clientSig)));
     uploadingMaterials.slice().reverse().forEach(m => allMaterials.unshift(m)); // أولاً لتكون ظاهرة في المقدمة
+
+    // إشعار بالملزمات الجديدة (< 5 دقائق) — يدخل قائمة الجرس ويُعدّ في العدّاد غير المقروء
+    let hasNewMaterial = false;
+    snap.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const d = change.doc.data();
+        const ms = d.createdAt?.toMillis ? d.createdAt.toMillis() : (d.createdAt instanceof Date ? d.createdAt.getTime() : Number(d.createdAt) || 0);
+        const age = Date.now() - ms;
+        if (ms && age < 5 * 60 * 1000 && age >= -60 * 1000) {
+          hasNewMaterial = true;
+          if (!notifications.find(n => n.id === ('material_' + change.doc.id))) {
+            notifications.push({
+              id: 'material_' + change.doc.id,
+              text: `📚 ${d.subject || ''} — ${d.name || 'ملزمة جديدة'}`,
+              type: 'ملزمة',
+              dayId: null,
+              time: ms
+            });
+            showToast('📚', 'ملزمة جديدة', `${d.subject || ''} — ${d.name || ''}`);
+            playNotifSound();
+          }
+        }
+      } else if (change.type === 'removed') {
+        notifications = notifications.filter(n => n.id !== ('material_' + change.doc.id));
+      }
+    });
+    if (hasNewMaterial) { notifications.sort((a, b) => (b.time || 0) - (a.time || 0)); renderNotifPanel(); updateUnreadBadge('ملزمة جديدة'); }
+
     renderSubjectGrid();
     if (materialsCurrentSubject) renderMaterialsGrid();
+    updateUnreadBadge(); // تحديث عدّاد غير المقروء بعد بناء الشبكات
   });
 }
 
@@ -5241,17 +5663,22 @@ function renderMaterialsGrid() {
 
       const card   = document.createElement('div');
       card.className = 'material-card';
+      card.dataset.matId = mat.id || ''; // لتحديد البطاقة عند الانتقال من الإشعارات
       card.innerHTML = `
         <div class="material-cover"${lazyCover ? ` data-cover-url="${mat.fileUrl}"` : ''}>
           ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : (isImg ? `<img src="${mat.fileUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}">` : (mat.previewUrl ? `<img src="${mat.previewUrl}" alt="${sanitizeText(mat.name)}">` : '📄'))}
         </div>
         <div class="material-type-dot" style="background:${color}"></div>
+        ${!mat.uploading && !isItemRead('materials', mat.id) ? `<span class="new-badge" data-badge-key="materials:${sanitizeText(mat.id)}">جديد</span>` : ''}
         <div class="material-name">${sanitizeText(mat.name)}</div>
         ${mat.uploading ? `<span class="mat-uploading-badge" id="up-badge-${mat.id}">⏳ جارٍ الرفع ${uploadingPct.get(mat.id) || 0}%</span>` : ''}
       `;
-      card.onclick = () => mat.uploading
-        ? showToast('⏳', 'جارٍ الرفع', 'الملزمة قيد الرفع — تفاصيلها متاحة بعد اكتمال النشر')
-        : openMaterialDetail(mat);
+      card.onclick = () => {
+        if (mat.uploading) { showToast('⏳', 'جارٍ الرفع', 'الملزمة قيد الرفع — تفاصيلها متاحة بعد اكتمال النشر'); return; }
+        // النقر = قراءة: Fade-out للشارة + كتابة واحدة إلى user_reads/{uid} دون تحديث الصفحة
+        markItemRead('materials', mat.id, card.querySelector('.new-badge'));
+        openMaterialDetail(mat);
+      };
       grid.appendChild(card);
     });
   }
@@ -6127,19 +6554,15 @@ document.addEventListener('click', ev => {
 });
 accEl('acc-avatar-file').addEventListener('change', e => accUploadAvatar(e.target.files[0]));
 
-// ── إشعار "جديد" للبلاغات (يختفي عند قراءة البلاغ من قبل المستخدم) ──
-const REPORTS_READ_KEY = 'alfa_reports_reads';
-let reportsRead = new Set(JSON.parse(localStorage.getItem(REPORTS_READ_KEY) || '[]'));
-
+// ── إشعار "جديد" للبلاغات — مربوط بنظام تتبّع القراءة في Firestore (user_reads/{uid}) ──
 function isReportRead(reportId) {
-  return reportsRead.has(reportId);
+  return isItemRead('reports', reportId);
 }
 
 function markReportAsRead(reportId) {
   if (!reportId) return;
-  reportsRead.add(reportId);
-  try { localStorage.setItem(REPORTS_READ_KEY, JSON.stringify([...reportsRead])); } catch (e) {}
-  renderReports();
+  // Fade-out للشارة + كتابة واحدة إلى فايربيس + تحديث عدّاد الجرس — دون تحديث الصفحة
+  markItemRead('reports', reportId);
 }
 accEl('acc-lang-switch').addEventListener('change', e => accApplyLang(e.target.checked ? 'en' : 'ar'));
 accEl('acc-u-input').addEventListener('input', accUpdateRules);
@@ -6165,40 +6588,41 @@ function subscribeReports() {
     reportsData = [];
     snap.forEach(d => reportsData.push({ ...d.data(), id: d.id }));
     // إشعارات للبلاغات الجديدة (إشعار عام لجميع المستخدمين)
+    let hasNewReport = false;
     snap.docChanges().forEach(change => {
       if (change.type === 'added') {
         const data = change.doc.data();
+        const createdAtMs = data.createdAt?.toMillis ? data.createdAt.toMillis() : (Number(data.createdAt) || Date.now());
         const title = data.title || 'بلاغ جديد';
         const body = data.body ? (data.body.length > 60 ? data.body.slice(0, 60) + '…' : data.body) : 'تم نشر بلاغ جديد';
-        showToast('📣', title, body);
-        notifCount = (notifCount || 0) + 1;
-        const badge = document.getElementById('notif-badge');
-        if (badge) {
-          badge.textContent = notifCount > 9 ? '9+' : notifCount;
-          badge.classList.add('show');
+        // التنبيه الصوتي/المنبّه فقط للبلاغات المنشورة منذ أقل من 5 دقائق
+        const age = Date.now() - createdAtMs;
+        if (age < 5 * 60 * 1000 && age >= -60 * 1000) {
+          hasNewReport = true;
+          showToast('📣', title, body);
+          playNotifSound();
         }
-        playNotifSound();
         if (!notifications.find(n => n.id === ('report_' + change.doc.id))) {
           notifications.push({
             id: 'report_' + change.doc.id,
             text: `📣 ${title}`,
+            type: 'بلاغ',
             dayId: null,
-            time: change.doc.data().createdAt?.toMillis ? change.doc.data().createdAt.toMillis() : Date.now()
+            time: createdAtMs
           });
-        }
-        // تحديث القائمة عند فتح اللوحة
-        const panel = document.getElementById('notif-panel');
-        if (panel && panel.classList.contains('open')) {
-          renderNotifPanel();
         }
       } else if (change.type === 'removed') {
         // إزالة الإشعار عند حذف البلاغ
         notifications = notifications.filter(n => n.id !== ('report_' + change.doc.id));
       }
     });
+    // العدّاد = عدد الإشعارات غير المقروءة فعلياً للـ UID الحالي (لا يعتمد على أحداث الجلسة)
+    updateUnreadBadge();
+    if (hasNewReport) renderNotifPanel();
     // ترتيب من الأحدث للأقدم محلياً (بدون الحاجة لفهرس Firestore)
     reportsData.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
     renderReports();
+    updateUnreadBadge(); // تحديث الشارات بعد بناء القائمة
   }, (err) => {
     console.error('خطأ في تحميل البلاغات:', err);
     renderReports();
@@ -6240,7 +6664,7 @@ function renderReports() {
         <div class="report-head">
           <span class="report-type" data-type="${sanitizeText(type)}">${sanitizeText(type)}</span>
           <span class="report-date">${dateStr} — ${timeStr}</span>
-          ${!isReportRead(r.id) ? '<span class="report-new-badge">جديد</span>' : ''}
+          ${!isReportRead(r.id) ? `<span class="new-badge" data-badge-key="reports:${sanitizeText(r.id)}">جديد</span>` : ''}
         </div>
         <div class="report-title">${sanitizeText(r.title || '')}</div>
         ${r.body ? `<div class="report-body">${sanitizeText(r.body)}</div>` : ''}
@@ -6268,6 +6692,15 @@ if (document.getElementById('reports-list')) {
     if (id) markReportAsRead(id);
   });
 }
+
+// ── النقر على منشور في الجدول = تعليمه كمقروء (كتابة واحدة إلى user_reads/{uid}) ──
+document.addEventListener('click', (e) => {
+  const postItem = e.target.closest && e.target.closest('.post-item[data-post-id]');
+  if (!postItem) return;
+  if (e.target.closest('.btn-edit, .btn-delete')) return; // أزرار الإدارة لا تُعدّ قراءة
+  const pid = postItem.dataset.postId;
+  if (pid && !isItemRead('posts', pid)) markItemRead('posts', pid);
+});
 
 // ── شرائح المرفقات (فتح/غلق اللوحات) ──
 window.toggleAttPanel = function(name) {
