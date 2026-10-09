@@ -501,10 +501,10 @@
   }
   .poll-flag { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 700; color: var(--text-primary); cursor: pointer; }
   .poll-flag input { width: 17px; height: 17px; accent-color: var(--accent2); cursor: pointer; flex-shrink: 0; }
-  /* قائمة المصوتين داخل بطاقة البلاغ */
-  .poll-voters { margin-top: 8px; font-size: 11.5px; color: var(--text-secondary); }
-  .poll-voters summary { cursor: pointer; color: var(--text-muted); font-weight: 700; width: fit-content; }
-  .poll-voters ul { margin: 6px 0 0; padding-inline-start: 18px; display: flex; flex-direction: column; gap: 4px; }
+  /* من يصوّت: أسماء المصوتين ووسم الصوت الخاص داخل خيار الاستفتاء */
+  .poll-bar .pb-sub { position: relative; margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
+  .poll-bar .pb-mine { font-size: 10px; font-weight: 800; color: var(--accent2); }
+  .poll-bar .pb-voters { font-size: 10px; font-weight: 600; color: var(--text-muted); word-break: break-word; line-height: 1.6; }
 
   /* ── عرض المرفقات داخل بطاقة البلاغ ── */
   .report-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
@@ -574,9 +574,10 @@
   }
   .vp-play:active { transform: scale(0.92); }
   .vp-track {
-    position: relative; flex: 1; height: 8px;
+    position: relative; flex: 1; height: 12px;
     background: rgba(255,255,255,0.08);
     border-radius: 99px; cursor: pointer; overflow: hidden;
+    touch-action: none; /* سحب الإصبع على الشريط دون تمرير/تكبير الصفحة */
   }
   .vp-fill {
     position: absolute; top: 0; bottom: 0; right: 0; width: 0%;
@@ -2633,7 +2634,7 @@
     <div class="form-group att-panel hidden" id="att-panel-images">
       <div class="upload-zone" onclick="document.getElementById('rep-images-input').click()">
         <div class="upload-icon">🖼️</div>
-        <div>اضغط لاختيار صور (حتى 6 صور)</div>
+        <div>اضغط لاختيار صور (حتى 20 صورة)</div>
         <input type="file" id="rep-images-input" accept="image/*" multiple hidden onchange="handleReportImages(this)">
       </div>
       <div class="upload-preview" id="rep-images-preview"></div>
@@ -2643,7 +2644,7 @@
     <div class="form-group att-panel hidden" id="att-panel-files">
       <div class="upload-zone" onclick="document.getElementById('rep-files-input').click()">
         <div class="upload-icon">📎</div>
-        <div>اضغط لاختيار ملفات (حتى 6 ملفات)</div>
+        <div>اضغط لاختيار ملفات (حتى 20 ملف)</div>
         <input type="file" id="rep-files-input" multiple hidden onchange="handleReportFiles(this)">
       </div>
       <div class="rep-files-list" id="rep-files-list"></div>
@@ -2662,7 +2663,7 @@
           <button type="button" class="voice-alt danger" onclick="removeVoice()">🗑️ حذف الصوت</button>
         </div>
       </div>
-      <div class="att-hint">الحد الأقصى 60 ثانية — يُرفع تلقائياً عند النشر.</div>
+      <div class="att-hint">الحد الأقصى 15 دقيقة — يُرفع تلقائياً عند النشر.</div>
     </div>
 
     <!-- لوح: الاستفتاء -->
@@ -2673,9 +2674,9 @@
       <div class="poll-flags">
         <label class="poll-flag"><input type="checkbox" id="poll-opt-hide-pct"><span>إخفاء النسبة — تظهر الأصوات فقط</span></label>
         <label class="poll-flag"><input type="checkbox" id="poll-opt-hide-voters"><span>إخفاء المصوتين — لا يظهر من صوّت</span></label>
-        <label class="poll-flag"><input type="checkbox" id="poll-opt-lock" checked><span>لا يمكن إعادة الاختيار أو إعادة التصويت</span></label>
+        <label class="poll-flag"><input type="checkbox" id="poll-opt-lock"><span>لا يمكن إعادة الاختيار أو إعادة التصويت</span></label>
       </div>
-      <div class="att-hint">من خيارين إلى 6 — يصوّت الجميع: أصحاب الحسابات باسمهم والزوار بمعرّف مجهول.</div>
+      <div class="att-hint">من خيارين إلى 6 — تظهر أسماء المصوتين على كل خيار، ويمكن تغيير الصوت ما لم تُفعّل خيار المنع.</div>
     </div>
 
     <button class="btn-submit" id="btn-do-report">🚀 نشر البلاغ</button>
@@ -2837,15 +2838,64 @@
       <textarea class="form-textarea" id="pub-note" placeholder="اكتب ملاحظة أو رابط..." autocomplete="off"></textarea>
     </div>
 
-    <!-- File uploads -->
+    <!-- شرائح المرفقات (صور / ملفات / صوت / استفتاء) -->
     <div class="form-group">
-      <label class="form-label">صور</label>
-      <div class="upload-zone" onclick="document.getElementById('up-files-all').click()">
-        <div class="upload-icon">📎</div>
-        <div>اضغط لإرفاق ملف أو صورة</div>
-        <input type="file" id="up-files-all" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple onchange="handleFileSelect('images',this)" hidden>
+      <label class="form-label">إرفاق (اختياري)</label>
+      <div class="att-chips">
+        <button type="button" class="att-chip" id="pub-chip-images" onclick="togglePubAttPanel('images')">📷 صور</button>
+        <button type="button" class="att-chip" id="pub-chip-files" onclick="togglePubAttPanel('files')">📄 ملفات</button>
+        <button type="button" class="att-chip" id="pub-chip-voice" onclick="togglePubAttPanel('voice')">🎙️ صوت</button>
+        <button type="button" class="att-chip" id="pub-chip-poll" onclick="togglePubAttPanel('poll')">📊 استفتاء</button>
       </div>
-      <div class="upload-preview" id="prev-images"></div>
+    </div>
+
+    <!-- لوح: الصور -->
+    <div class="form-group att-panel hidden" id="pub-att-panel-images">
+      <div class="upload-zone" onclick="document.getElementById('pub-images-input').click()">
+        <div class="upload-icon">🖼️</div>
+        <div>اضغط لاختيار صور (حتى 20 صورة)</div>
+        <input type="file" id="pub-images-input" accept="image/*" multiple hidden onchange="handlePubImages(this)">
+      </div>
+      <div class="upload-preview" id="pub-images-preview"></div>
+    </div>
+
+    <!-- لوح: الملفات -->
+    <div class="form-group att-panel hidden" id="pub-att-panel-files">
+      <div class="upload-zone" onclick="document.getElementById('pub-files-input').click()">
+        <div class="upload-icon">📎</div>
+        <div>اضغط لاختيار ملفات (حتى 20 ملف)</div>
+        <input type="file" id="pub-files-input" multiple hidden onchange="handlePubFiles(this)">
+      </div>
+      <div class="rep-files-list" id="pub-files-list"></div>
+    </div>
+
+    <!-- لوح: الصوت -->
+    <div class="form-group att-panel hidden" id="pub-att-panel-voice">
+      <div class="voice-box">
+        <button type="button" class="voice-btn" id="pub-voice-btn" onclick="togglePubVoiceRecord()">🎙️ ابدأ التسجيل</button>
+        <div class="voice-timer" id="pub-voice-timer">00:00</div>
+      </div>
+      <div class="voice-player hidden" id="pub-voice-player" style="margin-top:10px">
+        <audio id="pub-voice-audio" controls preload="metadata"></audio>
+        <div class="voice-actions">
+          <button type="button" class="voice-alt" onclick="resetPubVoice()">🔁 إعادة التسجيل</button>
+          <button type="button" class="voice-alt danger" onclick="removePubVoice()">🗑️ حذف الصوت</button>
+        </div>
+      </div>
+      <div class="att-hint">الحد الأقصى 15 دقيقة — يُرفع تلقائياً عند النشر.</div>
+    </div>
+
+    <!-- لوح: الاستفتاء -->
+    <div class="form-group att-panel hidden" id="pub-att-panel-poll">
+      <input class="form-input" id="pub-poll-question" placeholder="سؤال الاستفتاء؟ مثال: نفضّل المحاضرة صباحاً" maxlength="160" autocomplete="off">
+      <div class="poll-options" id="pub-poll-options"></div>
+      <button type="button" class="poll-add" onclick="addPubPollOption()">+ إضافة خيار</button>
+      <div class="poll-flags">
+        <label class="poll-flag"><input type="checkbox" id="pub-poll-opt-hide-pct"><span>إخفاء النسبة — تظهر الأصوات فقط</span></label>
+        <label class="poll-flag"><input type="checkbox" id="pub-poll-opt-hide-voters"><span>إخفاء المصوتين — لا يظهر من صوّت</span></label>
+        <label class="poll-flag"><input type="checkbox" id="pub-poll-opt-lock"><span>لا يمكن إعادة الاختيار أو إعادة التصويت</span></label>
+      </div>
+      <div class="att-hint">من خيارين إلى 6 — تظهر أسماء المصوتين على كل خيار، ويمكن تغيير الصوت ما لم تُفعّل خيار المنع.</div>
     </div>
 
     <div class="progress-bar" id="upload-progress-bar">
@@ -2982,7 +3032,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore, collection, onSnapshot, addDoc, query, orderBy, limitToLast, limit,
-  updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion, arrayRemove, getCountFromServer
+  updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion, arrayRemove, getCountFromServer, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthChanged, signOut as firebaseSignOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -3831,6 +3881,7 @@ function renderPostsForDay(dayId, posts) {
     if (!post.isOffline && post.id) item.dataset.postId = post.id; // لتتبّع القراءة عند النقر
 
     const mediaHTML = buildMediaHTML(post);
+    const pubExtraHTML = buildPubAttachmentsHTML(post); // مرفقات التحضير الجديدة: صوت + استفتاء
     const noteHTML = post.note ? `<div class="post-note">${formatNote(post.note)}</div>` : '';
     const legacyIcon = post.authorIcon || (post.author === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : '');
     const authorAvatarHTML = `<span class="avatar-slot sm" data-author-id="${sanitizeText(post.authorId || '').replace(/"/g, '&quot;')}" data-author-name="${sanitizeText(post.author || '').replace(/"/g, '&quot;')}">${sanitizeText((String(post.author || '؟').trim())[0] || '؟')}${legacyIcon ? `<img class="avatar-photo" src="${legacyIcon}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`;
@@ -3852,6 +3903,7 @@ function renderPostsForDay(dayId, posts) {
       <div class="post-subject">${sanitizeText(post.subject || '')}</div>
       ${noteHTML}
       ${mediaHTML}
+      ${pubExtraHTML}
       <div class="post-author">${authorAvatarHTML}<span style="color:${post.authorColor || '#aaa'}">${sanitizeText(post.author || '')}</span></div>
       ${actionsHtml}
     `;
@@ -3870,28 +3922,33 @@ function renderPostsForDay(dayId, posts) {
 }
 
 function buildMediaHTML(post) {
-  // عرض معاينة للصور في المنشورات المخزنة محلياً (بدون نت)
-  if (post.isOffline && post.files && post.files.length > 0) {
-    let html = '<div class="post-media">';
-    const imgUrls = post.files.filter(f => f.type && f.type.startsWith('image/')).map(f => URL.createObjectURL(f));
-    let imgIndex = 0;
-    post.files.forEach(file => {
-      if (file.type && file.type.startsWith('image/')) {
-        const url = imgUrls[imgIndex];
-        const safeUrls = JSON.stringify(imgUrls).replace(/"/g, '&quot;');
-        html += `<img class="media-thumb" src="${url}" loading="lazy" decoding="async" onclick="openLightbox(${safeUrls}, ${imgIndex})" alt="صورة">`;
-        imgIndex++;
-      } else {
-        html += `<span class="media-file-link" style="cursor:default">📎 ${sanitizeText(file.name || 'ملف')}</span>`;
-      }
-    });
-    html += '</div>';
+  // عرض معاينة للمرفقات الجديدة في المنشورات المخزّنة محلياً (بدون نت) — شبكة مرتّبة
+  const offImgs = post.isOffline ? (post.pubImages || post.files || []) : [];
+  if (post.isOffline && (offImgs.length || (post.pubFiles && post.pubFiles.length))) {
+    let html = '';
+    const imgUrls = offImgs.filter(f => f.type && f.type.startsWith('image/')).map(f => URL.createObjectURL(f));
+    if (imgUrls.length) {
+      const safeUrls = JSON.stringify(imgUrls).replace(/"/g, '&quot;');
+      html += `<div class="report-gallery" data-count="${Math.min(imgUrls.length, 6)}">` +
+        imgUrls.map((u, i) => `<img src="${u}" loading="lazy" decoding="async" onclick="openLightbox(${safeUrls}, ${i})" alt="صورة">`).join('') +
+        `</div>`;
+    }
+    if (post.pubFiles && post.pubFiles.length) {
+      html += `<div class="report-files">` + post.pubFiles.map(f =>
+        `<div class="report-file-row"><span class="rf-name">📎 ${sanitizeText(f.name || 'ملف')}${f.size ? ` <span class="rf-size">(${formatFileSize(f.size)})</span>` : ''}</span></div>`
+      ).join('') + `</div>`;
+    }
+    if (post.pubVoice) {
+      const vDur = Number(post.pubVoice.duration) || 0;
+      html += `<div class="media-file-link" style="cursor:default">🎙️ مقطع صوتي (${fmtVoiceTime(vDur)})</div>`;
+    }
     return html;
   }
 
   const urls = post.mediaUrls || [];
-  if (!urls.length) return '';
-  let html = '<div class="post-media">';
+  let html = '';
+  if (urls.length) {
+  html = '<div class="post-media">';
   const imgUrls = urls.filter(u => u.type === 'image' && !u.url.toLowerCase().endsWith('.pdf')).map(u => u.url);
   let imgIndex = 0;
   urls.forEach(item => {
@@ -3932,7 +3989,20 @@ function buildMediaHTML(post) {
     }
   });
   html += '</div>';
+  }
+
   return html;
+}
+
+// ── المرفقات الجديدة للتحضير (صور / ملفات / صوت / استفتاء) — نفس نظام البلاغ ──
+function buildPubAttachmentsHTML(post) {
+  // لا نكرّر مرفقات قديمة عبر mediaUrls إذا وُجدت مرفقات جديدة
+  const hasNew = (Array.isArray(post.images) && post.images.length) ||
+                 (Array.isArray(post.files) && post.files.length) ||
+                 post.voiceUrl || (post.poll && Array.isArray(post.poll.options));
+  if (!hasNew) return '';
+  // نُصفّر mediaUrls حتى لا تُعرض مرتين، ونمرّر مجموعة «posts» ليصوّت الناس على استفتاء المنشور
+  return reportAttachmentsHtml({ ...post, mediaUrls: [], __pollColl: 'posts' });
 }
 
 window.downloadFileWithProgress = async function(url, filename, el, knownSize = 0) {
@@ -4397,8 +4467,7 @@ window.openPublishModal = function(dayId) {
   document.getElementById('pub-note').value = '';
   document.getElementById('type-custom-wrap').classList.add('hidden');
   document.getElementById('subject-custom-wrap').classList.add('hidden');
-  document.getElementById('prev-images').innerHTML = '';
-  pendingFiles = { images:[] };
+  resetPubAttachments(); // تصفير شرائح المرفقات (صور/ملفات/صوت/استفتاء)
   editingMediaUrls = [];
   clearUploadStatus();
   loadDraft();
@@ -4431,9 +4500,8 @@ window.openEditModal = function(postId) {
     document.getElementById('pub-subject-custom').value = post.subject;
   }
   document.getElementById('pub-note').value = post.note || '';
-  pendingFiles = { images:[] };
+  loadPubAttachmentsForEdit(post); // تحميل مرفقات المنشور الحالية للتعديل (بدون المرفقات التي ستُبقى كما هي)
   clearUploadStatus();
-  renderPreviews('images'); // عرض الصور الجديدة والقديمة
   openModal('publish-modal');
 };
 
@@ -4503,40 +4571,73 @@ window.deleteOfflinePostHandler = async function(id) {
 };
 
 async function processPublish(data, isBackgroundSync = false, onProgress = null) {
-  const { type, subject, note, dayId, editId, files, author, authorColor, authorIcon, authorId, createdAt } = data;
-  
-  const mediaUrls = [...(data.existingMediaUrls || [])];
-  if (files && files.length > 0) {
-    if (!isBackgroundSync) document.getElementById('upload-progress-bar').classList.add('show');
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!isBackgroundSync) setUploadStatus(`⬆️ جارٍ رفع: ${file.name}`);
-      const url = await uploadToCloudinary(file, isBackgroundSync ? (p) => {
-        if (onProgress) onProgress(Math.min(100, Math.round(((i + p / 100) / files.length) * 100)));
-      } : null);
-      let fType = 'file';
-      if (file.type.startsWith('image/')) fType = 'image';
-      else if (file.type.startsWith('video/')) fType = 'video';
-      mediaUrls.push({ url, type: fType, name: file.name, publicId: extractPublicId(url), size: file.size });
-      if (!isBackgroundSync) {
-        const pct = Math.round(((i+1)/files.length)*100);
-        document.getElementById('upload-progress-fill').style.width = pct + '%';
-      }
-    }
-    if (!isBackgroundSync) {
-      document.getElementById('upload-progress-bar').classList.remove('show');
-      document.getElementById('upload-progress-fill').style.width = '0';
-    }
+  const { type, subject, note, dayId, editId, author, authorColor, authorIcon, authorId, createdAt } = data;
+
+  // نظام المرفقات الجديد (بنفس نمط البلاغ): صور + ملفات + صوت + استفتاء
+  const pubImages = Array.isArray(data.pubImages) ? data.pubImages : [];
+  const pubFiles  = Array.isArray(data.pubFiles)  ? data.pubFiles  : [];
+  const pubVoice  = data.pubVoice || null;         // { blob, duration }
+  const poll      = data.poll || null;
+  // توافق مع النظام القديم: منشورات كانت تخزّن كل شيء في mediaUrls
+  const existingMediaUrls = [...(data.existingMediaUrls || [])];
+
+  // مجموع العناصر المطلوب رفعها (لتقدّم الرفع الموحّد)
+  const totalUpload = pubImages.length + pubFiles.length + (pubVoice && pubVoice.blob ? 1 : 0);
+  let doneUpload = 0;
+  const step = (pctInFile = 0) => {
+    if (!(isBackgroundSync && onProgress)) return;
+    if (totalUpload === 0) { onProgress(100); return; }
+    onProgress(Math.min(99, Math.round(((doneUpload + pctInFile / 100) / totalUpload) * 100)));
+  };
+
+  if (!isBackgroundSync && totalUpload > 0) document.getElementById('upload-progress-bar')?.classList.add('show');
+
+  // رفع الصور
+  const imageUrls = [];
+  for (const f of pubImages) {
+    if (!isBackgroundSync) setUploadStatus(`⬆️ جارٍ رفع صورة: ${f.name}`);
+    const url = await uploadToCloudinary(f, isBackgroundSync ? (p) => step(p) : null);
+    imageUrls.push(url);
+    doneUpload++; step();
   }
-  if (isBackgroundSync && onProgress) onProgress(100); // اكتمال الرفع ← العدّاد يبلغ 100
+
+  // رفع الملفات
+  const fileItems = [];
+  for (const f of pubFiles) {
+    if (!isBackgroundSync) setUploadStatus(`⬆️ جارٍ رفع: ${f.name}`);
+    const url = await uploadToCloudinary(f, isBackgroundSync ? (p) => step(p) : null);
+    fileItems.push({ url, name: f.name, size: f.size });
+    doneUpload++; step();
+  }
+
+  // رفع الصوت
+  let voiceUrl = '', voiceDuration = 0;
+  if (pubVoice && pubVoice.blob) {
+    const mime = pubVoice.blob.type || '';
+    const ext = mime.includes('mp4') ? 'm4a' : (mime.includes('ogg') ? 'ogg' : 'webm');
+    const vf = new File([pubVoice.blob], `post-voice-${Date.now()}.${ext}`, { type: mime || 'audio/webm' });
+    voiceUrl = await uploadToCloudinary(vf, isBackgroundSync ? (p) => step(p) : null);
+    voiceDuration = Number(pubVoice.duration) || 0;
+    doneUpload++; step();
+  }
+
+  if (isBackgroundSync && onProgress) onProgress(100); // اكتمل الرفع ← العدّاد يبلغ 100
+  if (!isBackgroundSync) {
+    document.getElementById('upload-progress-bar')?.classList.remove('show');
+    const pf = document.getElementById('upload-progress-fill'); if (pf) pf.style.width = '0%';
+  }
 
   const postData = {
     type, subject, note, dayId,
-    mediaUrls,
+    mediaUrls: existingMediaUrls,           // توافق خلفي مع المنشورات القديمة (فارغ للمنشورات الجديدة)
+    images: imageUrls,                      // string[] روابط الصور
+    files: fileItems,                       // [{url, name, size}]
+    voiceUrl, voiceDuration,
     author, authorColor, authorIcon,
     ...(authorId ? { authorId } : {}),
     createdAt: new Date(createdAt),
-    ...(data.clientSig ? { clientSig: data.clientSig } : {})
+    ...(data.clientSig ? { clientSig: data.clientSig } : {}),
+    ...(poll ? { poll } : {})
   };
 
   if (editId) {
@@ -4596,11 +4697,19 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 
   if (!type || !subject) { showToast('⚠️','خطأ','أكمل الحقول المطلوبة'); return; }
 
-  // تجهيز البيانات
-  const allFiles = [...pendingFiles.images];
+  // التحقق من صحة الاستفتاء (إن فُعّل)
+  const pollRes = buildPubPoll();
+  if (!pollRes.ok) { showToast('⚠️','خطأ', pollRes.err); return; }
+
+  // تجهيز المرفقات الجديدة (صور / ملفات / صوت / استفتاء)
+  const pubImages = pubAttImages.slice();
+  const pubFiles  = pubAttFiles.slice();
+  const pubVoice  = pubAttVoice; // { blob, url, duration } | null
   const dataPayload = {
-    type, subject, note, dayId, editId, files: allFiles,
-    existingMediaUrls: editingMediaUrls,
+    type, subject, note, dayId, editId,
+    pubImages, pubFiles, pubVoice,
+    poll: pollRes.poll,
+    existingMediaUrls: editingMediaUrls, // توافق خلفي مع المنشورات القديمة
     author: currentUser.name,
     authorColor: currentUser.color,
     authorIcon: currentUser.icon || '',
@@ -6798,26 +6907,31 @@ function renderReports() {
 
   const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
   list.innerHTML = reportsData.map(r => {
-    const t = new Date(Number(r.createdAt) || Date.now());
-    const dateStr = `${t.getDate()} ${monthNames[t.getMonth()]}`;
-    const timeStr = t.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
-    const type = r.type || 'أخرى';
-    const urgent = type === 'تنبيه عاجل' ? ' report-urgent' : '';
-    return `
-      <div class="report-card${urgent}" data-report-id="${sanitizeText(r.id)}">
-        <div class="report-head">
-          <span class="report-type" data-type="${sanitizeText(type)}">${sanitizeText(type)}</span>
-          <span class="report-date">${dateStr} — ${timeStr}</span>
-          ${!isReportRead(r.id) ? `<span class="new-badge" data-badge-key="reports:${sanitizeText(r.id)}">جديد</span>` : ''}
-        </div>
-        <div class="report-title">${sanitizeText(r.title || '')}</div>
-        ${r.body ? `<div class="report-body">${sanitizeText(r.body)}</div>` : ''}
-        ${safeReportAttachments(r)}
-        <div class="report-foot">
-          <span class="report-author">${reportAuthorHtml(r)}</span>
-          ${currentUser?.isAdmin ? `<button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
-        </div>
-      </div>`;
+    try {
+      const t = new Date(Number(r.createdAt) || Date.now());
+      const dateStr = `${t.getDate()} ${monthNames[t.getMonth()]}`;
+      const timeStr = t.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+      const type = r.type || 'أخرى';
+      const urgent = type === 'تنبيه عاجل' ? ' report-urgent' : '';
+      return `
+        <div class="report-card${urgent}" data-report-id="${sanitizeText(r.id)}">
+          <div class="report-head">
+            <span class="report-type" data-type="${sanitizeText(type)}">${sanitizeText(type)}</span>
+            <span class="report-date">${dateStr} — ${timeStr}</span>
+            ${!isReportRead(r.id) ? `<span class="new-badge" data-badge-key="reports:${sanitizeText(r.id)}">جديد</span>` : ''}
+          </div>
+          <div class="report-title">${sanitizeText(r.title || '')}</div>
+          ${r.body ? `<div class="report-body">${sanitizeText(r.body)}</div>` : ''}
+          ${safeReportAttachments(r)}
+          <div class="report-foot">
+            <span class="report-author">${reportAuthorHtml(r)}</span>
+            ${currentUser?.isAdmin ? `<button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+          </div>
+        </div>`;
+    } catch (e) {
+      console.error('خطأ في renderReports للبلاغ (id:', r && r.id, '):', e);
+      return `<div class="report-card" data-report-id="${sanitizeText(r && r.id || '')}"><div class="report-body">خطأ في عرض البلاغ</div></div>`;
+    }
   }).join('');
   // حركة سلسة: ملء أشرطة الاستفتاء من 0 إلى قيمتها الحقيقية
   requestAnimationFrame(() => {
@@ -6863,15 +6977,15 @@ window.toggleAttPanel = function(name) {
   }
 };
 
-// ── الصور (حتى 6) ──
+// ── الصور (حتى PUB_MAX_ATTACH) ──
 window.handleReportImages = function(input) {
   const files = Array.from(input.files || []);
   input.value = '';
   if (!files.length) return;
-  const room = 6 - reportImages.length;
-  if (room <= 0) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 صور لكل بلاغ'); return; }
+  const room = PUB_MAX_ATTACH - reportImages.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} صورة لكل بلاغ`); return; }
   reportImages = reportImages.concat(files.slice(0, room));
-  if (files.length > room) showToast('⚠️', 'تنبيه', 'تم الإبقاء على أولى الصور فقط (الحد 6)');
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الصور فقط (الحد ${PUB_MAX_ATTACH})`);
   renderReportImages();
 };
 function renderReportImages() {
@@ -6892,15 +7006,15 @@ function renderReportImages() {
   });
 }
 
-// ── الملفات (حتى 6) ──
+// ── الملفات (حتى PUB_MAX_ATTACH) ──
 window.handleReportFiles = function(input) {
   const files = Array.from(input.files || []);
   input.value = '';
   if (!files.length) return;
-  const room = 6 - reportFiles.length;
-  if (room <= 0) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 ملفات لكل بلاغ'); return; }
+  const room = PUB_MAX_ATTACH - reportFiles.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} ملف لكل بلاغ`); return; }
   reportFiles = reportFiles.concat(files.slice(0, room));
-  if (files.length > room) showToast('⚠️', 'تنبيه', 'تم الإبقاء على أولى الملفات فقط (الحد 6)');
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الملفات فقط (الحد ${PUB_MAX_ATTACH})`);
   renderReportFiles();
 };
 function renderReportFiles() {
@@ -6916,7 +7030,7 @@ function renderReportFiles() {
 }
 window.removeReportFile = function(i) { reportFiles.splice(i, 1); renderReportFiles(); };
 
-// ── تسجيل الصوت (بصمة صوت — حتى 60 ثانية) ──
+// ── تسجيل الصوت (بصمة صوت — حتى 15 دقيقة) ──
 window.toggleVoiceRecord = async function() {
   if (reportVoiceRec && reportVoiceRec.state === 'recording') { stopReportVoice(false); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
@@ -6957,7 +7071,7 @@ window.toggleVoiceRecord = async function() {
     reportVoiceTimer = setInterval(() => {
       reportVoiceSec++;
       updateVoiceTimer();
-      if (reportVoiceSec >= VOICE_MAX_SEC) stopReportVoice(false);
+      if (reportVoiceSec >= VOICE_MAX_SEC) { stopReportVoice(false); showToast('🎙️', 'الصوت', 'بلغت الحد الأقصى (15 دقيقة) — تم إيقاف التسجيل تلقائياً'); }
       const modal = document.getElementById('report-modal');
       if (modal && !modal.classList.contains('open')) stopReportVoice(true); // أُغلقت النافذة
     }, 1000);
@@ -7024,12 +7138,240 @@ function buildReportPoll() {
     }
   };
 }
-// إعادة خيارات الاستفتاء لقيمها الافتراضية (النسبة ظاهرة، المصوتون ظاهرون، التصويت مغلق)
+// إعادة خيارات الاستفتاء لقيمها الافتراضية (النسبة ظاهرة، المصوتون ظاهرون، التصويت مفتوح للتغيير)
 function resetPollFlags() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
   set('poll-opt-hide-pct', false);
   set('poll-opt-hide-voters', false);
-  set('poll-opt-lock', true);
+  set('poll-opt-lock', false);
+}
+
+// ═══════════ مرفقات نموذج نشر التحضير (صور/ملفات/صوت/استفتاء) ═══════════
+const PUB_MAX_ATTACH = 20;        // الحد الأقصى لعدد الصور أو الملفات المرفقة في التحضير
+let pubAttImages = [];          // File[] — حتى PUB_MAX_ATTACH
+let pubAttFiles  = [];          // File[] — حتى PUB_MAX_ATTACH
+let pubAttVoice  = null;        // { blob, url, duration } | null
+let pubVoiceRec  = null;        // MediaRecorder
+let pubVoiceTimer = null, pubVoiceSec = 0, pubVoiceDiscard = false;
+let pubPollOptionsDraft = ['', '']; // نصوص خيارات استفتاء التحضير
+
+// فتح/غلق لوح المرفق + تصفيره عند الإغلاق
+window.togglePubAttPanel = function(name) {
+  const chip  = document.getElementById('pub-chip-' + name);
+  const panel = document.getElementById('pub-att-panel-' + name);
+  if (!chip || !panel) return;
+  const on = !chip.classList.contains('on');
+  chip.classList.toggle('on', on);
+  panel.classList.toggle('hidden', !on);
+  if (on && name === 'poll') { renderPubPollOptions(); document.getElementById('pub-poll-question')?.focus(); }
+  if (!on) {
+    if (name === 'images') { pubAttImages = []; renderPubImages(); }
+    if (name === 'files')  { pubAttFiles  = []; renderPubFiles(); }
+    if (name === 'voice')  { clearPubVoice(); }
+    if (name === 'poll')   { pubPollOptionsDraft = ['', '']; resetPubPollFlags(); }
+  }
+};
+
+// ── الصور (حتى 20) ──
+window.handlePubImages = function(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  const room = PUB_MAX_ATTACH - pubAttImages.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} صورة`); return; }
+  pubAttImages = pubAttImages.concat(files.slice(0, room));
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الصور فقط (الحد ${PUB_MAX_ATTACH})`);
+  renderPubImages();
+};
+function renderPubImages() {
+  const c = document.getElementById('pub-images-preview');
+  if (!c) return;
+  c.innerHTML = '';
+  pubAttImages.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    item.appendChild(img);
+    const rm = document.createElement('div');
+    rm.className = 'remove-file'; rm.textContent = '×';
+    rm.onclick = () => { pubAttImages.splice(i, 1); renderPubImages(); };
+    item.appendChild(rm);
+    c.appendChild(item);
+  });
+}
+
+// ── الملفات (حتى 20) ──
+window.handlePubFiles = function(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  const room = PUB_MAX_ATTACH - pubAttFiles.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} ملف`); return; }
+  pubAttFiles = pubAttFiles.concat(files.slice(0, room));
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الملفات فقط (الحد ${PUB_MAX_ATTACH})`);
+  renderPubFiles();
+};
+function renderPubFiles() {
+  const c = document.getElementById('pub-files-list');
+  if (!c) return;
+  c.innerHTML = pubAttFiles.map((f, i) => `
+    <div class="rep-file-row">
+      <span>📄</span>
+      <span class="name">${sanitizeText(f.name)}</span>
+      <span class="sz">${formatFileSize(f.size)}</span>
+      <span class="rm" onclick="removePubFile(${i})" title="إزالة">✕</span>
+    </div>`).join('');
+}
+window.removePubFile = function(i) { pubAttFiles.splice(i, 1); renderPubFiles(); };
+
+// ── تسجيل الصوت (بصمة صوت — حتى 15 دقيقة) ──
+window.togglePubVoiceRecord = async function() {
+  if (pubVoiceRec && pubVoiceRec.state === 'recording') { stopPubVoice(false); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+    showToast('🎙️', 'الصوت', 'المتصفح لا يدعم التسجيل الصوتي');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let rec;
+    try {
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+                 : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch (e) { rec = new MediaRecorder(stream); }
+
+    const chunks = [];
+    pubVoiceDiscard = false;
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (pubVoiceTimer) { clearInterval(pubVoiceTimer); pubVoiceTimer = null; }
+      const b = document.getElementById('pub-voice-btn');
+      if (b) { b.textContent = '🎙️ ابدأ التسجيل'; b.classList.remove('rec'); }
+      pubVoiceRec = null;
+      if (pubVoiceDiscard) return;
+      if (pubVoiceSec < 1) { showToast('🎙️', 'الصوت', 'التسجيل قصير جداً — أعد المحاولة'); return; }
+      const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+      pubAttVoice = { blob, url: URL.createObjectURL(blob), duration: pubVoiceSec };
+      const au = document.getElementById('pub-voice-audio');
+      const pl = document.getElementById('pub-voice-player');
+      if (au) au.src = pubAttVoice.url;
+      if (pl) pl.classList.remove('hidden');
+    };
+    rec.start();
+    pubVoiceRec = rec;
+    pubVoiceSec = 0;
+    updatePubVoiceTimer();
+    pubVoiceTimer = setInterval(() => {
+      pubVoiceSec++;
+      updatePubVoiceTimer();
+      if (pubVoiceSec >= VOICE_MAX_SEC) { stopPubVoice(false); showToast('🎙️', 'الصوت', 'بلغت الحد الأقصى (15 دقيقة) — تم إيقاف التسجيل تلقائياً'); }
+      const modal = document.getElementById('publish-modal');
+      if (modal && !modal.classList.contains('open')) stopPubVoice(true);
+    }, 1000);
+    const b = document.getElementById('pub-voice-btn');
+    if (b) { b.textContent = '⏹️ إيقاف التسجيل'; b.classList.add('rec'); }
+    const pl = document.getElementById('pub-voice-player'); if (pl) pl.classList.add('hidden');
+  } catch (e) {
+    showToast('🎙️', 'الميكروفون', 'تعذّر الوصول إلى الميكروفون — تحقق من أذونات المتصفح');
+  }
+};
+function updatePubVoiceTimer() { const t = document.getElementById('pub-voice-timer'); if (t) t.textContent = fmtVoiceTime(pubVoiceSec); }
+function stopPubVoice(discard) {
+  pubVoiceDiscard = discard;
+  if (pubVoiceRec && pubVoiceRec.state === 'recording') { try { pubVoiceRec.stop(); } catch (e) {} }
+}
+function clearPubVoice() {
+  if (pubVoiceTimer) { clearInterval(pubVoiceTimer); pubVoiceTimer = null; }
+  pubVoiceDiscard = true;
+  if (pubVoiceRec && pubVoiceRec.state === 'recording') { try { pubVoiceRec.stop(); } catch (e) {} }
+  pubVoiceRec = null;
+  if (pubAttVoice && pubAttVoice.url) { try { URL.revokeObjectURL(pubAttVoice.url); } catch (e) {} }
+  pubAttVoice = null;
+  const au = document.getElementById('pub-voice-audio');
+  if (au) { try { au.pause(); au.removeAttribute('src'); au.load(); } catch (e) {} }
+  const pl = document.getElementById('pub-voice-player'); if (pl) pl.classList.add('hidden');
+  const b = document.getElementById('pub-voice-btn'); if (b) { b.textContent = '🎙️ ابدأ التسجيل'; b.classList.remove('rec'); }
+  const tm = document.getElementById('pub-voice-timer'); if (tm) tm.textContent = '00:00';
+}
+window.resetPubVoice = function() { clearPubVoice(); window.togglePubVoiceRecord(); };
+window.removePubVoice = function() { clearPubVoice(); };
+
+// ── الاستفتاء ──
+function renderPubPollOptions() {
+  const box = document.getElementById('pub-poll-options');
+  if (!box) return;
+  box.innerHTML = pubPollOptionsDraft.map((opt, i) => `
+    <div class="poll-opt-row">
+      <input class="form-input" maxlength="60" placeholder="الخيار ${i + 1}" value="${sanitizeText(opt).replace(/"/g, '&quot;')}" autocomplete="off" oninput="setPubPollOption(${i}, this.value)">
+      ${pubPollOptionsDraft.length > 2 ? `<span class="rm" onclick="removePubPollOption(${i})" title="حذف الخيار">✕</span>` : ''}
+    </div>`).join('');
+  const add = document.querySelector('#pub-att-panel-poll .poll-add');
+  if (add) add.style.display = pubPollOptionsDraft.length >= 6 ? 'none' : 'block';
+}
+window.setPubPollOption = function(i, v) { pubPollOptionsDraft[i] = v; };
+window.addPubPollOption = function() { if (pubPollOptionsDraft.length >= 6) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 خيارات'); return; } pubPollOptionsDraft.push(''); renderPubPollOptions(); };
+window.removePubPollOption = function(i) { if (pubPollOptionsDraft.length <= 2) return; pubPollOptionsDraft.splice(i, 1); renderPubPollOptions(); };
+function resetPubPollFlags() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+  set('pub-poll-opt-hide-pct', false);
+  set('pub-poll-opt-hide-voters', false);
+  set('pub-poll-opt-lock', false);
+}
+// بناء كائن الاستفتاء للتحضير مع التحقق من صحته
+function buildPubPoll() {
+  const chip = document.getElementById('pub-chip-poll');
+  if (!chip || !chip.classList.contains('on')) return { ok: true, poll: null };
+  const q = (document.getElementById('pub-poll-question')?.value || '').trim();
+  if (q.length < 3) return { ok: false, err: 'اكتب سؤال الاستفتاء (3 أحرف على الأقل)' };
+  const opts = pubPollOptionsDraft.map(s => (s || '').trim()).filter(Boolean);
+  if (opts.length < 2) return { ok: false, err: 'أضف خيارين صحيحين على الأقل' };
+  const uniq = new Set(opts.map(o => o.toLowerCase()));
+  if (uniq.size !== opts.length) return { ok: false, err: 'لا يمكن تكرار نفس الخيار' };
+  return {
+    ok: true,
+    poll: {
+      question: q,
+      hidePercent:  document.getElementById('pub-poll-opt-hide-pct')?.checked || false,
+      hideVoters:   document.getElementById('pub-poll-opt-hide-voters')?.checked || false,
+      locked:       document.getElementById('pub-poll-opt-lock')?.checked || false,
+      options: opts.map(text => ({ text, votes: 0, voters: [] }))
+    }
+  };
+}
+
+// تصفير كل لوحات المرفقات عند فتح نموذج النشر الجديد
+function resetPubAttachments() {
+  pubAttImages = []; pubAttFiles = []; renderPubImages(); renderPubFiles();
+  clearPubVoice();
+  pubPollOptionsDraft = ['', '']; renderPubPollOptions(); resetPubPollFlags();
+  const q = document.getElementById('pub-poll-question'); if (q) q.value = '';
+  ['images', 'files', 'voice', 'poll'].forEach(n => {
+    const chip  = document.getElementById('pub-chip-' + n);
+    const panel = document.getElementById('pub-att-panel-' + n);
+    if (chip) chip.classList.remove('on');
+    if (panel) panel.classList.add('hidden');
+  });
+}
+
+// تحميل مرفقات منشور قائم عند التعديل (الصوت/الوسائط القديمة تُبقى عبر editingMediaUrls)
+function loadPubAttachmentsForEdit(post) {
+  resetPubAttachments();
+  if (post.poll) {
+    const chip = document.getElementById('pub-chip-poll');
+    const panel = document.getElementById('pub-att-panel-poll');
+    if (chip) chip.classList.add('on');
+    if (panel) panel.classList.remove('hidden');
+    document.getElementById('pub-poll-question').value = post.poll.question || '';
+    pubPollOptionsDraft = (post.poll.options || []).map(o => o.text || '');
+    if (pubPollOptionsDraft.length < 2) pubPollOptionsDraft = ['', ''];
+    renderPubPollOptions();
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+    set('pub-poll-opt-hide-pct', post.poll.hidePercent);
+    set('pub-poll-opt-hide-voters', post.poll.hideVoters);
+    set('pub-poll-opt-lock', post.poll.locked);
+  }
 }
 
 // ── صورة الملف الشخصي للمُنشئ (بديل كلمة «بواسطة») ──
@@ -7128,7 +7470,9 @@ window.vpToggle = function(btn) {
   if (audio.paused) audio.play().catch(() => {});
   else audio.pause();
 };
-window.vpSeek = function(ev, track) {
+// سحب الإصبع على شريط الصوت للتقديم/التأخير (Pointer Events: لمس + فأرة + قلم)
+let _vpDragging = false;
+function vpApplySeek(ev, track) {
   const card = track.closest('.voice-player-card');
   const audio = card && card.querySelector('audio');
   if (!audio) return;
@@ -7137,6 +7481,23 @@ window.vpSeek = function(ev, track) {
   const rect = track.getBoundingClientRect();
   const ratio = Math.min(1, Math.max(0, (rect.right - ev.clientX) / rect.width)); // الواجهة من اليمين لليسار
   audio.currentTime = ratio * dur;
+  vpSync(audio); // تحديث الشريط والوقت فوراً أثناء السحب
+}
+window.vpTrackDown = function(ev, track) {
+  _vpDragging = true;
+  try { track.setPointerCapture(ev.pointerId); } catch (e) {}
+  vpApplySeek(ev, track);
+  if (ev.cancelable) ev.preventDefault();
+};
+window.vpTrackMove = function(ev, track) {
+  if (!_vpDragging) return;
+  vpApplySeek(ev, track);
+  if (ev.cancelable) ev.preventDefault(); // منع تمرير الصفحة أثناء السحب
+};
+window.vpTrackUp = function(ev, track) {
+  if (!_vpDragging) return;
+  _vpDragging = false;
+  try { track.releasePointerCapture(ev.pointerId); } catch (e) {}
 };
 window.vpSync = function(audio) {
   const card = audio.closest('.voice-player-card');
@@ -7178,7 +7539,7 @@ function getMyVoterKey() {
 // حماية: أي خطأ في المرفقات لا يُسقط عرض قائمة البلاغات
 function safeReportAttachments(r) {
   try { return reportAttachmentsHtml(r); }
-  catch (e) { console.error('خطأ في عرض مرفقات البلاغ:', e); return ''; }
+  catch (e) { console.error('خطأ في عرض مرفقات البلاغ (report id:', r && r.id, '):', e); return ''; }
 }
 function reportAttachmentsHtml(r) {
   let html = '';
@@ -7187,14 +7548,11 @@ function reportAttachmentsHtml(r) {
     .filter(u => typeof u === 'string' && u.length > 0);
   if (imgs.length) {
     const safeUrls = JSON.stringify(imgs).replace(/"/g, '&quot;');
-    // أول صورة تظهر كغلاف كبير، والبقية مصغّرات (حتى 6)
-    const shown = imgs.slice(0, 6);
-    const extra = imgs.length - shown.length;
+    // نعرض كل الصور في شبكة مرتّبة (3 أعمدة) — لا نقطع أي صورة
+    const shown = imgs;
     html += `<div class="report-gallery" data-count="${Math.min(shown.length, 6)}">` +
       shown.map((u, i) => {
-        const more = (extra > 0 && i === shown.length - 1) ? ` report-img-more` : '';
-        const extraAttr = (extra > 0 && i === shown.length - 1) ? ` data-extra="${extra}"` : '';
-        return `<img class="${more.trim()}"${extraAttr} src="${u}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onclick="openLightbox(${safeUrls}, ${i})" onerror="this.style.opacity='0.35'" alt="صورة البلاغ">`;
+        return `<img src="${u}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onclick="openLightbox(${safeUrls}, ${i})" onerror="this.style.opacity='0.35'" alt="صورة">`;
       }).join('') +
       `</div>`;
   }
@@ -7220,14 +7578,19 @@ function reportAttachmentsHtml(r) {
     html += `
       <div class="voice-player-card" data-dur="${vDur}">
         <button type="button" class="vp-play" onclick="vpToggle(this)" aria-label="تشغيل الصوت">▶</button>
-        <div class="vp-track" onclick="vpSeek(event, this)"><div class="vp-fill"></div></div>
+        <div class="vp-track" onpointerdown="vpTrackDown(event, this)" onpointermove="vpTrackMove(event, this)" onpointerup="vpTrackUp(event, this)" onpointercancel="vpTrackUp(event, this)"><div class="vp-fill"></div></div>
         <span class="vp-time">00:00 / ${fmtVoiceTime(vDur)}</span>
         <audio preload="metadata" src="${r.voiceUrl}"
           onplay="vpSync(this)" onpause="vpSync(this)" ontimeupdate="vpSync(this)" onended="vpSync(this)"></audio>
       </div>`;
   }
+  const pollColl = r.__pollColl || 'reports';
   if (r.poll && Array.isArray(r.poll.options) && r.poll.options.length >= 2) {
-    html += reportPollHtml(r);
+    try {
+      html += reportPollHtml(r, pollColl);
+    } catch (e) {
+      console.error('خطأ في renderPollHtml (id:', r && r.id, '):', e);
+    }
   }
   return html;
 }
@@ -7235,78 +7598,88 @@ function pollVoterLabel(key) {
   const k = String(key || '');
   return /^\d{3,6}$/.test(k) ? `زائر ${sanitizeText(k)}` : `@${sanitizeText(k)}`;
 }
-function reportPollHtml(r) {
+function reportPollHtml(r, coll = 'reports') {
+  // دفاعي: إذا لم يُعثر على هياكل البيانات الصحيحة للاستفتاء (خيارات على الأقل 2) - لا نُسقط العرض بالكامل
+  if (!r || !r.poll || !Array.isArray(r.poll.options) || r.poll.options.length < 2) {
+    return '';
+  }
   const p = r.poll;
   const total = p.options.reduce((s, o) => s + (Number(o.votes) || 0), 0);
   const myKey = getMyVoterKey();
   const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(myKey));
   const hidePct = !!p.hidePercent;    // خيار المنشئ: إخفاء النسبة (تظهر الأصوات فقط)
   const hideVoters = !!p.hideVoters;  // خيار المنشئ: إخفاء المصوتين (من صوّت)
-  const lock = p.lockVote !== false;  // خيار المنشئ: منع إعادة الاختيار (الاستفتاءات القديمة = ممنوعة افتراضياً)
+  const lock = p.lockVote === true || p.locked === true; // يقفل إعادة التصويت إذا فعّله المنشئ
   const canChange = votedIdx >= 0 && !lock;
   const bars = p.options.map((o, i) => {
     const v = Number(o.votes) || 0;
     const pct = total ? Math.round((v * 100) / total) : 0;
     const mine = votedIdx === i ? ' mine' : '';
-    const clickable = (votedIdx < 0 || canChange) ? ` onclick="votePoll('${r.id}', ${i})"` : '';
+    const clickable = (votedIdx < 0 || canChange) ? ` onclick="votePoll('${r.id}', ${i}, '${coll}')"` : '';
     const fill = hidePct ? '' : `<div class="fill" data-w="${pct}"></div>`;
     const right = hidePct ? `${v} صوت` : `${pct}% · ${v}`;
+    // وسم صوتي الشخصي + أسماء المصوتين (تُخفى إذا فعّل المنشئ «إخفاء المصوتين»)
+    const mineTag = votedIdx === i
+      ? `<div class="pb-mine">✓ هذا صوتك${!lock ? ' — اضغط خياراً آخر لتغييره' : ''}</div>` : '';
+    const votersLine = (!hideVoters && Array.isArray(o.voters) && o.voters.length)
+      ? `<div class="pb-voters">👥 ${o.voters.map(pollVoterLabel).join('، ')}</div>` : '';
+    const sub = (mineTag || votersLine) ? `<div class="pb-sub">${mineTag}${votersLine}</div>` : '';
     return `
       <div class="poll-bar${mine}"${clickable}>
         ${fill}
         <div class="txt"><span>${sanitizeText(o.text || '')}</span><span>${right}</span></div>
+        ${sub}
       </div>`;
   }).join('');
   const metaTxt = votedIdx < 0
     ? (lock ? 'اضغط على خيارك للتصويت (مرة واحدة لكل شخص)' : 'اضغط على خيارك للتصويت — يمكنك تغيير صوتك')
     : (lock ? '✓ تم تصويتك — شكراً لك' : '✓ صوتك مسجّل — اضغط خياراً آخر لتغييره');
-  // قائمة المصوتين (تُخفى إذا فعّل المنشئ «إخفاء المصوتين»)
-  let votersBlock = '';
-  if (!hideVoters && total > 0) {
-    const rows = p.options
-      .filter(o => Array.isArray(o.voters) && o.voters.length)
-      .map(o => `<li><b>${sanitizeText(o.text || '')}:</b> ${o.voters.map(pollVoterLabel).join('، ')}</li>`)
-      .join('');
-    if (rows) votersBlock = `<details class="poll-voters"><summary>👥 المصوتون (${total})</summary><ul>${rows}</ul></details>`;
-  }
   return `
     <div class="report-poll">
       <div class="report-poll-q">📊 ${sanitizeText(p.question || 'استفتاء')}</div>
       ${bars}
       <div class="poll-meta">${metaTxt} · المجموع: ${total} صوت</div>
-      ${votersBlock}
     </div>`;
 }
-window.votePoll = async function(reportId, idx) {
+window.votePoll = async function(reportId, idx, coll = 'reports') {
   try {
-    const ref = doc(db, 'reports', reportId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const p = snap.data().poll;
-    if (!p || !Array.isArray(p.options)) return;
-    if (!p.options[idx]) return;
+    const ref = doc(db, coll, reportId);
     const key = getMyVoterKey();
-    const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(key));
-    const lock = p.lockVote !== false; // الاستفتاءات القديمة: لا إعادة تصويت افتراضياً
-    if (votedIdx >= 0) {
-      if (lock) { showToast('ℹ️', 'استفتاء', 'لقد صوّتت سابقاً — لا يمكن إعادة التصويت'); return; }
-      if (votedIdx === idx) { showToast('ℹ️', 'استفتاء', 'هذا هو اختيارك الحالي'); return; }
-      // تغيير الصوت: يُنقل من الخيار القديم إلى الجديد
-      await updateDoc(ref, {
-        [`poll.options.${votedIdx}.voters`]: arrayRemove(key),
-        [`poll.options.${votedIdx}.votes`]: increment(-1),
-        [`poll.options.${idx}.voters`]: arrayUnion(key),
-        [`poll.options.${idx}.votes`]: increment(1)
-      });
-      showToast('✅', 'استفتاء', 'تم تغيير صوتك بنجاح');
-      return;
-    }
-    await updateDoc(ref, {
-      [`poll.options.${idx}.voters`]: arrayUnion(key),
-      [`poll.options.${idx}.votes`]: increment(1)
+    const lock = await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error('not-found');
+      const p = snap.data().poll;
+      if (!p || !Array.isArray(p.options)) throw new Error('bad-poll');
+      if (!p.options[idx]) throw new Error('bad-option');
+      const isLock = p.lockVote === true || p.locked === true;
+      // نُحدّد الخيار الحالي للمستخدم داخل المعاملة (قراءة متسقة)
+      const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(key));
+      if (votedIdx === idx) throw new Error('same');
+      if (votedIdx >= 0 && isLock) throw new Error('locked');
+      // نعمل على نسخة مطابقة من الخيارات ونكتب المصفوفة كاملة
+      // (Firestore لا يدعم تدوين النقطة مع فهرس مصفوفة لتحديث عنصر داخل مصفوفة)
+      const options = p.options.map(o => ({
+        ...o,
+        votes: Number(o.votes) || 0,
+        voters: Array.isArray(o.voters) ? o.voters.slice() : []
+      }));
+      if (votedIdx >= 0) {
+        // تغيير الصوت: يُنقل من الخيار القديم إلى الجديد
+        options[votedIdx].voters = options[votedIdx].voters.filter(k => k !== key);
+        options[votedIdx].votes = Math.max(0, options[votedIdx].votes - 1);
+      }
+      options[idx].voters = options[idx].voters.filter(k => k !== key).concat(key);
+      options[idx].votes = options[idx].votes + 1;
+      tx.update(ref, { 'poll.options': options });
+      return { votedIdx, isLock };
     });
-    showToast('✅', 'استفتاء', 'تم تسجيل صوتك بنجاح');
+    if (lock.votedIdx >= 0) showToast('✅', 'استفتاء', 'تم تغيير صوتك بنجاح');
+    else showToast('✅', 'استفتاء', 'تم تسجيل صوتك بنجاح');
   } catch (e) {
+    const msg = e && e.message;
+    if (msg === 'same') { showToast('ℹ️', 'استفتاء', 'هذا هو اختيارك الحالي'); return; }
+    if (msg === 'locked') { showToast('ℹ️', 'استفتاء', 'لقد صوّتت سابقاً — لا يمكن إعادة التصويت'); return; }
+    if (msg === 'not-found' || msg === 'bad-poll' || msg === 'bad-option') return;
     console.error(e);
     showToast('❌', 'خطأ', 'تعذّر تسجيل صوتك — حاول مجدداً');
   }
@@ -7329,7 +7702,7 @@ let reportVoice  = null;          // { blob, url, duration }
 let reportVoiceRec = null;        // MediaRecorder
 let reportVoiceTimer = null, reportVoiceSec = 0, reportVoiceDiscard = false;
 let pollOptionsDraft = ['', ''];  // نصوص خيارات الاستفتاء
-const VOICE_MAX_SEC = 60;
+const VOICE_MAX_SEC = 15 * 60; // الحد الأقصى: 15 دقيقة
 
 function resetReportModal() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
