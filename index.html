@@ -2967,7 +2967,7 @@ async function migrateUserDocToId(found) {
   } catch (e) { console.warn('migrateUserDocToId:', e); return false; }
 }
 
-// تهيئة الحقول الثابتة (userId + emailPrefix) ثم الترحيل إلى مسار المعرّف الرقمي
+// تهيئة الحقول الثابتة (userId + emailPrefix + takenUsernames) ثم الترحيل إلى مسار المعرّف الرقمي
 async function _canonicalizeUserDoc(found) {
   const d = found.data;
   const updates = {};
@@ -2975,7 +2975,19 @@ async function _canonicalizeUserDoc(found) {
     const isOwner = String(d.username || '') === AUTH_OWNER;
     updates.userId = isOwner ? OWNER_USER_ID : await _generateUniqueId();
   }
-  if (!d.emailPrefix && d.username) updates.emailPrefix = d.username; // البريد الداخلي يبقى أوليّاً
+  if (!d.emailPrefix && d.username) {
+    // بريد الدخول = أقدم اسم معروف للحساب (اسم التسجيل غالباً) ولا يتغيّر بتغيير اليوزر
+    const oldest = (Array.isArray(d.takenUsernames) && d.takenUsernames[0]) || d.previousUsername || d.username;
+    updates.emailPrefix = String(oldest).toLowerCase();
+  }
+  // تعبئة قائمة الأسماء المحجوزة للحساب في المستندات القديمة التي تغيّر يوزرها
+  if (!Array.isArray(d.takenUsernames) && (d.previousUsername || (d.emailPrefix && d.emailPrefix !== d.username))) {
+    const t = [];
+    [d.previousUsername, d.emailPrefix, d.username].forEach(v => {
+      const s = String(v || '').trim().toLowerCase(); if (s && !t.includes(s)) t.push(s);
+    });
+    if (t.length > 1) updates.takenUsernames = t;
+  }
   if (Object.keys(updates).length) {
     try { await setDoc(doc(db, 'users', found.id), updates, { merge: true }); Object.assign(d, updates); } catch (e) {}
   }
@@ -2997,6 +3009,20 @@ async function resolveUserDoc(key) {
     const snap = await getDocs(query(collection(db, 'users'), where('username', '==', k), limit(1)));
     if (!snap.empty) byName = { id: snap.docs[0].id, data: snap.docs[0].data() };
   } catch (e) {}
+  let byPrev = null; // اسم سابق بعد تغيير اليوزر — يبقى محجوزاً لصاحبه ولا يُتاح للآخرين
+  if (!byName && !direct) {
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), where('previousUsername', '==', k), limit(1)));
+      if (!snap.empty) byPrev = { id: snap.docs[0].id, data: snap.docs[0].data() };
+    } catch (e) {}
+  }
+  let byTaken = null; // أي اسم استخدمه الحساب سابقاً (كل الأسماء المحجوزة له)
+  if (!byName && !direct && !byPrev) {
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), where('takenUsernames', 'array-contains', k), limit(1)));
+      if (!snap.empty) byTaken = { id: snap.docs[0].id, data: snap.docs[0].data() };
+    } catch (e) {}
+  }
   let byEmail = null; // يغطي استعادة الجلسة بالبريد القديم بعد تغيير اليوزر
   if (!byName && !direct) {
     try {
@@ -3008,18 +3034,48 @@ async function resolveUserDoc(key) {
   let best = null;
   if (direct && /^\d+$/.test(direct.id)) best = direct;
   else if (byName && /^\d+$/.test(byName.id)) best = byName;
-  else best = direct || byName || byEmail;
+  else best = direct || byName || byPrev || byTaken || byEmail;
   if (!best) return null;
   return _canonicalizeUserDoc(best);
 }
 
-// بريد الدخول الداخلي الثابت (لا يتغيّر بتغيير اليوزر) — يُستخدم قبل تسجيل الدخول
-async function resolveLoginPrefix(key) {
+// كل مرشحات بريد الدخول بالترتيب: البريد الثابت ثم الاسم الحالي ثم كل الأسماء السابقة
+// → يتيح لصاحب الحساب تسجيل الدخول بعد تغيير يوزره حتى لو تغيّر بريده الداخلي
+async function resolveLoginCandidates(key) {
   try {
     const found = await resolveUserDoc(key);
-    if (!found) return null;
-    return found.data.emailPrefix || found.data.username || null;
-  } catch (e) { console.warn('resolveLoginPrefix:', e); return null; }
+    if (!found) return [];
+    const d = found.data || {};
+    const list = [];
+    const push = v => { const s = String(v || '').trim().toLowerCase(); if (s && !list.includes(s)) list.push(s); };
+    push(d.emailPrefix);            // بريد الدخول الثابت (الأولوية)
+    push(d.username);               // الاسم الحالي
+    if (Array.isArray(d.takenUsernames)) d.takenUsernames.forEach(push); // كل الأسماء السابقة
+    push(d.previousUsername);       // توافق مع المستندات القديمة
+    push(key);                      // ما كتبه المستخدم
+    return list.slice(0, 6);
+  } catch (e) { console.warn('resolveLoginCandidates:', e); return []; }
+}
+
+// هل الاسم محجوز من أي حساب (مستخدم حالياً أو كاسم سابق)؟
+// self = بيانات الحساب الحالي (accProfile) لاستثنائه حتى يستعيد أسماءه هو وحده
+async function isUsernameTaken(name, self) {
+  const n = String(name || '').trim().toLowerCase();
+  if (!n) return false;
+  const selfId = self ? String(self._id != null ? self._id : (self.id || '')) : '';
+  const selfUserId = self && self.userId != null && self.userId !== '' ? String(self.userId) : '';
+  const isOwn = (id, data) => !!self && (String(id) === selfId ||
+    (selfUserId && String((data || {}).userId || '') === selfUserId));
+  const hit = async q => {
+    try {
+      const snap = await getDocs(q);
+      return !snap.empty && snap.docs.some(dd => !isOwn(dd.id, dd.data()));
+    } catch (e) { return false; }
+  };
+  if (await hit(query(collection(db, 'users'), where('username', '==', n), limit(10)))) return true;
+  if (await hit(query(collection(db, 'users'), where('previousUsername', '==', n), limit(10)))) return true;
+  if (await hit(query(collection(db, 'users'), where('takenUsernames', 'array-contains', n), limit(10)))) return true;
+  return false;
 }
 
 function ensureUserId(username) {
@@ -3319,9 +3375,21 @@ async function doLogin() {
   const btn = document.getElementById('btn-do-login');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
   try {
-    const prefix = await resolveLoginPrefix(username); // يدعم تغيير اليوزر لاحقاً
-    if (!prefix) { showAuthErr('auth-login-err', 'الحساب غير موجود — تحقق من اسم المستخدم'); return; }
-    const cred = await signInWithEmailAndPassword(fireAuth, prefix + AUTH_DOMAIN, password);
+    // يدعم تغيير اليوزر: جرّب البريد الداخلي الثابت ثم الاسم الحالي ثم الأسماء السابقة بالترتيب
+    const candidates = await resolveLoginCandidates(username);
+    if (!candidates.length) { showAuthErr('auth-login-err', 'الحساب غير موجود — تحقق من اسم المستخدم'); return; }
+    let cred = null, lastErr = null;
+    for (const prefix of candidates) {
+      try {
+        cred = await signInWithEmailAndPassword(fireAuth, prefix + AUTH_DOMAIN, password);
+        break;
+      } catch (e) {
+        const c = e && e.code;
+        if (c !== 'auth/invalid-credential' && c !== 'auth/user-not-found' && c !== 'auth/wrong-password' && c !== 'auth/invalid-email') throw e;
+        lastErr = e;
+      }
+    }
+    if (!cred) throw lastErr;
     await loadProfileAndApply(username, cred.user.uid);
     closeModal('login-modal');
     uEl.value = ''; pEl.value = '';
@@ -3370,8 +3438,8 @@ window.doAuthSignup = async function() {
   const btn = document.getElementById('btn-do-signup');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
   try {
-    const dup = await getDocs(query(collection(db, 'users'), where('username', '==', username), limit(1)));
-    if (!dup.empty) { showAuthErr('auth-sign-err','اسم المستخدم مأخوذ، اختر اسماً آخر.'); return; }
+    // الاسم محجوز إن استعمله أي حساب حالياً أو سابقاً — الأسماء القديمة لا تعود متاحة للآخرين
+    if (await isUsernameTaken(username)) { showAuthErr('auth-sign-err','اسم المستخدم مأخوذ، اختر اسماً آخر.'); return; }
     window.__signing = true;
     const cred = await createUserWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password);
     const newUserId = username === AUTH_OWNER ? OWNER_USER_ID : await _generateUniqueId();
@@ -3380,7 +3448,8 @@ window.doAuthSignup = async function() {
       username, fullName, shift, section,
       role: username === AUTH_OWNER ? 'owner' : 'student',
       uid: cred.user.uid, createdAt: new Date(),
-      userId: newUserId, emailPrefix: username // بريد الدخول الثابت (لا يتغيّر بتغيير اليوزر)
+      userId: newUserId, emailPrefix: username, // بريد الدخول الثابت (لا يتغيّر بتغيير اليوزر)
+      takenUsernames: [username]                 // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
     });
     window.__signing = false;
     applyUserProfile({ fullName, username, role: username === AUTH_OWNER ? 'owner' : 'student', shift, section, userId: newUserId }, username, cred.user.uid);
@@ -5942,7 +6011,7 @@ async function deleteMaterial(id) {
 //  واجهة إدارة الحساب والملف الشخصي (Account & Profile)
 //  - تقرأ/تكتب في مجموعة Firestore: users/{username}
 //  - الحقول المضافة على مستند المستخدم: governorate, university, college,
-//    department, stage, course, photoURL, favReaction, usernameChangedAt
+//    department, stage, course, photoURL, favReaction
 //  - تعتمد على المتغيرات الموجودة أعلاه: db, fireAuth, currentUser, ...
 // ════════════════════════════════════════════════════════════════════
 
@@ -5950,7 +6019,6 @@ async function deleteMaterial(id) {
 const ACC_CONFIG = {
   INSTAGRAM_URL: 'https://www.instagram.com/',   // ← ضع رابط حساب إنستغرام الخاص بالمنصة هنا
   APP_VERSION: '1.0.0',                          // ← رقم إصدار الموقع
-  USERNAME_COOLDOWN_DAYS: 14,                    // مدة الانتظار بين كل تغيير لاسم المستخدم
   SUPPORT_COLLECTION: 'support_messages'         // مجموعة Firestore لرسائل الدعم الفني
 };
 
@@ -5969,7 +6037,6 @@ const ACC_EN = {
   secAccount:'Account', personalData:'Personal information', manageAccount:'Account management', manageAccountSub:'Edit your personal and academic info', fullName:'Full name', governorate:'Governorate', university:'University', college:'College', department:'Department',
   shift:'Shift', morning:'Morning', evening:'Evening', stage:'Academic stage', section:'Section', save:'Save changes', saveShort:'Save', cancel:'Cancel', close:'Close', send:'Send', change:'Change',
   changeUsername:'Change username', newUsername:'New username', ruleLen:'3 to 30 characters', ruleChars:'English letters, numbers, dot and underscore (_) only', ruleDots:'No leading/trailing dot and no consecutive dots',
-  currentPassword:'Current password (for confirmation)', cooldownNote:'You can change your username once every 14 days only.',
   secPeriod:'Academic period', periodSub:'The course and stage currently shown', course:'Course',
   secPrefs:'Preferences', appearance:'App appearance', dark:'Dark', light:'Light', auto:'Auto', langEnglish:'English language', langSub:'Switch the interface between Arabic and English',
   quickReaction:'Quick reaction', quickReactionSub:'Your default reaction on the platform',
@@ -6271,28 +6338,21 @@ function accUpdateRules() {
   });
   return r.len && r.chars && r.dots;
 }
-function accCooldownLeftDays() {
-  const last = accToMs(accProfile && accProfile.usernameChangedAt);
-  if (!last) return 0;
-  const left = last + ACC_CONFIG.USERNAME_COOLDOWN_DAYS * 86400000 - Date.now();
-  return left > 0 ? Math.ceil(left / 86400000) : 0;
-}
 function accOpenUsername() {
   accEl('acc-u-input').value = ''; accSetErr('acc-u-err', '');
   accUpdateRules();
   const warn = accEl('acc-u-cooldown');
   if (warn) {
-    warn.classList.remove('red');
     warn.textContent = accLang === 'en'
-      ? 'Change your username any time without a password — your fixed ID, data, and sign-in stay unchanged.'
-      : 'يمكنك تغيير اسم المستخدم في أي وقت وبدون كلمة السر — لن يتغيّر معرّفك الثابت (ID) ولا بياناتك ولا بريد دخولك.';
+      ? 'Change your username any time without a password — your fixed ID, data, and sign-in stay unchanged. Your old username stays reserved for you; nobody else can take it.'
+      : 'يمكنك تغيير اسم المستخدم في أي وقت وبدون كلمة السر — لن يتغيّر معرّفك الثابت (ID) ولا بياناتك ولا بريد دخولك، واسمك القديم يبقى محجوزاً لك ولا يستطيع أحد أخذه.';
   }
   openModal('acc-username-modal');
 }
 async function accSaveUsername() {
   if (!accProfile) return;
   accSetErr('acc-u-err', '');
-  const old = accProfile.username || accProfile._id;
+  const old = String(accProfile.username || accProfile._id).toLowerCase();
   const nu = accEl('acc-u-input').value.trim().toLowerCase().replace(/^\.+|\.+$/g, '');
   // بدون كلمة سر وبدون مهلة انتظار — في أي وقت
   if (!accUpdateRules()) { accSetErr('acc-u-err', 'اسم المستخدم لا يطابق الشروط أعلاه.'); return; }
@@ -6301,18 +6361,35 @@ async function accSaveUsername() {
   const btn = accEl('acc-u-save');
   accBusy(btn, true);
   try {
-    const dup = await getDocs(query(collection(db, 'users'), where('username', '==', nu), limit(1)));
-    if (!dup.empty) throw { code: 'auth/email-already-in-use' };
+    // تأكيد مسار المستند الصحيح قبل الفحص والكتابة (يمنع إنشاء مستند جديد بالخطأ)
+    try {
+      const fresh = await resolveUserDoc(old);
+      if (fresh && fresh.data) {
+        accProfile._id = fresh.id;
+        if (Array.isArray(fresh.data.takenUsernames)) accProfile.takenUsernames = fresh.data.takenUsernames;
+        if (!accProfile.emailPrefix && fresh.data.emailPrefix) accProfile.emailPrefix = fresh.data.emailPrefix;
+        if (!accProfile.userId && fresh.data.userId) accProfile.userId = fresh.data.userId;
+      }
+    } catch (e) {}
+    // الاسم لا يُتاح لأي حساب آخر حتى كاسم سابق — إلا إذا كان اسمك أنت (تستعيد أسماءك وحدك)
+    if (await isUsernameTaken(nu, accProfile)) throw { code: 'auth/email-already-in-use' };
+    // كل الأسماء التي استعملها هذا الحساب تبقى محجوزة له وحده
+    const used = [];
+    const push = v => { const s = String(v || '').trim().toLowerCase(); if (s && !used.includes(s)) used.push(s); };
+    if (Array.isArray(accProfile.takenUsernames)) accProfile.takenUsernames.forEach(push);
+    push(accProfile.emailPrefix);       // بريد الدخول الأصلي اسم قديم أيضاً
+    push(accProfile.previousUsername);
+    push(old);
+    push(nu);
     // تغيير الحقل فقط — مسار المستند (المعرّف الرقمي) وبريد الدخول لا يتغيّران
-    await setDoc(doc(db, 'users', accProfile._id), {
-      username: nu, previousUsername: old, usernameChangedAt: new Date()
-    }, { merge: true });
-    accProfile.username = nu;
-    accProfile.previousUsername = old;
+    const update = { username: nu, previousUsername: old, takenUsernames: used };
+    if (!accProfile.emailPrefix) update.emailPrefix = old; // تثبيت بريد الدخول قبل اختفاء الاسم القديم
+    await setDoc(doc(db, 'users', accProfile._id), update, { merge: true });
+    Object.assign(accProfile, update);
     accApplyToSession();
     accRender();
     closeModal('acc-username-modal');
-    showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + nu + ' — سجّل دخولك به من الآن');
+    showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + nu + ' — سجّل دخولك به من الآن، واسمك القديم بقي محجوزاً لك');
   } catch (e) {
     accSetErr('acc-u-err', accErrMsg(e));
   } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.saveShort : 'حفظ'); }

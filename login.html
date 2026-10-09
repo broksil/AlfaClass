@@ -107,7 +107,7 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,query,where,limit} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const app=initializeApp({apiKey:"AIzaSyDrT10AouY-MAtS4Brt-1fPpPt4YoT8spc",authDomain:"alfaclass-120e3.firebaseapp.com",projectId:"alfaclass-120e3",messagingSenderId:"548886375389",appId:"1:548886375389:web:a49c2a446981cd2836e434"});
@@ -122,10 +122,22 @@ const findUser=async(name)=>{
   if(!name)return null;
   try{const q=await getDocs(query(collection(db,'users'),where('username','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
   try{const s=await getDoc(doc(db,'users',name));if(s.exists())return{d:s.data(),id:s.id};}catch(e){}
+  // الأسماء السابقة تبقى محجوزة لصاحبها — دعم الدخول/البحث بها بعد تغيير اليوزر
+  try{const q=await getDocs(query(collection(db,'users'),where('previousUsername','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
+  try{const q=await getDocs(query(collection(db,'users'),where('takenUsernames','array-contains',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
   try{const q=await getDocs(query(collection(db,'users'),where('emailPrefix','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
   return null;
 };
-const loginPrefix=async(name)=>{const f=await findUser(name);return f?(f.d.emailPrefix||f.d.username||name):name;};
+const loginCandidates=async(name)=>{
+  const f=await findUser(name);
+  if(!f)return [name];
+  const d=f.d,list=[];
+  const push=v=>{v=String(v||'').trim().toLowerCase();if(v&&!list.includes(v))list.push(v);};
+  push(d.emailPrefix);push(d.username);                          // البريد الثابت ثم الاسم الحالي
+  if(Array.isArray(d.takenUsernames))d.takenUsernames.forEach(push); // كل الأسماء السابقة
+  push(d.previousUsername);push(name);                           // توافق مع القديم + ما كتبه المستخدم
+  return list.slice(0,6);
+};
 
 /* ===== إذا كان المستخدم مسجل دخوله بالفعل، انقله مباشرة ===== */
 onAuthStateChanged(auth,u=>{
@@ -191,8 +203,16 @@ $('#loginBtn').onclick=async()=>{
   const b=$('#loginBtn');b.disabled=true;
   try{
     const name=u.value.trim().toLowerCase();
-    const prefix=await loginPrefix(name); // يدعم تغيير اليوزر لاحقاً (البريد الداخلي ثابت)
-    const cred=await signInWithEmailAndPassword(auth,prefix+DOMAIN,p.value);
+    // يدعم تغيير اليوزر: جرّب البريد الداخلي الثابت ثم الاسم الحالي ثم الأسماء السابقة بالترتيب
+    const candidates=await loginCandidates(name);
+    let cred=null,lastErr=null;
+    for(const prefix of candidates){
+      try{cred=await signInWithEmailAndPassword(auth,prefix+DOMAIN,p.value);break;}
+      catch(e){const c=e&&e.code;
+        if(c!=='auth/invalid-credential'&&c!=='auth/user-not-found'&&c!=='auth/wrong-password'&&c!=='auth/invalid-email')throw e;
+        lastErr=e;}
+    }
+    if(!cred)throw lastErr;
     const f=await findUser(name);
     if(f){
       const d=f.d;
@@ -237,9 +257,16 @@ $('#signBtn').onclick=async()=>{
   const b=$('#signBtn');b.disabled=true;
   try{
     const name=un.toLowerCase();
-    // تحقق من عدم تكرار اسم المستخدم (بالحقل username لا بالمسار)
-    const dupSnap=await getDocs(query(collection(db,'users'),where('username','==',name),limit(1)));
-    if(!dupSnap.empty){
+    // تحقق من التكرار: الاسم الحالي أو أي اسم سابق لأي حساب (الأسماء القديمة تبقى محجوزة لأصحابها)
+    const nameTaken=async(f)=>{
+      try{
+        const q=f==='taken'
+          ? await getDocs(query(collection(db,'users'),where('takenUsernames','array-contains',name),limit(1)))
+          : await getDocs(query(collection(db,'users'),where(f,'==',name),limit(1)));
+        return !q.empty;
+      }catch(e){return false;}
+    };
+    if(await nameTaken('username')||await nameTaken('previousUsername')||await nameTaken('taken')){
       showForm('#signErr','اسم المستخدم مأخوذ، اختر اسماً آخر.');
       b.disabled=false;
       return;
@@ -253,7 +280,8 @@ $('#signBtn').onclick=async()=>{
       shift:radio('shift'),section:radio('section'),
       role:name===OWNER?'owner':'student',
       uid:cred.user.uid,createdAt:serverTimestamp(),
-      userId:newUserId,emailPrefix:name // بريد الدخول الثابت
+      userId:newUserId,emailPrefix:name, // بريد الدخول الثابت
+      takenUsernames:[name]              // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
     });
     window.__signing=false;
     // حفظ البيانات في localStorage
