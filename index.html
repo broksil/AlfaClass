@@ -493,6 +493,18 @@
     font-size: 13px; font-weight: 700; cursor: pointer;
   }
   .poll-add:active { transform: scale(0.98); }
+  /* خيارات الاستفتاء داخل واجهة النشر */
+  .poll-flags {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 12px;
+    padding: 10px 12px; border: 1px dashed var(--border);
+    border-radius: 12px; background: rgba(255,255,255,0.03);
+  }
+  .poll-flag { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 700; color: var(--text-primary); cursor: pointer; }
+  .poll-flag input { width: 17px; height: 17px; accent-color: var(--accent2); cursor: pointer; flex-shrink: 0; }
+  /* قائمة المصوتين داخل بطاقة البلاغ */
+  .poll-voters { margin-top: 8px; font-size: 11.5px; color: var(--text-secondary); }
+  .poll-voters summary { cursor: pointer; color: var(--text-muted); font-weight: 700; width: fit-content; }
+  .poll-voters ul { margin: 6px 0 0; padding-inline-start: 18px; display: flex; flex-direction: column; gap: 4px; }
 
   /* ── عرض المرفقات داخل بطاقة البلاغ ── */
   .report-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
@@ -2608,7 +2620,12 @@
       <input class="form-input" id="poll-question" placeholder="سؤال الاستفتاء؟ مثال: نفضّل المحاضرة صباحاً" maxlength="160" autocomplete="off">
       <div class="poll-options" id="poll-options"></div>
       <button type="button" class="poll-add" onclick="addPollOption()">+ إضافة خيار</button>
-      <div class="att-hint">من خيارين إلى 6 — يصوّت الجميع (مرة واحدة لكل شخص).</div>
+      <div class="poll-flags">
+        <label class="poll-flag"><input type="checkbox" id="poll-opt-hide-pct"><span>إخفاء النسبة — تظهر الأصوات فقط</span></label>
+        <label class="poll-flag"><input type="checkbox" id="poll-opt-hide-voters"><span>إخفاء المصوتين — لا يظهر من صوّت</span></label>
+        <label class="poll-flag"><input type="checkbox" id="poll-opt-lock" checked><span>لا يمكن إعادة الاختيار أو إعادة التصويت</span></label>
+      </div>
+      <div class="att-hint">من خيارين إلى 6 — يصوّت الجميع: أصحاب الحسابات باسمهم والزوار بمعرّف مجهول.</div>
     </div>
 
     <button class="btn-submit" id="btn-do-report">🚀 نشر البلاغ</button>
@@ -2915,7 +2932,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getFirestore, collection, onSnapshot, addDoc, query, orderBy, limitToLast, limit,
-  updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion, getCountFromServer
+  updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion, arrayRemove, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthChanged, signOut as firebaseSignOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -6792,7 +6809,7 @@ window.toggleAttPanel = function(name) {
     if (name === 'images') { reportImages = []; renderReportImages(); }
     if (name === 'files')  { reportFiles = []; renderReportFiles(); }
     if (name === 'voice')  { clearReportVoice(); }
-    if (name === 'poll')   { pollOptionsDraft = ['', '']; }
+    if (name === 'poll')   { pollOptionsDraft = ['', '']; resetPollFlags(); }
   }
 };
 
@@ -6945,7 +6962,24 @@ function buildReportPoll() {
   const opts = pollOptionsDraft.map(s => (s || '').trim()).filter(Boolean);
   if (q.length < 3) return { ok: false, err: 'اكتب سؤال الاستفتاء (3 أحرف على الأقل)' };
   if (opts.length < 2) return { ok: false, err: 'أضف خيارين على الأقل للاستفتاء' };
-  return { ok: true, poll: { question: q, options: opts.map((t, i) => ({ id: i, text: t, votes: 0, voters: [] })) } };
+  const ck = id => !!document.getElementById(id)?.checked;
+  return {
+    ok: true,
+    poll: {
+      question: q,
+      options: opts.map((t, i) => ({ id: i, text: t, votes: 0, voters: [] })),
+      hidePercent: ck('poll-opt-hide-pct'),    // إخفاء النسبة — تظهر الأصوات فقط
+      hideVoters:  ck('poll-opt-hide-voters'), // إخفاء المصوتين (من صوّت)
+      lockVote:    ck('poll-opt-lock')         // لا يمكن إعادة الاختيار/إعادة التصويت
+    }
+  };
+}
+// إعادة خيارات الاستفتاء لقيمها الافتراضية (النسبة ظاهرة، المصوتون ظاهرون، التصويت مغلق)
+function resetPollFlags() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+  set('poll-opt-hide-pct', false);
+  set('poll-opt-hide-voters', false);
+  set('poll-opt-lock', true);
 }
 
 // ── صورة الملف الشخصي للمُنشئ (بديل كلمة «بواسطة») ──
@@ -7085,27 +7119,50 @@ function reportAttachmentsHtml(r) {
   }
   return html;
 }
+function pollVoterLabel(key) {
+  const k = String(key || '');
+  return /^\d{3,6}$/.test(k) ? `زائر ${sanitizeText(k)}` : `@${sanitizeText(k)}`;
+}
 function reportPollHtml(r) {
   const p = r.poll;
   const total = p.options.reduce((s, o) => s + (Number(o.votes) || 0), 0);
   const myKey = getMyVoterKey();
   const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(myKey));
+  const hidePct = !!p.hidePercent;    // خيار المنشئ: إخفاء النسبة (تظهر الأصوات فقط)
+  const hideVoters = !!p.hideVoters;  // خيار المنشئ: إخفاء المصوتين (من صوّت)
+  const lock = p.lockVote !== false;  // خيار المنشئ: منع إعادة الاختيار (الاستفتاءات القديمة = ممنوعة افتراضياً)
+  const canChange = votedIdx >= 0 && !lock;
   const bars = p.options.map((o, i) => {
     const v = Number(o.votes) || 0;
     const pct = total ? Math.round((v * 100) / total) : 0;
     const mine = votedIdx === i ? ' mine' : '';
-    const clickable = votedIdx < 0 ? ` onclick="votePoll('${r.id}', ${i})"` : '';
+    const clickable = (votedIdx < 0 || canChange) ? ` onclick="votePoll('${r.id}', ${i})"` : '';
+    const fill = hidePct ? '' : `<div class="fill" data-w="${pct}"></div>`;
+    const right = hidePct ? `${v} صوت` : `${pct}% · ${v}`;
     return `
       <div class="poll-bar${mine}"${clickable}>
-        <div class="fill" data-w="${pct}"></div>
-        <div class="txt"><span>${sanitizeText(o.text || '')}</span><span>${pct}% · ${v}</span></div>
+        ${fill}
+        <div class="txt"><span>${sanitizeText(o.text || '')}</span><span>${right}</span></div>
       </div>`;
   }).join('');
+  const metaTxt = votedIdx < 0
+    ? (lock ? 'اضغط على خيارك للتصويت (مرة واحدة لكل شخص)' : 'اضغط على خيارك للتصويت — يمكنك تغيير صوتك')
+    : (lock ? '✓ تم تصويتك — شكراً لك' : '✓ صوتك مسجّل — اضغط خياراً آخر لتغييره');
+  // قائمة المصوتين (تُخفى إذا فعّل المنشئ «إخفاء المصوتين»)
+  let votersBlock = '';
+  if (!hideVoters && total > 0) {
+    const rows = p.options
+      .filter(o => Array.isArray(o.voters) && o.voters.length)
+      .map(o => `<li><b>${sanitizeText(o.text || '')}:</b> ${o.voters.map(pollVoterLabel).join('، ')}</li>`)
+      .join('');
+    if (rows) votersBlock = `<details class="poll-voters"><summary>👥 المصوتون (${total})</summary><ul>${rows}</ul></details>`;
+  }
   return `
     <div class="report-poll">
       <div class="report-poll-q">📊 ${sanitizeText(p.question || 'استفتاء')}</div>
       ${bars}
-      <div class="poll-meta">${votedIdx < 0 ? 'اضغط على خيارك للتصويت (مرة واحدة)' : '✓ تم تصويتك — شكراً لك'} · المجموع: ${total} صوت</div>
+      <div class="poll-meta">${metaTxt} · المجموع: ${total} صوت</div>
+      ${votersBlock}
     </div>`;
 }
 window.votePoll = async function(reportId, idx) {
@@ -7115,12 +7172,23 @@ window.votePoll = async function(reportId, idx) {
     if (!snap.exists()) return;
     const p = snap.data().poll;
     if (!p || !Array.isArray(p.options)) return;
+    if (!p.options[idx]) return;
     const key = getMyVoterKey();
-    if (p.options.some(o => Array.isArray(o.voters) && o.voters.includes(key))) {
-      showToast('ℹ️', 'استفتاء', 'لقد صوّتت سابقاً — صوتك مسجّل');
+    const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(key));
+    const lock = p.lockVote !== false; // الاستفتاءات القديمة: لا إعادة تصويت افتراضياً
+    if (votedIdx >= 0) {
+      if (lock) { showToast('ℹ️', 'استفتاء', 'لقد صوّتت سابقاً — لا يمكن إعادة التصويت'); return; }
+      if (votedIdx === idx) { showToast('ℹ️', 'استفتاء', 'هذا هو اختيارك الحالي'); return; }
+      // تغيير الصوت: يُنقل من الخيار القديم إلى الجديد
+      await updateDoc(ref, {
+        [`poll.options.${votedIdx}.voters`]: arrayRemove(key),
+        [`poll.options.${votedIdx}.votes`]: increment(-1),
+        [`poll.options.${idx}.voters`]: arrayUnion(key),
+        [`poll.options.${idx}.votes`]: increment(1)
+      });
+      showToast('✅', 'استفتاء', 'تم تغيير صوتك بنجاح');
       return;
     }
-    if (!p.options[idx]) return;
     await updateDoc(ref, {
       [`poll.options.${idx}.voters`]: arrayUnion(key),
       [`poll.options.${idx}.votes`]: increment(1)
@@ -7157,7 +7225,7 @@ function resetReportModal() {
   reportImages = []; reportFiles = [];
   renderReportImages(); renderReportFiles();
   clearReportVoice();
-  pollOptionsDraft = ['', '']; renderPollOptions();
+  pollOptionsDraft = ['', '']; renderPollOptions(); resetPollFlags();
   ['images', 'files', 'voice', 'poll'].forEach(n => {
     const chip = document.getElementById('chip-' + n);
     const panel = document.getElementById('att-panel-' + n);
