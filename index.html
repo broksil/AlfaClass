@@ -207,6 +207,114 @@
   .btn-notif:active .notif-badge { transform: scale(0.85); }
   @keyframes badgePop { 0% { transform: scale(0.3); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
 
+  /* ── وضع الملازم: إخفاء الهيدر (الأعلى) — شريط التنقّل السفلي يبقى ظاهراً ── */
+  body.materials-mode header { display: none !important; }
+  /* في وضع الملازم لا حاجة لمساحة سفلية إضافية (الشريط السفلي يبقى كما هو) */
+  body.materials-mode { padding-bottom: calc(var(--safe-bottom) + 90px); }
+
+  /* ── شريط بحث الملازم (ثابت بالأعلى في واجهة الملازم فقط) ── */
+  .materials-search-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+    padding: 0;
+    height: 64px;
+    background: var(--bg-primary); /* خلفية معتمة صلبة — لا يظهر شيء خلفها */
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.35);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .materials-search-ico { font-size: 16px; flex-shrink: 0; opacity: 0.7; margin-right: 2px; }
+  .materials-search-bar input {
+    flex: 1; min-width: 0;
+    margin: 0 0 0 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 999px;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    font-size: 14px; font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .materials-search-bar input::placeholder { color: var(--text-secondary); }
+  .materials-search-bar input:focus {
+    border-color: var(--border-active);
+    background: rgba(255,255,255,0.09);
+  }
+  .materials-search-bar input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+  /* ── زر القلوب (المفضلة) — يمين شريط الهيدر في واجهة الملازم ── */
+  .mats-fav-btn {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    margin-right: 12px;
+    padding: 0;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #f43f5e;
+    font-size: 18px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    font-family: var(--font);
+  }
+  .mats-fav-btn:active { transform: scale(0.9); }
+  .mats-fav-btn.active {
+    background: rgba(244,63,94,0.18);
+    border-color: rgba(244,63,94,0.5);
+    box-shadow: 0 0 14px rgba(244,63,94,0.35);
+  }
+  .mats-fav-btn .fav-badge {
+    position: absolute; top: -6px; left: -6px;
+    min-width: 17px; height: 17px; padding: 0 4px;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    color: #fff; font-size: 9.5px; font-weight: 800;
+    border-radius: 999px;
+    border: 2px solid var(--bg-primary);
+    box-shadow: 0 2px 8px rgba(244,63,94,0.5);
+    display: none; align-items: center; justify-content: center;
+  }
+  .mats-fav-btn .fav-badge.show { display: flex; }
+
+  /* حذف مساحة الهيدر المحجوزة (80px) في وضع الملازم — لا يوجد هيدر هنا، والمحتوى يبدأ تحت شريط البحث مباشرة */
+  body.materials-mode main { padding-top: 0; }
+  /* دفع محتوى الملازم للأسفل حتى لا يمرّ تحت شريط البحث الثابت (64px) */
+  body.materials-mode #view-materials { padding-top: 64px; }
+
+  /* ── تصنيفات المواد الأفقية (قابلة للتمرير يمين/يسار) ── */
+  .subject-chips {
+    display: flex; gap: 8px;
+    overflow-x: auto;
+    padding: 6px 14px 10px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .subject-chips::-webkit-scrollbar { display: none; }
+  .subject-chip {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-family: var(--font);
+  }
+  .subject-chip .subject-chip-ico { font-size: 15px; }
+  .subject-chip.active {
+    background: rgba(124,58,237,0.18);
+    border-color: var(--border-active);
+    color: var(--accent2);
+  }
+  .subject-chip:active { transform: scale(0.96); }
+
   /* زر تسجيل الدخول */
   .btn-login {
     display: flex; align-items: center; gap: 6px;
@@ -656,32 +764,6 @@
   }
   .btn-back-materials:active { transform: scale(0.92); }
 
-  .semester-tabs {
-    display: flex; gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    margin-bottom: 12px;
-    scrollbar-width: none;
-  }
-  .semester-tabs::-webkit-scrollbar { display: none; }
-  .semester-tab {
-    flex-shrink: 0;
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-size: 13px; font-weight: 700;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    font-family: var(--font);
-  }
-  .semester-tab.active {
-    background: linear-gradient(135deg, var(--accent), #4f46e5);
-    color: #fff; border-color: transparent;
-    box-shadow: 0 3px 14px var(--accent-glow);
-  }
 
   .type-chips {
     display: flex; gap: 8px;
@@ -708,6 +790,14 @@
     background: rgba(124,58,237,0.18);
     border-color: var(--border-active);
     color: var(--accent2);
+  }
+  /* شريط الأنواع داخل واجهة إضافة/تعديل الملزمة — متعدد الاختيار مع علامة ✓ */
+  .mat-type-chips {
+    margin-top: 4px; margin-bottom: 0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px 10px;
   }
 
   .materials-grid {
@@ -747,6 +837,26 @@
     line-height: 1.4;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  /* ── زر القلوب على بطاقة الملزمة + عدّاد الإعجابات ── */
+  .mat-like {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    margin: 0 8px 10px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 11px; font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .mat-like:active { transform: scale(0.94); }
+  .mat-like.liked {
+    background: rgba(244,63,94,0.15);
+    border-color: rgba(244,63,94,0.45);
+    color: #fb7185;
   }
   .materials-empty {
     grid-column: 1 / -1;
@@ -808,7 +918,66 @@
   .material-detail-cover img { width: 100%; height: 100%; object-fit: contain; }
   .material-detail-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .material-detail-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+  /* ── صف معلومات الناشر + تاريخ النشر + زر القلوب في تفاصيل الملزمة ── */
+  .material-detail-meta {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .md-pub { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .md-avatar {
+    position: relative; overflow: hidden;
+    width: 38px; height: 38px; border-radius: 50%; flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    color: #fff; font-size: 15px; font-weight: 800;
+  }
+  .md-avatar .avatar-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .md-pub-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.4; }
+  .md-pub-text b {
+    font-size: 13px; font-weight: 800; color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .md-pub-text small { font-size: 11px; color: var(--text-muted); }
+  .md-like {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    font-family: var(--font); font-size: 13px; font-weight: 800;
+    cursor: pointer; flex: 0 0 auto;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .md-like:active { transform: scale(0.94); }
+  .md-like.liked {
+    background: rgba(244,63,94,0.15);
+    border-color: rgba(244,63,94,0.45);
+    color: #fb7185;
+  }
   .material-detail-desc { font-size: 13.5px; color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap; margin-bottom: 14px; }
+  /* معرض مرفقات مرتب داخل تفاصيل الملزمة: قسم صور + قسم ملفات (متعدد الملفات/الصور) */
+  .md-att-sec { margin-bottom: 14px; }
+  .md-att-head { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+  .md-att-count { background: rgba(124,58,237,0.18); color: var(--accent2); border-radius: 99px; padding: 1px 8px; font-size: 11px; font-weight: 800; }
+  .md-att-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .md-att-gallery[data-count="1"] { grid-template-columns: 1fr; }
+  .md-att-gallery[data-count="2"] { grid-template-columns: 1fr 1fr; }
+  .md-att-gallery[data-count="4"] { grid-template-columns: 1fr 1fr; } /* 4 صور → شبكة 2×2 متناظرة */
+  .md-att-gallery img { width: 100%; height: 110px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s; }
+  .md-att-gallery[data-count="1"] img { height: 220px; object-fit: contain; background: rgba(0,0,0,0.25); }
+  .md-att-gallery[data-count="2"] img { height: 150px; }
+  .md-att-gallery[data-count="4"] img { height: 140px; }
+  .md-att-gallery img:active { transform: scale(0.97); }
+  .md-att-gallery img:hover { filter: brightness(1.08); }
+  .md-att-files { display: flex; flex-direction: column; gap: 8px; }
+  .md-att-file { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+  .md-att-file:active { transform: scale(0.98); }
+  .md-att-file:hover { border-color: var(--border-active); background: rgba(124,58,237,0.08); }
+  .md-att-file-ico { width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: rgba(124,58,237,0.15); font-size: 16px; }
+  .md-att-file-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .md-att-file-name { font-size: 13px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .md-att-file-meta { font-size: 11px; color: var(--text-muted); }
+  .md-att-file-dl { flex-shrink: 0; font-size: 15px; }
   .material-detail-index-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
   .material-detail-index { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; }
   .material-detail-index ol { padding-inline-start: 18px; font-size: 13px; line-height: 2; color: var(--text-primary); }
@@ -1357,7 +1526,8 @@
 
   /* ── LIGHTBOX ── */
   #lightbox {
-    position: fixed; inset: 0; z-index: 900;
+    /* 990: فوق المودالات (.modal-overlay = 950) لتظهر الصورة بالأمام عند الضغط داخل تفاصيل المنشور، وتحت التنبيهات (1001) ونافذة التأكيد (1100) */
+    position: fixed; inset: 0; z-index: 990;
     background: rgba(0,0,0,0.95);
     display: none; align-items: center; justify-content: center;
   }
@@ -1368,6 +1538,9 @@
     z-index: 901; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
   }
   .lightbox-counter { color: #fff; font-size: 15px; font-weight: 700; direction: ltr; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  /* عنوان اسم الملزمة داخل العارض — يُميّز المنشور عند كثرة الملازم (يختفي إن لم يُمرَّر) */
+  .lightbox-title { flex: 1; min-width: 0; margin: 0 10px; color: #fff; font-size: 14px; font-weight: 800; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  .lightbox-title:empty { display: none; }
   .lightbox-actions { display: flex; gap: 12px; }
   .lightbox-btn {
     background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: #fff;
@@ -2133,28 +2306,21 @@
 
     <!-- ── قسم الملازم ── -->
     <div id="view-materials" style="display:none">
-      <!-- شاشة اختيار المادة -->
-      <div id="materials-subjects-screen">
-        <div class="section-header">
-          <div></div>
-          <div>
-            <div class="section-title">الملازم 📚</div>
-            <div class="section-sub">اختر المادة لعرض ملازمها</div>
-          </div>
-        </div>
-        <div class="subject-grid" id="subject-grid"></div>
+
+      <!-- شريط بحث الملازم (ثابت بالأعلى في هذه الواجهة فقط) -->
+      <div class="materials-search-bar" id="materials-search-bar" style="display:none">
+        <!-- زر القلوب (المفضلة) — يمين الهيدر: يفتح واجهة الملازم التي ضغط عليها القلب -->
+        <button type="button" class="mats-fav-btn" id="materials-fav-btn" onclick="toggleMaterialsFavorites()" aria-label="الملازم التي أعجبت بها">
+          ❤️
+          <span class="fav-badge" id="materials-fav-badge">0</span>
+        </button>
+        <span class="materials-search-ico">🔍</span>
+        <input type="search" id="materials-search-input" placeholder="ابحث عن مادة..." autocomplete="off" oninput="handleMaterialsSearch(this.value)">
       </div>
 
-      <!-- شاشة ملازم المادة -->
-      <div id="materials-subject-detail" style="display:none">
-        <div class="materials-header">
-          <button class="btn-back-materials" onclick="closeSubjectDetail()">←</button>
-          <div>
-            <div class="section-title" id="materials-subject-title">المادة</div>
-            <div class="section-sub" id="materials-subject-count">0 ملزمة</div>
-          </div>
-        </div>
-        <div class="semester-tabs" id="semester-tabs"></div>
+      <!-- شاشة الملازم الموحّدة: تصنيفات أفقية (الكل + المواد) + فلتر نوع + شبكة الملازم -->
+      <div id="materials-subject-detail">
+        <div class="subject-chips" id="subject-chips"></div>
         <div class="type-chips" id="type-chips"></div>
         <div class="materials-grid" id="materials-grid"></div>
         <div class="pagination" id="materials-pagination"></div>
@@ -2529,16 +2695,12 @@
       <select class="form-select" id="mat-subject"><option value="" disabled selected hidden>اختر المادة...</option></select>
     </div>
     <div class="form-group">
-      <label class="form-label">الفصل الدراسي</label>
-      <select class="form-select" id="mat-semester"><option value="" disabled selected hidden>اختر الفصل...</option></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">النوع</label>
-      <select class="form-select" id="mat-type"><option value="" disabled selected hidden>اختر النوع...</option></select>
+      <label class="form-label">النوع <small style="color:var(--text-muted);font-weight:600;">— اختر نوعاً أو أكثر (✓)</small></label>
+      <div class="type-chips mat-type-chips" id="mat-type-chips"></div>
     </div>
     <div class="form-group">
       <label class="form-label">اسم الملزمة</label>
-      <input class="form-input" id="mat-name" placeholder="مثال: ملزمة الفصل الأول" autocomplete="off">
+      <input class="form-input" id="mat-name" placeholder="مثال: ملزمة المادة" autocomplete="off">
     </div>
     <div class="form-group">
       <label class="form-label">الوصف (اختياري)</label>
@@ -2546,15 +2708,34 @@
     </div>
     <div class="form-group">
       <label class="form-label">الفهرس (اختياري — سطر لكل عنوان)</label>
-      <textarea class="form-textarea" id="mat-index" placeholder="الفصل الأول: ...&#10;الفصل الثاني: ..." autocomplete="off"></textarea>
+      <textarea class="form-textarea" id="mat-index" placeholder="اكتب عناوين الفهرس — سطر لكل عنوان..." autocomplete="off"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">الملف / الصورة</label>
-      <div class="upload-zone" id="mat-upload-zone" onclick="document.getElementById('mat-file').click()">
-        <div class="upload-icon">📎</div>
-        <div id="mat-upload-label">اضغط لإرفاق ملف أو صورة</div>
-        <input type="file" id="mat-file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden>
+      <label class="form-label">إرفاق (اختياري)</label>
+      <div class="att-chips">
+        <button type="button" class="att-chip" id="chip-mat-images" onclick="toggleMatAttPanel('images')">📷 صور</button>
+        <button type="button" class="att-chip" id="chip-mat-files" onclick="toggleMatAttPanel('files')">📄 ملفات</button>
       </div>
+    </div>
+
+    <!-- لوح: الصور (حتى 30) -->
+    <div class="form-group att-panel hidden" id="att-panel-mat-images">
+      <div class="upload-zone" onclick="document.getElementById('mat-images-input').click()">
+        <div class="upload-icon">🖼️</div>
+        <div>اضغط لاختيار صور (حتى 30 صورة)</div>
+        <input type="file" id="mat-images-input" accept="image/*" multiple hidden onchange="handleMatImages(this)">
+      </div>
+      <div class="upload-preview" id="mat-images-preview"></div>
+    </div>
+
+    <!-- لوح: الملفات (حتى 3) -->
+    <div class="form-group att-panel hidden" id="att-panel-mat-files">
+      <div class="upload-zone" onclick="document.getElementById('mat-files-input').click()">
+        <div class="upload-icon">📎</div>
+        <div>اضغط لاختيار ملفات (حتى 3 ملفات)</div>
+        <input type="file" id="mat-files-input" multiple hidden onchange="handleMatFiles(this)">
+      </div>
+      <div class="rep-files-list" id="mat-files-list"></div>
     </div>
     <div class="progress-bar" id="mat-progress-bar"><div class="progress-fill" id="mat-progress-fill"></div></div>
     <button class="btn-submit" id="btn-do-material">🚀 نشر</button>
@@ -2572,7 +2753,22 @@
     <div class="material-detail-cover" id="material-detail-cover"></div>
     <div class="material-detail-badges" id="material-detail-badges"></div>
     <div class="material-detail-title" id="material-detail-title"></div>
+    <!-- ── معلومات الناشر + تاريخ النشر + زر الإعجاب ── -->
+    <div class="material-detail-meta">
+      <div class="md-pub">
+        <span class="md-avatar" id="material-detail-avatar"></span>
+        <span class="md-pub-text">
+          <b id="material-detail-publisher"></b>
+          <small id="material-detail-date"></small>
+        </span>
+      </div>
+      <button type="button" class="md-like" id="material-detail-like" onclick="toggleMaterialDetailLike()">
+        <span class="md-like-ico">🤍</span>
+        <span class="md-like-count">0</span>
+      </button>
+    </div>
     <div class="material-detail-desc" id="material-detail-desc"></div>
+    <div class="material-detail-attachments" id="material-detail-attachments"></div>
     <div id="material-detail-index-wrap" style="display:none">
       <div class="material-detail-index-title">📑 الفهرس</div>
       <div class="material-detail-index"><ol id="material-detail-index-list"></ol></div>
@@ -2634,7 +2830,7 @@
     <div class="form-group att-panel hidden" id="att-panel-images">
       <div class="upload-zone" onclick="document.getElementById('rep-images-input').click()">
         <div class="upload-icon">🖼️</div>
-        <div>اضغط لاختيار صور (حتى 20 صورة)</div>
+        <div>اضغط لاختيار صور (حتى 30 صورة)</div>
         <input type="file" id="rep-images-input" accept="image/*" multiple hidden onchange="handleReportImages(this)">
       </div>
       <div class="upload-preview" id="rep-images-preview"></div>
@@ -2644,7 +2840,7 @@
     <div class="form-group att-panel hidden" id="att-panel-files">
       <div class="upload-zone" onclick="document.getElementById('rep-files-input').click()">
         <div class="upload-icon">📎</div>
-        <div>اضغط لاختيار ملفات (حتى 20 ملف)</div>
+        <div>اضغط لاختيار ملفات (حتى 3 ملفات)</div>
         <input type="file" id="rep-files-input" multiple hidden onchange="handleReportFiles(this)">
       </div>
       <div class="rep-files-list" id="rep-files-list"></div>
@@ -2711,6 +2907,7 @@
 <div id="lightbox" onclick="closeLightbox()">
   <div class="lightbox-header" onclick="event.stopPropagation()">
     <span class="lightbox-counter" id="lightbox-counter"></span>
+    <span class="lightbox-title" id="lightbox-title"></span>
     <div class="lightbox-actions">
       <a id="lightbox-download" href="#" download="صورة" class="lightbox-btn" title="تحميل">⬇️</a>
       <button onclick="closeLightbox()" class="lightbox-btn" title="إغلاق">✖</button>
@@ -2853,7 +3050,7 @@
     <div class="form-group att-panel hidden" id="pub-att-panel-images">
       <div class="upload-zone" onclick="document.getElementById('pub-images-input').click()">
         <div class="upload-icon">🖼️</div>
-        <div>اضغط لاختيار صور (حتى 20 صورة)</div>
+        <div>اضغط لاختيار صور (حتى 30 صورة)</div>
         <input type="file" id="pub-images-input" accept="image/*" multiple hidden onchange="handlePubImages(this)">
       </div>
       <div class="upload-preview" id="pub-images-preview"></div>
@@ -2863,7 +3060,7 @@
     <div class="form-group att-panel hidden" id="pub-att-panel-files">
       <div class="upload-zone" onclick="document.getElementById('pub-files-input').click()">
         <div class="upload-icon">📎</div>
-        <div>اضغط لاختيار ملفات (حتى 20 ملف)</div>
+        <div>اضغط لاختيار ملفات (حتى 3 ملفات)</div>
         <input type="file" id="pub-files-input" multiple hidden onchange="handlePubFiles(this)">
       </div>
       <div class="rep-files-list" id="pub-files-list"></div>
@@ -5527,6 +5724,10 @@ async function openNotificationTarget(n) {
     setActiveNav('schedule');
     const mat = await waitForEl(() => (typeof allMaterials !== 'undefined' ? allMaterials : []).find(m => String(m.id) === String(id)));
     if (mat) {
+      // مسح البحث المتبقي حتى لا يُخفي الملزمة المطلوبة من الشبكة
+      const si = document.getElementById('materials-search-input');
+      if (si) si.value = '';
+      materialsSearchQuery = '';
       openSubjectDetail(mat.subject);
       // الانتقال إلى الصفحة التي تحتوي على هذه الملزمة (لأن الشبكة مُرقّمة)
       try {
@@ -5731,30 +5932,171 @@ if (messaging) {
 
 const SUBJECTS       = ['المحاسبة المتوسطة','النظام المحاسبي الموحد','الحكومية','الخطر','التطبيقات','الجرائم','أخرى'];
 const SUBJECT_ICONS  = { 'المحاسبة المتوسطة':'📊','النظام المحاسبي الموحد':'📘','الحكومية':'🏛️','الخطر':'⚠️','التطبيقات':'📱','الجرائم':'🔍','أخرى':'🗂️' };
-const SEMESTERS      = ['الفصل الأول','الفصل الثاني'];
-const MATERIAL_TYPES = ['كتاب مادة','ملازم مؤشرة','أسئلة','ملخص','أخرى'];
-const MATERIAL_TYPE_COLORS = { 'كتاب مادة':'#3b82f6','ملازم مؤشرة':'#a855f7','أسئلة':'#f59e0b','ملخص':'#22c55e','أخرى':'#6b7280' };
+const MATERIAL_TYPES = ['كتاب مادة','ملازم مؤشرة','أسئلة','ملخص','حل الواجب','مرشحات','أخرى'];
+const MATERIAL_TYPE_COLORS = { 'كتاب مادة':'#3b82f6','ملازم مؤشرة':'#a855f7','أسئلة':'#f59e0b','ملخص':'#22c55e','حل الواجب':'#ec4899','مرشحات':'#06b6d4','أخرى':'#6b7280' };
 const MATERIALS_PER_PAGE = 9;
 
 let allMaterials            = [];
 let unsubMaterials          = null;
 let materialsCurrentSubject = null;
-let materialsSemesterFilter = 'الكل';
 let materialsTypeFilter     = 'الكل';
 let materialsPage           = 1;
-let pendingMaterialFile     = null;
+let materialsFavOnly        = false; // وضع «القلوب»: عرض الملازم التي أعجبت بها فقط
+let pendingMatImages = [];   // File[] — حتى PUB_MAX_IMAGES صورة جديدة لم تُرفع بعد
+let pendingMatFiles  = [];   // File[] — حتى PUB_MAX_FILES ملف جديد لم يُرفع بعد
+let editingMatImages = [];   // {url,name,size}[] المرفقات الصورية المحفوظة (عند التعديل)
+let editingMatFiles  = [];   // {url,name,size}[] الملفات المحفوظة (عند التعديل)
+// ═══════════ مرفقات نموذج الملزمة (صور/ملفات) ═══════════
+// تطبيع قائمة الصور المحفوظة: يقبل مصفوفة {url} أو {fileUrl} أو نصوص، أو حقل قديم مفرد fileUrl
+function matImageList(mat) {
+  if (!mat) return [];
+  const raw = Array.isArray(mat.images) ? mat.images : (mat.imageUrls || []);
+  const arr = (Array.isArray(raw) ? raw : (raw ? [raw] : []))
+    .map(x => (typeof x === 'string' ? { url: x } : x))
+    .filter(x => x && x.url);
+  if (!arr.length && mat.fileUrl && String(mat.fileUrl).match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    arr.push({ url: mat.fileUrl, name: mat.fileName || '' });
+  }
+  return arr;
+}
+// تطبيع قائمة الملفات المحفوظة (لا صور) مع التوافق الخلفي لحقل fileUrl القديم غير الصوري
+function matFileList(mat) {
+  if (!mat) return [];
+  const raw = Array.isArray(mat.files) ? mat.files : [];
+  const arr = raw.map(x => (typeof x === 'string' ? { url: x } : x)).filter(x => x && x.url);
+  const isImg = mat.fileUrl && String(mat.fileUrl).match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  if (!arr.length && mat.fileUrl && !isImg) {
+    arr.push({ url: mat.fileUrl, name: mat.fileName || '' });
+  }
+  return arr;
+}
+
+window.toggleMatAttPanel = function(name) {
+  const chip = document.getElementById('chip-mat-' + name);
+  const panel = document.getElementById('att-panel-mat-' + name);
+  if (!chip || !panel) return;
+  const on = !chip.classList.contains('on');
+  chip.classList.toggle('on', on);
+  panel.classList.toggle('hidden', !on);
+  if (!on) {
+    if (name === 'images') { pendingMatImages = []; renderMatImagesPreview(); }
+    if (name === 'files')  { pendingMatFiles  = []; renderMatFilesList(); }
+  }
+};
+
+window.handleMatImages = function(input) {
+  const files = Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
+  input.value = '';
+  if (!files.length) return;
+  const room = PUB_MAX_IMAGES - pendingMatImages.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_IMAGES} صورة لكل ملزمة`); return; }
+  pendingMatImages = pendingMatImages.concat(files.slice(0, room));
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الصور فقط (الحد ${PUB_MAX_IMAGES})`);
+  renderMatImagesPreview();
+};
+
+window.handleMatFiles = function(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  const room = PUB_MAX_FILES - pendingMatFiles.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_FILES} ملفات لكل ملزمة`); return; }
+  pendingMatFiles = pendingMatFiles.concat(files.slice(0, room));
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الملفات فقط (الحد ${PUB_MAX_FILES})`);
+  renderMatFilesList();
+};
+
+function renderMatImagesPreview() {
+  const c = document.getElementById('mat-images-preview');
+  if (!c) return;
+  c.innerHTML = '';
+  pendingMatImages.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    item.appendChild(img);
+    const rm = document.createElement('div');
+    rm.className = 'remove-file'; rm.textContent = '×';
+    rm.onclick = () => { pendingMatImages.splice(i, 1); renderMatImagesPreview(); };
+    item.appendChild(rm);
+    c.appendChild(item);
+  });
+}
+
+function renderMatFilesList() {
+  const c = document.getElementById('mat-files-list');
+  if (!c) return;
+  c.innerHTML = pendingMatFiles.map((f, i) => `
+    <div class="rep-file-row">
+      <span>📄</span>
+      <span class="name">${sanitizeText(f.name)}</span>
+      <span class="sz">${formatFileSize(f.size)}</span>
+      <span class="rm" onclick="removeMatFile(${i})" title="إزالة">✕</span>
+    </div>`).join('');
+}
+window.removeMatFile = function(i) { pendingMatFiles.splice(i, 1); renderMatFilesList(); };
+window.removeMatImage = function(i) { pendingMatImages.splice(i, 1); renderMatImagesPreview(); };
+
+// تصفير كل شرائح المرفقات (يُستدعى عند فتح نموذج الإضافة)
+function resetMatAttachments() {
+  pendingMatImages = []; pendingMatFiles = [];
+  editingMatImages = []; editingMatFiles = [];
+  renderMatImagesPreview(); renderMatFilesList();
+  ['images', 'files'].forEach(n => {
+    const chip = document.getElementById('chip-mat-' + n);
+    const panel = document.getElementById('att-panel-mat-' + n);
+    if (chip) chip.classList.remove('on');
+    if (panel) panel.classList.add('hidden');
+  });
+}
+
+// تحميل المرفقات الحالية عند تعديل ملزمة (الملفات الجديدة تبقى فارغة — القديمة تُحفظ كما هي)
+function loadMatAttachmentsForEdit(mat) {
+  resetMatAttachments();
+  editingMatImages = matImageList(mat);
+  editingMatFiles  = matFileList(mat);
+  // إظهار اللوحات إن وُجدت مرفقات محفوظة، مع رفع شرائحها
+  if (editingMatImages.length) { document.getElementById('chip-mat-images')?.classList.add('on'); document.getElementById('att-panel-mat-images')?.classList.remove('hidden'); }
+  if (editingMatFiles.length)  { document.getElementById('chip-mat-files')?.classList.add('on');  document.getElementById('att-panel-mat-files')?.classList.remove('hidden'); }
+}
+
+
 
 // ── تهيئة select boxes في modal الملازم ──
 function initMaterialSelects() {
   const subjSel = document.getElementById('mat-subject');
-  const semSel  = document.getElementById('mat-semester');
-  const typeSel = document.getElementById('mat-type');
   subjSel.innerHTML = '<option value="" disabled selected hidden>اختر المادة...</option>';
-  semSel.innerHTML  = '<option value="" disabled selected hidden>اختر الفصل...</option>';
-  typeSel.innerHTML = '<option value="" disabled selected hidden>اختر النوع...</option>';
   SUBJECTS.forEach(s => subjSel.innerHTML += `<option>${s}</option>`);
-  SEMESTERS.forEach(s => semSel.innerHTML += `<option>${s}</option>`);
-  MATERIAL_TYPES.forEach(t => typeSel.innerHTML += `<option>${t}</option>`);
+  renderMatTypeChips([]); // شريط الأنواع (متعدد) — يبدأ فارغاً
+}
+
+// ── شريط اختيار الأنواع في واجهة إضافة/تعديل الملزمة: أكثر من نوع مع ✓ على المختار ──
+function renderMatTypeChips(selected = []) {
+  const box = document.getElementById('mat-type-chips');
+  if (!box) return;
+  box.innerHTML = '';
+  MATERIAL_TYPES.forEach(t => {
+    const on = Array.isArray(selected) && selected.includes(t);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'type-chip' + (on ? ' active' : '');
+    btn.dataset.type = t;
+    btn.textContent = (on ? '✓ ' : '') + t;
+    btn.onclick = () => { // تعدد الاختيار: تبديل ✓ دون إلغاء غيره
+      const nowOn = !btn.classList.contains('active');
+      btn.classList.toggle('active', nowOn);
+      btn.textContent = (nowOn ? '✓ ' : '') + t;
+    };
+    box.appendChild(btn);
+  });
+}
+
+// الأنواع المختارة حالياً من الشريط (تُستخدم عند النشر/التعديل)
+function getMatTypeSelection() {
+  const box = document.getElementById('mat-type-chips');
+  if (!box) return [];
+  return [...box.querySelectorAll('.type-chip.active')].map(b => b.dataset.type || '').filter(Boolean);
 }
 
 // ── الاشتراك في Firestore ──
@@ -5795,78 +6137,81 @@ function subscribeMaterials() {
     });
     if (hasNewMaterial) { notifications.sort((a, b) => (b.time || 0) - (a.time || 0)); renderNotifPanel(); updateUnreadBadge('ملزمة جديدة'); }
 
-    renderSubjectGrid();
-    if (materialsCurrentSubject) renderMaterialsGrid();
+    renderTypeChips();
+    renderMaterialsGrid();
+    refreshMaterialDetailLike(allMaterials.find(m => String(m.id) === String(detailMatId))); // عدّاد القلوب في التفاصيل المفتوحة (تغيّر من أي مستخدم)
     updateUnreadBadge(); // تحديث عدّاد غير المقروء بعد بناء الشبكات
   });
 }
 
-// ── عرض شبكة المواد ──
+// ── عرض تصنيفات المواد (أفقية قابلة للتمرير) ──
+let materialsSearchQuery = ''; // نص البحث الحالي في واجهة الملازم
+
+window.handleMaterialsSearch = function(val) {
+  materialsSearchQuery = (val || '').trim();
+  materialsPage = 1;
+  renderMaterialsGrid();
+};
+
 function renderSubjectGrid() {
-  const grid = document.getElementById('subject-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
+  const chips = document.getElementById('subject-chips');
+  if (!chips) return;
+  chips.innerHTML = '';
+
+  // زر "الكل" أولاً — يعرض كل الملازم المنشورة (الحالة الافتراضية عند دخول الواجهة)
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'subject-chip' + (!materialsCurrentSubject ? ' active' : '');
+  allBtn.innerHTML = `<span class="subject-chip-ico">📚</span><span>الكل</span>`;
+  allBtn.onclick = () => closeSubjectDetail();
+  chips.appendChild(allBtn);
+
   SUBJECTS.forEach(subject => {
-    const count = allMaterials.filter(m => m.subject === subject).length;
-    const icon  = SUBJECT_ICONS[subject] || '📁';
-    const card  = document.createElement('div');
-    card.className = 'subject-card';
-    card.innerHTML = `
-      <div class="subject-icon">${icon}</div>
-      <div class="subject-name">${subject}</div>
-      <div class="subject-count">${count} ملزمة</div>
-    `;
-    card.onclick = () => openSubjectDetail(subject);
-    grid.appendChild(card);
+    const icon = SUBJECT_ICONS[subject] || '📁';
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'subject-chip' + (subject === materialsCurrentSubject ? ' active' : '');
+    chip.innerHTML = `<span class="subject-chip-ico">${icon}</span><span>${subject}</span>`;
+    chip.onclick = () => openSubjectDetail(subject);
+    chips.appendChild(chip);
   });
 }
 
 // ── فتح تفاصيل مادة ──
 window.openSubjectDetail = function(subject) {
+  materialsFavOnly        = false; // اختيار مادة يخرج من وضع القلوب
   materialsCurrentSubject = subject;
-  materialsSemesterFilter = 'الكل';
   materialsTypeFilter     = 'الكل';
   materialsPage           = 1;
-
-  document.getElementById('materials-subjects-screen').style.display = 'none';
-  document.getElementById('materials-subject-detail').style.display  = 'block';
-  document.getElementById('materials-subject-title').textContent      = subject;
 
   const fab = document.getElementById('fab-add-material');
   if (fab) fab.classList.toggle('show', !!currentUser?.isAdmin);
 
-  renderSemesterTabs();
+  renderSubjectGrid();
   renderTypeChips();
   renderMaterialsGrid();
 };
 
-// ── الرجوع لشاشة المواد ──
+// ── العودة إلى "الكل" (عرض كل الملازم المنشورة) ──
 window.closeSubjectDetail = function() {
+  materialsFavOnly        = false; // زر «الكل» يخرج من وضع القلوب أيضاً
   materialsCurrentSubject = null;
-  document.getElementById('materials-subjects-screen').style.display = 'block';
-  document.getElementById('materials-subject-detail').style.display  = 'none';
+  materialsTypeFilter     = 'الكل';
+  materialsPage           = 1;
+
   const fab = document.getElementById('fab-add-material');
-  if (fab) fab.classList.remove('show');
+  if (fab) fab.classList.toggle('show', !!currentUser?.isAdmin);
+
+  renderSubjectGrid();
+  renderTypeChips();
+  renderMaterialsGrid();
 };
 
-// ── تبويبات الفصول ──
-function renderSemesterTabs() {
-  const tabs = document.getElementById('semester-tabs');
-  if (!tabs) return;
-  tabs.innerHTML = '';
-  ['الكل', ...SEMESTERS].forEach(sem => {
-    const btn = document.createElement('button');
-    btn.className  = 'semester-tab' + (sem === materialsSemesterFilter ? ' active' : '');
-    btn.textContent = sem;
-    btn.onclick    = () => { materialsSemesterFilter = sem; materialsPage = 1; renderSemesterTabs(); renderMaterialsGrid(); };
-    tabs.appendChild(btn);
-  });
-}
-
-// ── فلاتر الأنواع ──
+// ── فلاتر الأنواع (تظهر دائماً — شاملة «حل الواجب» وكل الأنواع) ──
 function renderTypeChips() {
   const chips = document.getElementById('type-chips');
   if (!chips) return;
+  chips.style.display = 'flex'; // شريط المرشحات ظاهر على «الكل» وداخل مجلد المادة معاً
   chips.innerHTML = '';
   ['الكل', ...MATERIAL_TYPES].forEach(type => {
     const btn  = document.createElement('button');
@@ -5877,17 +6222,134 @@ function renderTypeChips() {
   });
 }
 
-// ── عرض شبكة الملازم ──
+// ── وضع «القلوب» (المفضلة): الملازم التي أعجبت بها فقط ──
+function updateMaterialsFavBtn() {
+  const btn = document.getElementById('materials-fav-btn');
+  if (!btn) return;
+  btn.classList.toggle('active', materialsFavOnly);
+  const badge = document.getElementById('materials-fav-badge');
+  if (badge) {
+    const key = getMyVoterKey();
+    const n = allMaterials.filter(m => Array.isArray(m.likesBy) && m.likesBy.includes(key)).length;
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.classList.toggle('show', n > 0);
+  }
+}
+
+window.toggleMaterialsFavorites = function() {
+  materialsFavOnly        = !materialsFavOnly;
+  materialsCurrentSubject = null;
+  materialsTypeFilter     = 'الكل';
+  materialsPage           = 1;
+  materialsSearchQuery    = '';
+  const input = document.getElementById('materials-search-input');
+  if (input) input.value = '';
+  renderSubjectGrid();
+  renderTypeChips();
+  renderMaterialsGrid();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// ── الإعجاب/إزالة الإعجاب بملزمة — تحديث فوري في الشبكة ثم الحفظ في Firestore ──
+window.toggleMaterialLike = function(matId) {
+  const mat = allMaterials.find(m => String(m.id) === String(matId));
+  if (!mat || mat.uploading || !mat.id) return;
+  const key  = getMyVoterKey();
+  const prev = Array.isArray(mat.likesBy) ? mat.likesBy.slice() : [];
+  const liked = prev.includes(key);
+  mat.likesBy = liked ? prev.filter(k => k !== key) : prev.concat(key);
+  renderMaterialsGrid(); // إعادة الرسم فوراً لعرض العدّاد الجديد
+  refreshMaterialDetailLike(mat); // وحدّث زر القلوب داخل مودال التفاصيل إن كان مفتوحاً
+  updateDoc(doc(db, 'materials', String(mat.id)), liked ? { likesBy: arrayRemove(key) } : { likesBy: arrayUnion(key) })
+    .catch(() => {
+      mat.likesBy = prev; // تراجع عند الفشل
+      renderMaterialsGrid();
+      refreshMaterialDetailLike(mat);
+      showToast('⚠️', 'تعذّر الحفظ', 'حدث خطأ أثناء حفظ إعجابك — تحقّق من الاتصال');
+    });
+};
+
+// ── مودال تفاصيل الملزمة: معرف الملزمة المفتوحة + تنسيق تاريخها + تحديث زر القلوب بداخله ──
+let detailMatId = null; // معرف الملزمة المعروضة حالياً في مودال التفاصيل
+
+function formatMaterialDate(ts) {
+  try {
+    const d = (ts && typeof ts.toDate === 'function') ? ts.toDate() : new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    const today = new Date();
+    const yest  = new Date(); yest.setDate(yest.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'اليوم';
+    if (d.toDateString() === yest.toDateString())  return 'أمس';
+    return d.toLocaleDateString('ar-IQ', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch { return ''; }
+}
+
+// تحديث زر القلوب + العدّاد داخل مودال التفاصيل (إن كان مفتوحاً على هذه الملزمة)
+function refreshMaterialDetailLike(mat) {
+  const modal = document.getElementById('material-detail-modal');
+  if (!mat || !modal || !modal.classList.contains('open')) return;
+  if (String(mat.id) !== String(detailMatId)) return;
+  const btn = document.getElementById('material-detail-like');
+  if (!btn) return;
+  const likesBy = Array.isArray(mat.likesBy) ? mat.likesBy : [];
+  const likedMe = likesBy.includes(getMyVoterKey());
+  btn.classList.toggle('liked', likedMe);
+  const ico = btn.querySelector('.md-like-ico');
+  const cnt = btn.querySelector('.md-like-count');
+  if (ico) ico.textContent = likedMe ? '❤️' : '🤍';
+  if (cnt) cnt.textContent = likesBy.length;
+}
+
+window.toggleMaterialDetailLike = function() {
+  if (detailMatId) toggleMaterialLike(detailMatId);
+};
+
+// ── صورة الملف الشخصي للناشر داخل مودال التفاصيل (تُدرج فوق الحرف الأول) ──
+let detailAvatarSeq = 0; // حارس ضد تحميل صورة ملزمة سابقة بعد فتح أخرى
+function applyMaterialDetailAvatar(avatarEl, mat, pubName) {
+  if (!avatarEl || !mat) return;
+  const seq = ++detailAvatarSeq;
+  const prev = avatarEl.querySelector('.avatar-photo');
+  if (prev) prev.remove(); // صورة أي ملزمة سابقة
+  const apply = (url) => {
+    if (seq !== detailAvatarSeq || !avatarEl.isConnected || !url) return;
+    const cur = avatarEl.querySelector('.avatar-photo');
+    if (cur) { if (cur.getAttribute('src') !== url) cur.src = url; return; } // تحديث عند التغيير
+    const im = document.createElement('img');
+    im.className = 'avatar-photo';
+    im.loading = 'lazy';
+    im.referrerPolicy = 'no-referrer';
+    im.src = url;
+    im.onerror = () => im.remove(); // فشلت الصورة → يبقى الحرف الأول
+    avatarEl.appendChild(im);
+  };
+  const stored = typeof mat.authorPhoto === 'string' ? mat.authorPhoto : '';
+  const id     = typeof mat.authorId   === 'string' ? mat.authorId   : '';
+  if (stored) apply(stored);              // صورة فورية محفوظة عند النشر
+  if (id) loadAuthorPhoto(id).then(apply);            // ثم الصورة الحيّة من الملف الشخصي
+  else if (!stored && pubName && pubName !== 'الإدارة') loadAuthorPhotoByName(pubName).then(apply);
+}
+
+// ── عرض شبكة الملازم (كل الملازم المنشورة، مُفلترة بالنوع) ──
 function renderMaterialsGrid() {
   const grid = document.getElementById('materials-grid');
   const pagination = document.getElementById('materials-pagination');
+  updateMaterialsFavBtn(); // تحديث بادج/حالة زر القلوب في الهيدر
   if (!grid) return;
 
-  let filtered = allMaterials.filter(m => m.subject === materialsCurrentSubject);
-  if (materialsSemesterFilter !== 'الكل') filtered = filtered.filter(m => m.semester === materialsSemesterFilter);
-  if (materialsTypeFilter !== 'الكل')     filtered = filtered.filter(m => m.type === materialsTypeFilter);
-
-  document.getElementById('materials-subject-count').textContent = `${filtered.length} ملزمة`;
+  // كل الملازم المنشورة — تُفلتر أولاً بوضع القلوب (إن كان مفعّلاً) ثم بالمادة ثم بالنوع ثم بالبحث
+  let filtered = allMaterials.slice();
+  if (materialsFavOnly) {
+    const key = getMyVoterKey();
+    filtered = filtered.filter(m => Array.isArray(m.likesBy) && m.likesBy.includes(key));
+  }
+  if (materialsCurrentSubject)        filtered = filtered.filter(m => m.subject === materialsCurrentSubject);
+  if (materialsTypeFilter !== 'الكل')     filtered = filtered.filter(m => {
+    const ts = Array.isArray(m.types) && m.types.length ? m.types : (m.type ? [m.type] : []); // توافق خلفي مع الملازم القديمة
+    return ts.includes(materialsTypeFilter);
+  });
+  const q = (materialsSearchQuery || '').trim();
+  if (q) filtered = filtered.filter(m => (m.name || '').includes(q) || (m.subject || '').includes(q));
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / MATERIALS_PER_PAGE));
   if (materialsPage > totalPages) materialsPage = totalPages;
@@ -5897,26 +6359,32 @@ function renderMaterialsGrid() {
 
   grid.innerHTML = '';
   if (paginated.length === 0) {
-    grid.innerHTML = '<div class="materials-empty">📭 لا توجد ملازم بهذا الفلتر</div>';
+    grid.innerHTML = materialsFavOnly
+      ? '<div class="materials-empty">🤍 لم تُضف أي ملزمة إلى القلوب بعد — اضغط على ♡ في أي ملزمة لإضافتها هنا</div>'
+      : '<div class="materials-empty">📭 لا توجد ملازم بهذا الفلتر</div>';
   } else {
     paginated.forEach(mat => {
       const color  = MATERIAL_TYPE_COLORS[mat.type] || '#6b7280';
-      const isImg  = mat.fileUrl && mat.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-      const isPdf  = mat.fileUrl && mat.fileUrl.toLowerCase().endsWith('.pdf');
-      const thumbUrl = isPdf ? _getThumbnailUrl(mat.fileUrl) : (isImg ? mat.fileUrl : null);
-      const lazyCover = mat.fileUrl && !thumbUrl && !mat.previewUrl; // غلاف مؤجل (R2/فيديو/غيره)
+      const likesBy   = Array.isArray(mat.likesBy) ? mat.likesBy : [];
+      const likedMe   = likesBy.includes(getMyVoterKey());
+      const imgs   = matImageList(mat);       // الصور (تُطبَّع + التوافق الخلفي)
+      const coverUrl = imgs[0]?.url || mat.previewUrl || null; // غلاف من أول صورة
+      const isPdf  = mat.fileUrl && mat.fileUrl.toLowerCase().endsWith('.pdf') && !coverUrl;
+      const thumbUrl = isPdf ? _getThumbnailUrl(mat.fileUrl) : coverUrl;
+      const lazyCover = !thumbUrl && mat.fileUrl; // غلاف مؤجل (R2/فيديو/ملف غير صورة)
 
       const card   = document.createElement('div');
       card.className = 'material-card';
       card.dataset.matId = mat.id || ''; // لتحديد البطاقة عند الانتقال من الإشعارات
       card.innerHTML = `
         <div class="material-cover"${lazyCover ? ` data-cover-url="${mat.fileUrl}"` : ''}>
-          ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : (isImg ? `<img src="${mat.fileUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}">` : (mat.previewUrl ? `<img src="${mat.previewUrl}" alt="${sanitizeText(mat.name)}">` : '📄'))}
+          ${thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">` : '📄'}
         </div>
         <div class="material-type-dot" style="background:${color}"></div>
         ${!mat.uploading && !isItemRead('materials', mat.id) ? `<span class="new-badge" data-badge-key="materials:${sanitizeText(mat.id)}">جديد</span>` : ''}
         <div class="material-name">${sanitizeText(mat.name)}</div>
         ${mat.uploading ? `<span class="mat-uploading-badge" id="up-badge-${mat.id}">⏳ جارٍ الرفع ${uploadingPct.get(mat.id) || 0}%</span>` : ''}
+        ${(!mat.uploading && mat.id) ? `<button type="button" class="mat-like${likedMe ? ' liked' : ''}" onclick="event.stopPropagation();toggleMaterialLike('${mat.id}')"><span>${likedMe ? '❤️' : '🤍'}</span><span>${likesBy.length}</span></button>` : ''}
       `;
       card.onclick = () => {
         if (mat.uploading) { showToast('⏳', 'جارٍ الرفع', 'الملزمة قيد الرفع — تفاصيلها متاحة بعد اكتمال النشر'); return; }
@@ -5945,9 +6413,58 @@ function renderMaterialsGrid() {
   }
 }
 
+// أيقونة الملف حسب الامتداد — لعرض متنوّع ومرتّب في قسم الملفات
+function matFileIcon(name) {
+  const ext = String(name || '').split('.').pop().toLowerCase();
+  if (ext === 'pdf') return '📕';
+  if (ext === 'doc' || ext === 'docx') return '📝';
+  if (ext === 'xls' || ext === 'xlsx' || ext === 'csv') return '📊';
+  if (ext === 'ppt' || ext === 'pptx') return '📽️';
+  if (ext === 'zip' || ext === 'rar' || ext === '7z') return '📦';
+  if (ext === 'mp3' || ext === 'wav' || ext === 'm4a') return '🎵';
+  if (ext === 'mp4' || ext === 'mkv' || ext === 'avi') return '🎬';
+  return '📄';
+}
+
+// بناء HTML مرفقات الملزمة: قسم «الصور» بمعرض مرتب + قسم «الملفات» بصفوف أيقونية قابلة للتحميل
+function buildMaterialAttachmentsHTML(mat) {
+  const imgs = matImageList(mat);
+  const fls  = matFileList(mat);
+  const esc  = s => String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  let html = '';
+  if (imgs.length) {
+    const safeUrls = JSON.stringify(imgs.map(i => i.url)).replace(/"/g, '&quot;');
+    html += `<div class="md-att-sec">` +
+      `<div class="md-att-head">🖼️ الصور <span class="md-att-count">${imgs.length}</span></div>` +
+      `<div class="md-att-gallery" data-count="${Math.min(imgs.length, 6)}">` +
+        imgs.map((im, i) => `<img src="${im.url}" loading="lazy" decoding="async" onclick="openLightbox(${safeUrls}, ${i}, '${esc(mat.name || 'ملزمة')}')" alt="صورة ${i + 1}">`).join('') +
+      `</div></div>`;
+  }
+  if (fls.length) {
+    html += `<div class="md-att-sec">` +
+      `<div class="md-att-head">📄 الملفات <span class="md-att-count">${fls.length}</span></div>` +
+      `<div class="md-att-files">` +
+        fls.map(f => {
+          const nm = f.name || 'ملف';
+          const meta = f.size ? formatFileSize(f.size) : 'اضغط للتحميل';
+          return `<div class="md-att-file" onclick="downloadFileWithProgress('${esc(f.url)}', '${esc(nm)}', this, ${Number(f.size) || 0})">` +
+            `<span class="md-att-file-ico">${matFileIcon(nm)}</span>` +
+            `<span class="md-att-file-info">` +
+              `<span class="md-att-file-name" title="${esc(nm)}">${sanitizeText(nm)}</span>` +
+              `<span class="md-att-file-meta">${sanitizeText(meta)}</span>` +
+            `</span>` +
+            `<span class="md-att-file-dl">⬇️</span>` +
+          `</div>`;
+        }).join('') +
+      `</div></div>`;
+  }
+  return html;
+}
+
 // ── تفاصيل الملزمة ──
 window.openMaterialDetail = function(mat) {
   const coverEl  = document.getElementById('material-detail-cover');
+  const attEl    = document.getElementById('material-detail-attachments');
   const badgesEl = document.getElementById('material-detail-badges');
   const titleEl  = document.getElementById('material-detail-title');
   const descEl   = document.getElementById('material-detail-desc');
@@ -5958,25 +6475,47 @@ window.openMaterialDetail = function(mat) {
   const viewBtn  = document.getElementById('material-detail-view');
   const shareBtn = document.getElementById('material-detail-share');
 
-  const isImg = mat.fileUrl && mat.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-  const isPdf = mat.fileUrl && mat.fileUrl.toLowerCase().endsWith('.pdf');
-  const thumbUrl = isPdf ? _getThumbnailUrl(mat.fileUrl) : (isImg ? mat.fileUrl : null);
+  // الغلاف: يفضّل أول صورة من المرفقات الجديدة، ثم يقع إلى الحقل القديم fileUrl
+  const _imgs = matImageList(mat);
+  const coverSrc = (_imgs.length ? _imgs[0].url : null) || mat.fileUrl || null;
+  const isImg = coverSrc && coverSrc.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  const isPdf = coverSrc && coverSrc.toLowerCase().endsWith('.pdf');
+  const thumbUrl = isPdf ? _getThumbnailUrl(coverSrc) : (isImg ? coverSrc : null);
 
   coverEl.innerHTML = thumbUrl
     ? `<img src="${thumbUrl}" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">`
-    : (isImg ? `<img src="${mat.fileUrl}" alt="${sanitizeText(mat.name)}">` : '📄');
+    : (isImg ? `<img src="${coverSrc}" alt="${sanitizeText(mat.name)}">` : '📄');
   // غلاف مؤجل إن لم يوجد رابط غلاف فوري (R2/فيديو/غيره)
-  if (mat.fileUrl && !thumbUrl) { coverEl.setAttribute('data-cover-url', mat.fileUrl); applyLazyCovers(coverEl); }
+  if (coverSrc && !thumbUrl) { coverEl.setAttribute('data-cover-url', coverSrc); applyLazyCovers(coverEl); }
   else { coverEl.removeAttribute('data-cover-url'); delete coverEl.dataset.coverFor; } // ألغِ انتظار أي غلاف سابق
 
-  const color = MATERIAL_TYPE_COLORS[mat.type] || '#6b7280';
-  badgesEl.innerHTML = `
-    <span class="post-type-badge" style="color:${color};background:${color}22;">${sanitizeText(mat.type || '')}</span>
-    <span class="post-type-badge" style="color:var(--accent2);background:rgba(124,58,237,0.12);">${sanitizeText(mat.semester || '')}</span>
-  `;
+  const matTypes = (Array.isArray(mat.types) && mat.types.length) ? mat.types : (mat.type ? [mat.type] : []);
+  badgesEl.innerHTML = matTypes.map(t => {
+    const c = MATERIAL_TYPE_COLORS[t] || '#6b7280';
+    return `<span class="post-type-badge" style="color:${c};background:${c}22;">${sanitizeText(t)}</span>`;
+  }).join('');
 
   titleEl.textContent = mat.name || '';
+
+  // ── معلومات الناشر + تاريخ النشر + حالة الإعجاب داخل التفاصيل ──
+  detailMatId = mat.id && !mat.uploading ? String(mat.id) : null;
+  const pubName = (mat.createdBy || '').trim() || 'الإدارة';
+  const avatarEl = document.getElementById('material-detail-avatar');
+  const pubEl    = document.getElementById('material-detail-publisher');
+  const dateEl   = document.getElementById('material-detail-date');
+  if (avatarEl) {
+    avatarEl.textContent = pubName.charAt(0) || 'م';
+    applyMaterialDetailAvatar(avatarEl, mat, pubName); // صورة الملف الشخصي فوق الحرف الأول
+  }
+  if (pubEl)    pubEl.textContent    = pubName;
+  if (dateEl) {
+    const ds = mat.createdAt ? formatMaterialDate(mat.createdAt) : '';
+    dateEl.textContent = ds;
+    dateEl.style.display = ds ? '' : 'none';
+  }
+
   descEl.textContent  = mat.description || '';
+  attEl.innerHTML    = buildMaterialAttachmentsHTML(mat); // معرض الصور القابل للنقر + قائمة الملفات
 
   if (mat.index && mat.index.trim()) {
     idxList.innerHTML = mat.index.split('\n').filter(l => l.trim()).map(l => `<li>${sanitizeText(l)}</li>`).join('');
@@ -5985,20 +6524,34 @@ window.openMaterialDetail = function(mat) {
     idxWrap.style.display = 'none';
   }
 
-  if (mat.fileUrl) {
-    dlBtn.href  = mat.fileUrl;
-    viewBtn.href = mat.fileUrl;
-    dlBtn.onclick = (e) => { e.preventDefault(); downloadFileWithProgress(mat.fileUrl, mat.fileName || mat.name, dlBtn); };
+  // زر «تحميل»: fileUrl القديم أولاً ثم أول ملف مرفق ثم أول صورة (منشورات متعددة الملفات)
+  const dlSrc = mat.fileUrl || (matFileList(mat)[0] || {}).url || (_imgs[0] || {}).url || '';
+  const dlName = mat.fileName || (matFileList(mat)[0] || {}).name || mat.name;
+  if (dlSrc) {
+    dlBtn.href  = dlSrc;
+    dlBtn.onclick = (e) => { e.preventDefault(); downloadFileWithProgress(dlSrc, dlName, dlBtn); };
   } else {
-    dlBtn.href = '#'; viewBtn.href = '#';
+    dlBtn.href = '#';
+  }
+
+  // زر «مشاهدة»: يعرض صور الملزمة داخل المنشور (اللايت-بوكس) باسم الملزمة فوقها — لتمييزها عند كثرة الملازم المنشورة
+  if (_imgs.length) {
+    viewBtn.href = '#';
+    viewBtn.onclick = (e) => { e.preventDefault(); openLightbox(_imgs.map(im => im.url), 0, mat.name || 'ملزمة'); };
+  } else if (dlSrc) {
+    viewBtn.href = dlSrc;
+    viewBtn.onclick = null; // بلا صور → فتح الملف في تبويب جديد (target=_blank)
+  } else {
+    viewBtn.href = '#';
+    viewBtn.onclick = (e) => e.preventDefault();
   }
 
   shareBtn.onclick = async () => {
-    const shareData = { title: mat.name, text: `ملزمة: ${mat.name}`, url: mat.fileUrl || window.location.href };
+    const shareData = { title: mat.name, text: `ملزمة: ${mat.name}`, url: dlSrc || window.location.href };
     if (navigator.canShare && navigator.canShare(shareData)) {
       try { await navigator.share(shareData); } catch {}
     } else {
-      navigator.clipboard.writeText(mat.fileUrl || window.location.href);
+      navigator.clipboard.writeText(dlSrc || window.location.href);
       showToast('📋', 'تم النسخ', 'تم نسخ رابط الملزمة');
     }
   };
@@ -6012,6 +6565,7 @@ window.openMaterialDetail = function(mat) {
   }
 
   openModal('material-detail-modal');
+  refreshMaterialDetailLike(mat); // بعد فتح المودال: تعبئة القلب + العدّاد
 };
 
 // ── فتح modal إضافة/تعديل ملزمة ──
@@ -6032,12 +6586,8 @@ window.openMaterialModal = function(existingMat = null) {
   const nameEl    = document.getElementById('mat-name');
   const descEl    = document.getElementById('mat-desc');
   const idxEl     = document.getElementById('mat-index');
-  const fileUrlEl = document.getElementById('mat-file-url');
-  const fileNmEl  = document.getElementById('mat-file-name');
-  const labelEl   = document.getElementById('mat-upload-label');
   const btnEl     = document.getElementById('btn-do-material');
 
-  pendingMaterialFile = null;
   document.getElementById('mat-progress-bar').classList.remove('show');
   document.getElementById('mat-progress-fill').style.width = '0';
 
@@ -6048,20 +6598,16 @@ window.openMaterialModal = function(existingMat = null) {
     nameEl.value          = existingMat.name || '';
     descEl.value          = existingMat.description || '';
     idxEl.value           = existingMat.index || '';
-    fileUrlEl.value       = existingMat.fileUrl || '';
-    fileNmEl.value        = existingMat.fileName || '';
-    labelEl.textContent   = existingMat.fileName || 'اضغط لتغيير الملف';
+    loadMatAttachmentsForEdit(existingMat); // تحميل المرفقات المحفوظة للتعديل
     setTimeout(() => {
       if (existingMat.subject)  document.getElementById('mat-subject').value  = existingMat.subject;
-      if (existingMat.semester) document.getElementById('mat-semester').value = existingMat.semester;
-      if (existingMat.type)     document.getElementById('mat-type').value     = existingMat.type;
+      renderMatTypeChips(existingMat.types || (existingMat.type ? [existingMat.type] : [])); // تعبئة كل الأنواع المختارة سابقاً
     }, 50);
   } else {
     titleEl.textContent = '📚 إضافة ملزمة';
     btnEl.textContent   = '🚀 نشر';
     editIdEl.value = ''; nameEl.value = ''; descEl.value = ''; idxEl.value = '';
-    fileUrlEl.value = ''; fileNmEl.value = '';
-    labelEl.textContent = 'اضغط لإرفاق ملف أو صورة';
+    resetMatAttachments(); // تصفير المرفقات
     if (materialsCurrentSubject) {
       setTimeout(() => { document.getElementById('mat-subject').value = materialsCurrentSubject; }, 50);
     }
@@ -6070,13 +6616,6 @@ window.openMaterialModal = function(existingMat = null) {
   openModal('material-modal');
 };
 
-// اختيار ملف الملزمة
-document.getElementById('mat-file')?.addEventListener('change', function() {
-  if (this.files[0]) {
-    pendingMaterialFile = this.files[0];
-    document.getElementById('mat-upload-label').textContent = pendingMaterialFile.name;
-  }
-});
 
 // نشر/تعديل ملزمة — يُغلق الواجهة فوراً ويُكمل الرفع والنشر في الخلفية
 document.getElementById('btn-do-material')?.addEventListener('click', async () => {
@@ -6084,22 +6623,31 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
   if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر مخصص لصاحب الموقع baqer فقط'); return; }
   const editId   = document.getElementById('mat-edit-id').value;
   const subject  = document.getElementById('mat-subject').value;
-  const semester = document.getElementById('mat-semester').value;
-  const type     = document.getElementById('mat-type').value;
+  const types    = getMatTypeSelection(); // يمكن اختيار أكثر من نوع (✓)
+  const type     = types[0] || '';        // النوع الأول للتوافق الخلفي (اللون/البادج/البحث)
   const name     = document.getElementById('mat-name').value.trim();
   const desc     = document.getElementById('mat-desc').value.trim();
   const idx      = document.getElementById('mat-index').value.trim();
-  let   fileUrl  = document.getElementById('mat-file-url').value;
-  let   fileName = document.getElementById('mat-file-name').value;
-  const pendingFile = pendingMaterialFile; // نسخة مستقلة حتى لا تتأثر إذا فُتحت النافذة مجدداً
 
-  if (!subject || !semester || !type || !name) { showToast('⚠️','خطأ','أكمل الحقول المطلوبة'); return; }
+  if (!subject || !types.length || !name) { showToast('⚠️','خطأ','أكمل الحقول المطلوبة — اختر نوعاً واحداً على الأقل'); return; }
+
+  // نسخ مستقلّة للمرفقات حتى لا تتأثر إذا فُتحت النافذة مجدداً أثناء الرفع
+  const newImages = pendingMatImages.slice();
+  const newFiles  = pendingMatFiles.slice();
+  const keepImages = editingMatImages.slice(); // الصور المحفوظة (تبقى كما هي)
+  const keepFiles  = editingMatFiles.slice();  // الملفات المحفوظة (تبقى كما هي)
+  const totalCount = keepImages.length + newImages.length + keepFiles.length + newFiles.length;
+
+  // المرفقات إجبارية: يجب إرفاق صورة أو ملف على الأقل
+  if (totalCount === 0) {
+    showToast('⚠️','خطأ','يجب إرفاق صورة أو ملف واحد على الأقل لنشر الملزمة');
+    return;
+  }
 
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
 
   // إغلاق الواجهة فوراً + ظهور الملزمة مباشرة في الشبكة أثناء الرفع
   closeModal('material-modal');
-  pendingMaterialFile = null;
 
   let tempId = null;
 
@@ -6107,12 +6655,14 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
     // بطاقة مؤقتة داخل مجلد المادة في قسم الملازم — تظهر فوراً ببادج «جارٍ الرفع 0%»
     tempId = 'tmp-' + Date.now();
     uploadingPct.set(tempId, 0);
+    const coverImg = keepImages[0] || null; // غلاف فوري إن وُجدت صورة محفوظة
     const tempMat = {
-      id: tempId, subject, semester, type, name,
-      description: desc, index: idx, fileUrl: '', fileName: fileName || '',
+      id: tempId, subject, type, types: types.slice(), name,
+      description: desc, index: idx,
+      images: keepImages.slice(), files: keepFiles.slice(),
       uploading: true,
       clientSig: tempId,
-      previewUrl: (pendingFile && pendingFile.type.startsWith('image/')) ? URL.createObjectURL(pendingFile) : '',
+      previewUrl: coverImg ? coverImg.url : '',
       createdAt: new Date()
     };
     uploadingMaterials.push(tempMat);
@@ -6123,16 +6673,34 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
 
   bgPublishStart('⏳ جارٍ الرفع 0%');
   pubProgressStart([tempId].filter(Boolean));
-  showToast('⏳', 'جارٍ الرفع', 'ظهرت الملزمة في قسم الملازم (مجلد المادة) — جارٍ رفع الملف في الخلفية');
+  showToast('⏳', 'جارٍ الرفع', 'ظهرت الملزمة في قسم الملازم (مجلد المادة) — جارٍ رفع المرفقات في الخلفية');
 
   try {
-    if (pendingFile) {
-      fileUrl  = await uploadToCloudinary(pendingFile, (pct) => pubProgressReal(pct));
-      fileName = pendingFile.name;
+    // رفع الصور الجديدة (تقدّم موحّد عبر كل المرفقات)
+    const uploadedImages = keepImages.slice();
+    let done = 0;
+    for (const f of newImages) {
+      const url = await uploadToCloudinary(f, (pct) => {
+        if (totalCount) pubProgressReal(Math.round(((done + pct / 100) / totalCount) * 100));
+      });
+      uploadedImages.push({ url, name: f.name, publicId: extractPublicId(url), size: f.size });
+      done++;
+    }
+    // رفع الملفات الجديدة
+    const uploadedFiles = keepFiles.slice();
+    for (const f of newFiles) {
+      const url = await uploadToCloudinary(f, (pct) => {
+        if (totalCount) pubProgressReal(Math.round(((done + pct / 100) / totalCount) * 100));
+      });
+      uploadedFiles.push({ url, name: f.name, publicId: extractPublicId(url), size: f.size });
+      done++;
     }
     pubProgressReal(100);
 
-    const data = { subject, semester, type, name, description: desc, index: idx, fileUrl, fileName, updatedAt: new Date() };
+    const data = { subject, type, types: types.slice(), name, description: desc, index: idx, images: uploadedImages, files: uploadedFiles, updatedAt: new Date() };
+    // توافق خلفي: اجعل أول مرفق هو fileUrl/fileName (تُقرأ في العرض القديم/المشاركة)
+    const firstAtt = uploadedImages[0] || uploadedFiles[0] || null;
+    if (firstAtt) { data.fileUrl = firstAtt.url; data.fileName = firstAtt.name || ''; }
 
     if (editId) {
       await updateDoc(doc(db, 'materials', editId), data);
@@ -6140,6 +6708,8 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
     } else {
       data.createdAt = new Date();
       data.createdBy = currentUser?.name || '';
+      data.authorId   = currentUser?.userId || currentUser?.code || '';
+      data.authorPhoto = (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '';
       data.clientSig = tempId;
       await addDoc(collection(db, 'materials'), data);
       showToast('✅','نشر','تم نشر الملزمة بنجاح');
@@ -6977,15 +7547,15 @@ window.toggleAttPanel = function(name) {
   }
 };
 
-// ── الصور (حتى PUB_MAX_ATTACH) ──
+// ── الصور (حتى PUB_MAX_IMAGES) ──
 window.handleReportImages = function(input) {
   const files = Array.from(input.files || []);
   input.value = '';
   if (!files.length) return;
-  const room = PUB_MAX_ATTACH - reportImages.length;
-  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} صورة لكل بلاغ`); return; }
+  const room = PUB_MAX_IMAGES - reportImages.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_IMAGES} صورة لكل بلاغ`); return; }
   reportImages = reportImages.concat(files.slice(0, room));
-  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الصور فقط (الحد ${PUB_MAX_ATTACH})`);
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الصور فقط (الحد ${PUB_MAX_IMAGES})`);
   renderReportImages();
 };
 function renderReportImages() {
@@ -7006,15 +7576,15 @@ function renderReportImages() {
   });
 }
 
-// ── الملفات (حتى PUB_MAX_ATTACH) ──
+// ── الملفات (حتى PUB_MAX_FILES) ──
 window.handleReportFiles = function(input) {
   const files = Array.from(input.files || []);
   input.value = '';
   if (!files.length) return;
-  const room = PUB_MAX_ATTACH - reportFiles.length;
-  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} ملف لكل بلاغ`); return; }
+  const room = PUB_MAX_FILES - reportFiles.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_FILES} ملفات لكل بلاغ`); return; }
   reportFiles = reportFiles.concat(files.slice(0, room));
-  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الملفات فقط (الحد ${PUB_MAX_ATTACH})`);
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أوّل الملفات فقط (الحد ${PUB_MAX_FILES})`);
   renderReportFiles();
 };
 function renderReportFiles() {
@@ -7147,9 +7717,10 @@ function resetPollFlags() {
 }
 
 // ═══════════ مرفقات نموذج نشر التحضير (صور/ملفات/صوت/استفتاء) ═══════════
-const PUB_MAX_ATTACH = 20;        // الحد الأقصى لعدد الصور أو الملفات المرفقة في التحضير
-let pubAttImages = [];          // File[] — حتى PUB_MAX_ATTACH
-let pubAttFiles  = [];          // File[] — حتى PUB_MAX_ATTACH
+const PUB_MAX_IMAGES = 30;       // الحد الأقصى لعدد الصور المرفقة (بلاغ/تحضير)
+const PUB_MAX_FILES  = 3;        // الحد الأقصى لعدد الملفات المرفقة (بلاغ/تحضير)
+let pubAttImages = [];          // File[] — حتى PUB_MAX_IMAGES
+let pubAttFiles  = [];          // File[] — حتى PUB_MAX_FILES
 let pubAttVoice  = null;        // { blob, url, duration } | null
 let pubVoiceRec  = null;        // MediaRecorder
 let pubVoiceTimer = null, pubVoiceSec = 0, pubVoiceDiscard = false;
@@ -7172,15 +7743,15 @@ window.togglePubAttPanel = function(name) {
   }
 };
 
-// ── الصور (حتى 20) ──
+// ── الصور (حتى PUB_MAX_IMAGES) ──
 window.handlePubImages = function(input) {
   const files = Array.from(input.files || []);
   input.value = '';
   if (!files.length) return;
-  const room = PUB_MAX_ATTACH - pubAttImages.length;
-  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} صورة`); return; }
+  const room = PUB_MAX_IMAGES - pubAttImages.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_IMAGES} صورة`); return; }
   pubAttImages = pubAttImages.concat(files.slice(0, room));
-  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الصور فقط (الحد ${PUB_MAX_ATTACH})`);
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الصور فقط (الحد ${PUB_MAX_IMAGES})`);
   renderPubImages();
 };
 function renderPubImages() {
@@ -7201,15 +7772,15 @@ function renderPubImages() {
   });
 }
 
-// ── الملفات (حتى 20) ──
+// ── الملفات (حتى PUB_MAX_FILES) ──
 window.handlePubFiles = function(input) {
   const files = Array.from(input.files || []);
   input.value = '';
   if (!files.length) return;
-  const room = PUB_MAX_ATTACH - pubAttFiles.length;
-  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_ATTACH} ملف`); return; }
+  const room = PUB_MAX_FILES - pubAttFiles.length;
+  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_FILES} ملفات`); return; }
   pubAttFiles = pubAttFiles.concat(files.slice(0, room));
-  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الملفات فقط (الحد ${PUB_MAX_ATTACH})`);
+  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أوّل الملفات فقط (الحد ${PUB_MAX_FILES})`);
   renderPubFiles();
 };
 function renderPubFiles() {
@@ -7830,6 +8401,14 @@ window.setActiveNav = function(id) {
   const el = document.getElementById('nav-' + id);
   if (el) el.classList.add('active');
 
+  // في واجهة الملازم فقط: أُخفي الهيدر الفوق (الشعار + الإشعارات) وأُظهر شريط البحث
+  const appHeader = document.querySelector('#app > header');
+  const matsSearch = document.getElementById('materials-search-bar');
+  const isMaterials = (id === 'schedule');
+  document.body.classList.toggle('materials-mode', isMaterials);
+  if (appHeader) appHeader.style.display = isMaterials ? 'none' : '';
+  if (matsSearch) matsSearch.style.display = isMaterials ? 'flex' : 'none';
+
   // إخفاء جميع الـ views
   const homeView  = document.getElementById('view-home');
   const matsView  = document.getElementById('view-materials');
@@ -7844,19 +8423,17 @@ window.setActiveNav = function(id) {
   if (fab) fab.classList.remove('show');
 
   if (id === 'schedule') {
-    // قسم الملازم
+    // قسم الملازم: شاشة موحّدة تعرض كل الملازم + فلترة بالنوع
     if (matsView) matsView.style.display = 'block';
     if (!unsubMaterials) subscribeMaterials();
+    materialsCurrentSubject = null; // البداية دائماً على "الكل"
+    materialsFavOnly = false;
+    materialsTypeFilter = 'الكل';
+    materialsPage = 1;
     renderSubjectGrid();
-    // إذا كانت مادة مفتوحة → أظهر الـ detail مباشرة
-    if (materialsCurrentSubject) {
-      document.getElementById('materials-subjects-screen').style.display = 'none';
-      document.getElementById('materials-subject-detail').style.display  = 'block';
-      if (fab && currentUser?.isAdmin) fab.classList.add('show');
-    } else {
-      document.getElementById('materials-subjects-screen').style.display = 'block';
-      document.getElementById('materials-subject-detail').style.display  = 'none';
-    }
+    renderTypeChips();
+    renderMaterialsGrid();
+    if (fab && currentUser?.isAdmin) fab.classList.add('show');
   } else if (id === 'reports') {
     // البلاغات
     if (repView) repView.style.display = 'block';
@@ -7994,10 +8571,12 @@ document.getElementById('btn-enable-notif')?.addEventListener('click', () => {
 // ── LIGHTBOX ──
 let lbUrls = [];
 let lbIndex = 0;
+let lbTitle = '';
 
-window.openLightbox = function(urls, index) {
+window.openLightbox = function(urls, index, title) {
   lbUrls = Array.isArray(urls) ? urls : [urls];
   lbIndex = index || 0;
+  lbTitle = title || '';
   updateLightboxUI();
   if (window.location.hash !== '#view') history.pushState(null, null, '#view');
   document.getElementById('lightbox').classList.add('open');
@@ -8013,6 +8592,8 @@ function updateLightboxUI() {
   imgEl.src = url;
   imgEl.classList.add('lb-anim');
   document.getElementById('lightbox-counter').textContent = `${lbIndex + 1} / ${lbUrls.length}`;
+  const lbTitleEl = document.getElementById('lightbox-title');
+  if (lbTitleEl) lbTitleEl.textContent = lbTitle; // اسم الملزمة فوق الصور (يختفي في العارضات بلا عنوان)
   
   let dlUrl = url;
   if (dlUrl.includes('/upload/')) {
@@ -9063,10 +9644,19 @@ init();
 
 // ── SERVICE WORKER REGISTRATION (PWA) ──
 if ('serviceWorker' in navigator) {
+  // [إصلاح] إعادة تحميل تلقائية عند سيطرة نسخة جديدة من SW — تُسقط الصفحة القديمة من الكاش فوراً
+  let swHadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swHadController) window.location.reload();
+    swHadController = true;
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
       .then(reg => console.log('تم تسجيل Service Worker بنجاح', reg))
       .catch(err => console.log('فشل تسجيل Service Worker', err));
+
+    // فحص تحديث SW فور توفّره عند كل تحميل (يصلح التعديلات بسرعة)
+    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
 
     // استقبال التوجيه من Service Worker عند النقر على إشعار والتطبيق مفتوح
     navigator.serviceWorker.addEventListener('message', (event) => {

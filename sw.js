@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alfaclass-v19';
+const CACHE_NAME = 'alfaclass-v20';
 const DYNAMIC_CACHE = 'alfaclass-images-v1';
 const urlsToCache = [
   './',
@@ -70,6 +70,21 @@ self.addEventListener('fetch', event => {
 
   // الطلبات الخارجية (Firebase / Fonts / APIs) → تُترك للشبكة بدون تدخل
   if (url.origin !== self.location.origin) return;
+
+  // [إصلاح] طلبات التنقل (index.html) → الشبكة أولاً مع كاش احتياطي للعمل دون اتصال
+  // لضمان ظهور أي تعديل على الصفحة فوراً بدل النسخة المخزنة القديمة
+  if (req.mode === 'navigate' || req.destination === 'document') {
+    event.respondWith(
+      fetch(req).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        }
+        return res;
+      }).catch(() => caches.match(req).then(c => c || new Response('Offline', { status: 503 })))
+    );
+    return;
+  }
 
   // ملفات التطبيق الأساسية → Stale-While-Revalidate
   event.respondWith(
