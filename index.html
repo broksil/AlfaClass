@@ -445,6 +445,9 @@
 
   /* بطاقات البلاغات */
   .reports-list { display: flex; flex-direction: column; gap: 10px; }
+  /* تباعد الصفحة: المنشورات (إعلانات الممثل) ← زر «نشر بلاغ جديد» ← قائمة البلاغات */
+  #reports-owner-zone { margin-top: 16px; }
+  #reports-list { margin-top: 14px; }
   .report-card {
     background: var(--bg-card); border: 1px solid var(--border);
     border-radius: 18px; padding: 14px 16px;
@@ -538,6 +541,111 @@
     border: 1px solid rgba(239,68,68,0.3);
   }
   .report-del:active { transform: scale(0.94); }
+
+  /* ── إعلانات الأساتذه (class_announcements — لحظي من Firestore) ── */
+  .class-ann-block { margin-bottom: 14px; }
+  .class-ann-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin: 2px 0 10px;
+  }
+  .class-ann-head-title { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+  .class-ann-live {
+    font-size: 10px; font-weight: 800; color: #34d399;
+    background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.35);
+    padding: 2px 9px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .class-ann-live::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,0.9);
+    animation: blinkDot 1.4s ease-in-out infinite;
+  }
+  /* ── شريط تبويبات الأقسام (الممثل ↔ الأساتذه) — أسلوب Community/Following/For You ──
+     تسميتان في الوسط مع مؤشر ملون منزلق تحت التبويب النشط */
+  .ann-tabs-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  .ann-tabs {
+    position: relative; display: inline-flex; align-items: stretch;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+  }
+  html[data-theme="light"] .ann-tabs { border-bottom-color: rgba(15,23,42,0.12); }
+  .ann-tab {
+    -webkit-appearance: none; appearance: none; background: none; border: none; cursor: pointer;
+    font-family: var(--font); font-size: 14.5px; font-weight: 700; color: var(--text-muted);
+    padding: 10px 26px 12px; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: color 0.2s ease;
+  }
+  .ann-tab.on { color: var(--text-primary); font-weight: 900; }
+  .ann-tabs-ind {
+    position: absolute; bottom: -2px; left: 0; width: 0; height: 3px; border-radius: 999px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    box-shadow: 0 0 10px rgba(99,102,241,0.7);
+    transition: left 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1);
+    pointer-events: none;
+  }
+  /* بطاقة الإعلان: خلفية داكنة أنيقة تناسب الوضع الليلي + حواف 16px وحدود خفيفة */
+  .ann-card {
+    background: #1a1f36; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+    position: relative; overflow: hidden;
+    text-align: right;
+    animation: cardFade 0.35s ease both;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .ann-card:hover { border-color: rgba(255,255,255,0.18); box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  html[data-theme="light"] .ann-card { background: #fff; border-color: rgba(15,23,42,0.08); box-shadow: var(--shadow-card); }
+  /* بطاقة تليغات الممثل: نفس التصميم لكن بشريط جانبي كهرماني للتمييز عن إعلانات الأساتذه */
+  .ann-card--agent::before { background: linear-gradient(180deg, #f59e0b, #d97706); }
+  .ann-card--agent:hover { border-color: rgba(245,158,11,0.35); }
+  .ann-card::before {
+    content: ''; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 4px;
+    background: linear-gradient(180deg, var(--accent), #4f46e5);
+  }
+  /* العنوان الرئيسي (اسم المادة الأساسي): كبير وعريض وأبيض */
+  .ann-subject { font-size: 1.2rem; font-weight: 900; color: #ffffff; line-height: 1.4; margin-bottom: 4px; overflow-wrap: anywhere; }
+  html[data-theme="light"] .ann-subject { color: var(--text-primary); }
+  /* العنوان الفرعي (المرحلة والشعبة): سطر جديد بخط أصغر ولون باهت */
+  .ann-subject-sub { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.45); line-height: 1.5; margin-bottom: 10px; overflow-wrap: anywhere; }
+  html[data-theme="light"] .ann-subject-sub { color: var(--text-muted); }
+  /* اسم الأستاذ: أصغر وتحته مباشرة بلون مميز يبرزه كمرسل — مع مسافات تريح العين */
+  .ann-teacher { font-size: 12.5px; font-weight: 700; color: #a78bfa; display: flex; align-items: center; gap: 8px; margin: 8px 0 10px; overflow-wrap: anywhere; }
+  /* صورة الأستاذ (حساب Google) بجانب اسمه — دائرة صغيرة يمين الصف في RTL */
+  .ann-teacher-avatar {
+    width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    border: 2px solid rgba(167,139,250,0.5); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    background: rgba(255,255,255,0.08);
+  }
+  .ann-teacher-name { line-height: 1.4; }
+  /* نص الرسالة: رمادي فاتح مريح + قص بعد 4 أسطر مع (...) في النهاية */
+  .ann-message {
+    font-size: 13px; color: rgba(226,226,240,0.75); line-height: 1.75; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
+    overflow: hidden; max-height: calc(1.75em * 4);
+  }
+  html[data-theme="light"] .ann-message { color: var(--text-secondary); }
+  /* الجزء السفلي: flex — التاريخ يميناً (باهت وصغير) والزر يساراً في RTL */
+  .ann-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; }
+  .ann-date { font-size: 10.5px; color: rgba(255,255,255,0.35); white-space: nowrap; }
+  html[data-theme="light"] .ann-date { color: var(--text-muted); }
+  /* زر «انقر على التفاصيل»: تصميم عصري بخلفية ملونة وحواف دائرية وتأثير لمس */
+  .ann-link-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; border-radius: 999px; border: none; cursor: pointer;
+    font-family: var(--font); font-size: 12.5px; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    box-shadow: 0 4px 14px rgba(99,102,241,0.45);
+    text-decoration: none; white-space: nowrap;
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  }
+  .ann-link-btn:hover { filter: brightness(1.12); box-shadow: 0 6px 18px rgba(99,102,241,0.6); }
+  .ann-link-btn:active { transform: scale(0.96); }
+  @media (max-width: 430px) {
+    .ann-card { padding: 16px; }
+    .ann-foot { flex-direction: column; align-items: stretch; }
+    .ann-date { text-align: center; }
+    .ann-link-btn { justify-content: center; }
+  }
 
   /* ── مرفقات البلاغ: شرائح + لوحات ── */
   .att-chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -2287,21 +2395,26 @@
 
     <!-- ── قسم البلاغات ── -->
     <div id="view-reports" style="display:none">
-      <div class="section-header">
-        <div>
-          <div class="section-title">البلاغات 📣</div>
-          <div class="section-sub">تابع آخر البلاغات والتنبيهات</div>
+      <!-- ── شريط تبويبات فصل الأقسام: الممثل ↔ الأساتذه (مؤشر منزلق تحت النشط) ── -->
+      <div class="ann-tabs-wrap">
+        <div class="ann-tabs" id="ann-tabs">
+          <button type="button" class="ann-tab on" data-tab="agent">📨 الممثل</button>
+          <button type="button" class="ann-tab" data-tab="teacher">📢 الأساتذه</button>
+          <span class="ann-tabs-ind" id="ann-tabs-ind"></span>
         </div>
       </div>
-      <div id="reports-owner-zone" style="display:none">
-        <button class="btn-publish" onclick="openReportModal()">📝 نشر بلاغ جديد</button>
+      <!-- ── لوحة تليغات الممثل (مجموعة «تليغ من ممثل الشعبة» — لحظي عبر onSnapshot) — البلاغات تُنشر وتظهر هنا فقط ── -->
+      <div class="class-ann-block" id="ann-panel-agent">
+        <div class="reports-list class-ann-list" id="agent-ann-list"></div>
+        <div id="reports-owner-zone" style="display:none">
+          <button class="btn-publish" onclick="openReportModal()">📝 نشر بلاغ جديد</button>
+        </div>
+        <div class="reports-list" id="reports-list"></div>
       </div>
-      <div class="reports-empty" id="reports-empty">
-        <div class="reports-empty-ico">📣</div>
-        <div class="reports-empty-title">لا توجد بلاغات حالياً</div>
-        <div>ستظهر هنا البلاغات الجديدة فور وصولها</div>
+      <!-- ── لوحة إعلانات الأساتذه (class_announcements — جلب لحظي عبر Firebase V9 onSnapshot) ── -->
+      <div class="class-ann-block" id="ann-panel-teacher" style="display:none">
+        <div class="reports-list class-ann-list" id="class-ann-list"></div>
       </div>
-      <div class="reports-list" id="reports-list"></div>
     </div>
 
     <!-- ── قسم الملازم ── -->
@@ -2493,7 +2606,7 @@
       <label for="acc-np-pass" data-i18n="newPassword">كلمة السر الجديدة</label>
       <input class="acc-input" id="acc-np-pass" type="password" style="direction:ltr;text-align:left" autocomplete="new-password">
       <ul class="acc-rules" id="acc-np-rules">
-        <li data-r="len"><span>○</span><span data-i18n="rulePassLen">6 أحرف على الأقل</span></li>
+        <li data-r="len"><span>○</span><span data-i18n="rulePassLen">8 أحرف على الأقل</span></li>
         <li data-r="match"><span>○</span><span data-i18n="rulePassMatch">كلمتا السر متطابقتان</span></li>
       </ul>
     </div>
@@ -2569,6 +2682,7 @@
       <ul class="acc-rules" id="acc-u-rules">
         <li data-r="len"><span>○</span><span data-i18n="ruleLen">من 3 إلى 30 حرفاً</span></li>
         <li data-r="chars"><span>○</span><span data-i18n="ruleChars">حروف إنجليزية وأرقام ونقطة وشرطة سفلية (_) فقط</span></li>
+        <li data-r="letter"><span>○</span><span data-i18n="ruleLetter">حرف إنجليزي واحد على الأقل (الأرقام وحدها لا تكفي)</span></li>
         <li data-r="dots"><span>○</span><span data-i18n="ruleDots">لا تبدأ أو تنتهِ بنقطة ولا نقطتان متتاليتان</span></li>
       </ul>
     </div>
@@ -2798,15 +2912,6 @@
     <div class="modal-title" id="report-modal-title">📣 نشر بلاغ</div>
 
     <div class="form-group">
-      <label class="form-label">نوع البلاغ</label>
-      <select class="form-select" id="rep-type">
-        <option value="تنبيه عاجل">🔴 تنبيه عاجل</option>
-        <option value="معلومة">🔵 معلومة</option>
-        <option value="تحديث جدولي">🟡 تحديث جدولي</option>
-        <option value="أخرى">🟣 أخرى</option>
-      </select>
-    </div>
-    <div class="form-group">
       <label class="form-label">عنوان البلاغ</label>
       <input class="form-input" id="rep-title" placeholder="مثال: تغيير موعد الحصة اليوم" maxlength="120" autocomplete="off">
     </div>
@@ -2977,7 +3082,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">كلمة السر</label>
-        <input class="form-input login-field" type="password" id="alfa-f5" name="alfa-f5" placeholder="6 أحرف على الأقل" inputmode="text" autocomplete="new-password" readonly style="direction:ltr;text-align:left">
+        <input class="form-input login-field" type="password" id="alfa-f5" name="alfa-f5" placeholder="8 أحرف على الأقل" inputmode="text" autocomplete="new-password" readonly style="direction:ltr;text-align:left">
       </div>
       <div class="form-group">
         <label class="form-label">إعادة كلمة السر</label>
@@ -3609,7 +3714,7 @@ function authMsg(code) {
     'auth/too-many-requests':'محاولات كثيرة، حاول لاحقاً.',
     'auth/network-request-failed':'تعذّر الاتصال بالإنترنت.',
     'auth/operation-not-allowed':'Email/Password غير مفعّل في Firebase Console.',
-    'auth/weak-password':'كلمة السر يجب ألا تقل عن 6 أحرف.',
+    'auth/weak-password':'كلمة السر يجب ألا تقل عن 8 أحرف.',
     'permission-denied':'ليس لديك صلاحية (راجع قواعد Firestore).'
   }[code] || 'حدث خطأ غير متوقع، حاول مرة أخرى.';
 }
@@ -3741,8 +3846,8 @@ window.doAuthSignup = async function() {
   showAuthErr('auth-sign-err');
   const username = uEl.value.trim().toLowerCase();
   const password = pEl.value;
-  if (!/^[a-z0-9_]{3,}$/.test(username)) { showAuthErr('auth-sign-err','اسم المستخدم: حروف إنجليزية أو أرقام فقط، 3 أحرف على الأقل'); return; }
-  if (password.length < 6) { showAuthErr('auth-sign-err','كلمة السر يجب ألا تقل عن 6 أحرف'); return; }
+  if (!/^[a-z0-9_]{3,}$/.test(username) || !/[a-zA-Z]/.test(username)) { showAuthErr('auth-sign-err','اسم المستخدم: حروف إنجليزية أو أرقام فقط، 3 أحرف على الأقل، ويجب أن يحوي على حرف إنجليزي واحد على الأقل'); return; }
+  if (password.length < 8) { showAuthErr('auth-sign-err','كلمة السر يجب ألا تقل عن 8 أحرف'); return; }
   if (password !== p2El.value) { showAuthErr('auth-sign-err','كلمتا السر غير متطابقتين'); return; }
 
   const fullName = (nameEl && nameEl.value.trim()) || username;
@@ -5500,8 +5605,8 @@ function playChatSound() {
 //     (يضخّم حجم المستند ويسبب تضارب الكتابة مع كل قارئ جديد).
 //   • تعليم القراءة = كتابة واحدة فقط (setDoc + merge + حقل ديناميكي)، بدون قراءة مسبقة.
 //   • الزائر بلا UID = تخزين محلي فقط (localStorage) بدون أي تكلفة فايربيس.
-const READS_TYPES = ['reports', 'materials', 'posts'];
-let readsState = { reports: {}, materials: {}, posts: {} }; // id -> timestamp
+const READS_TYPES = ['reports', 'materials', 'posts', 'announcements'];
+let readsState = { reports: {}, materials: {}, posts: {}, announcements: {} }; // id -> timestamp
 let _readsUnsub = null;
 let _readsKey = null; // المفتاح الحالي (uid أو guest) لمنع إعادة الاشتراك
 
@@ -5513,8 +5618,8 @@ function _readsCacheKey() { return 'alfa_reads_' + (currentReadsUid() || 'guest'
 function loadReadsCache() {
   try {
     const raw = localStorage.getItem(_readsCacheKey());
-    readsState = raw ? JSON.parse(raw) : { reports: {}, materials: {}, posts: {} };
-  } catch (e) { readsState = { reports: {}, materials: {}, posts: {} }; }
+    readsState = raw ? JSON.parse(raw) : { reports: {}, materials: {}, posts: {}, announcements: {} };
+  } catch (e) { readsState = { reports: {}, materials: {}, posts: {}, announcements: {} }; }
   READS_TYPES.forEach(t => { if (!readsState[t] || typeof readsState[t] !== 'object') readsState[t] = {}; });
 }
 function saveReadsCache() { try { localStorage.setItem(_readsCacheKey(), JSON.stringify(readsState)); } catch (e) {} }
@@ -5525,10 +5630,11 @@ function notifReadTarget(n) {
   const nid = String((n && n.id) || '');
   if (nid.indexOf('report_') === 0)   return ['reports',  nid.slice(7)];
   if (nid.indexOf('material_') === 0) return ['materials', nid.slice(9)];
+  if (nid.indexOf('classann_') === 0) return ['announcements', nid.slice(9)];
   return ['posts', nid];
 }
 function notifIdFor(type, id) {
-  return type === 'reports' ? ('report_' + id) : type === 'materials' ? ('material_' + id) : String(id);
+  return type === 'reports' ? ('report_' + id) : type === 'materials' ? ('material_' + id) : type === 'announcements' ? ('classann_' + id) : String(id);
 }
 function countUnreadNotifications() {
   let n = 0;
@@ -5563,6 +5669,7 @@ function _syncNotifItemRead(type, id) {
 }
 function renderReadDependentUI() {
   try { if (typeof reportsData !== 'undefined' && reportsData && reportsData.length) renderReports(); } catch (e) {}
+  try { if (typeof classAnnData !== 'undefined' && classAnnData && classAnnData.length) renderClassAnnouncements(); } catch (e) {}
   try { if (typeof materialsCurrentSubject !== 'undefined' && materialsCurrentSubject) renderMaterialsGrid(); } catch (e) {}
   try { renderNotifPanel(); } catch (e) {}
 }
@@ -5713,6 +5820,16 @@ async function openNotificationTarget(n) {
   const type = target[0], id = target[1];
   if (!id) return;
   closeNotifPanel();
+  if (type === 'announcements') {
+    // إعلان أستاذ: فتح قسم البلاغات + تبويب الأساتذه ثم تحديد البطاقة بتأثير «هذا هو الإشعار»
+    try { annActiveTab = 'teacher'; } catch (e) {}
+    setActiveNav('reports');
+    try { annTabsUpdate(); requestAnimationFrame(annTabsUpdate); } catch (e) {}
+    const card = await waitForEl(() => document.querySelector(`#class-ann-list .ann-card[data-ann-id="${id}"]`));
+    if (card) applyNotifFocus(card, true);
+    else showToast('⚠️', 'الإعلانات', 'تعذّر العثور على الإعلان المحدّد');
+    return;
+  }
   if (type === 'reports') {
     // البلاغ: الانتقال لقسم البلاغات ثم تحديد البطاقة بتأثير «هذا هو الإشعار»
     setActiveNav('reports');
@@ -6782,11 +6899,11 @@ const ACC_EN = {
   guestTitle:'Sign in to manage your account', guestDesc:'After signing in you can edit your academic info, username and appearance.', login:'Sign in',
   secAccount:'Account', personalData:'Personal information', manageAccount:'Account management', manageAccountSub:'Edit your personal and academic info', fullName:'Full name', governorate:'Governorate', university:'University', college:'College', department:'Department',
   shift:'Shift', morning:'Morning', evening:'Evening', stage:'Academic stage', section:'Section', save:'Save changes', saveShort:'Save', cancel:'Cancel', close:'Close', send:'Send', change:'Change',
-  changeUsername:'Change username', newUsername:'New username', ruleLen:'3 to 30 characters', ruleChars:'English letters, numbers, dot and underscore (_) only', ruleDots:'No leading/trailing dot and no consecutive dots',
+  changeUsername:'Change username', newUsername:'New username', ruleLen:'3 to 30 characters', ruleChars:'English letters, numbers, dot and underscore (_) only', ruleLetter:'At least one English letter', ruleDots:'No leading/trailing dot and no consecutive dots',
   secPeriod:'Academic period', periodSub:'The course and stage currently shown', course:'Course',
   secPrefs:'Preferences', appearance:'App appearance', dark:'Dark', light:'Light', auto:'Auto', langEnglish:'English language', langSub:'Switch the interface between Arabic and English',
   quickReaction:'Quick reaction', quickReactionSub:'Your default reaction on the platform',
-  secSecurity:'Security', changePassword:'Change password', changePasswordSub:'Set a new password for your account', newPassword:'New password', confirmPassword:'Confirm new password', rulePassLen:'At least 6 characters', rulePassMatch:'Passwords match', advanced:'Advanced account options', deleteHint:'Deletion is scheduled after typing the prayer, and is cancelled automatically if you sign in within 7 days.', deleteAccount:'Delete account permanently',
+  secSecurity:'Security', changePassword:'Change password', changePasswordSub:'Set a new password for your account', newPassword:'New password', confirmPassword:'Confirm new password', rulePassLen:'At least 8 characters', rulePassMatch:'Passwords match', advanced:'Advanced account options', deleteHint:'Deletion is scheduled after typing the prayer, and is cancelled automatically if you sign in within 7 days.', deleteAccount:'Delete account permanently',
   deleteTitle:'⚠️ Delete account permanently', deleteWarn:'To request deletion, type the prayer upon Muhammad and his family. The account is not deleted immediately: deletion is scheduled and cancelled automatically if you sign in within 7 days, otherwise it is permanently removed.',
   typeSalawat:'Type: اللهم صلِّ على محمد وآل محمد', salawatHint:'Type it exactly to confirm the deletion request.', deleteConfirm:'Confirm deletion request',
   secSupport:'Support & info', contact:'Contact us', contactHint:'Write your problem or suggestion and it will reach the support team.', privacy:'Privacy policy', terms:'Terms & conditions', instagram:'Our Instagram', version:'Version', logout:'Sign out', logoutAccount:'Sign out of account', logoutConfirmTitle:'Sign out', logoutConfirmMsg:'Do you want to sign out of your account?', logoutYes:'Yes, sign out'
@@ -7071,6 +7188,7 @@ function accUsernameChecks(v) {
   return {
     len:   v.length >= 3 && v.length <= 30,
     chars: /^[a-z0-9._]+$/.test(v),
+    letter: /[a-zA-Z]/.test(v),
     dots:  v.length > 0 && !/^\.|\.$|\.\./.test(v)
   };
 }
@@ -7082,7 +7200,7 @@ function accUpdateRules() {
     li.classList.toggle('bad', v && !good);
     li.firstElementChild.textContent = !v ? '○' : (good ? '✓' : '✕');
   });
-  return r.len && r.chars && r.dots;
+  return r.len && r.chars && r.dots && r.letter;
 }
 function accOpenUsername() {
   accEl('acc-u-input').value = ''; accSetErr('acc-u-err', '');
@@ -7159,7 +7277,7 @@ function accOpenPassword() {
 }
 function accUpdatePassRules() {
   const p = accEl('acc-np-pass').value, p2 = accEl('acc-np-pass2').value;
-  const r = { len: p.length >= 6, match: p.length > 0 && p === p2 };
+  const r = { len: p.length >= 8, match: p.length > 0 && p === p2 };
   document.querySelectorAll('#acc-np-rules li').forEach(li => {
     const k = li.dataset.r, val = (k === 'len') ? p : p2, good = r[k];
     li.classList.toggle('ok', val.length > 0 && good);
@@ -7172,7 +7290,7 @@ async function accSavePassword() {
   if (!currentUser) return;
   accSetErr('acc-np-err', '');
   const pass = accEl('acc-np-pass').value, pass2 = accEl('acc-np-pass2').value;
-  if (pass.length < 6) { accSetErr('acc-np-err', 'كلمة السر يجب ألا تقل عن 6 أحرف.'); return; }
+  if (pass.length < 8) { accSetErr('acc-np-err', 'كلمة السر يجب ألا تقل عن 8 أحرف.'); return; }
   if (pass !== pass2) { accSetErr('acc-np-err', 'كلمتا السر غير متطابقتين.'); return; }
   const user = fireAuth.currentUser;
   if (!user) { accSetErr('acc-np-err', 'يجب تسجيل الدخول أولاً.'); return; }
@@ -7481,12 +7599,13 @@ function renderReports() {
       const t = new Date(Number(r.createdAt) || Date.now());
       const dateStr = `${t.getDate()} ${monthNames[t.getMonth()]}`;
       const timeStr = t.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
-      const type = r.type || 'أخرى';
+      const type = String(r.type || '').trim();
+      const showType = type && type !== 'أخرى'; // كلمة «أخرى» لا تظهر على بطاقة البلاغ
       const urgent = type === 'تنبيه عاجل' ? ' report-urgent' : '';
       return `
         <div class="report-card${urgent}" data-report-id="${sanitizeText(r.id)}">
           <div class="report-head">
-            <span class="report-type" data-type="${sanitizeText(type)}">${sanitizeText(type)}</span>
+            ${showType ? `<span class="report-type" data-type="${sanitizeText(type)}">${sanitizeText(type)}</span>` : ''}
             <span class="report-date">${dateStr} — ${timeStr}</span>
             ${!isReportRead(r.id) ? `<span class="new-badge" data-badge-key="reports:${sanitizeText(r.id)}">جديد</span>` : ''}
           </div>
@@ -7521,6 +7640,296 @@ if (document.getElementById('reports-list')) {
   });
 }
 
+// ══════════════════ إعلانات الأساتذه (class_announcements — Firebase V9 لحظي) ══════════════════
+// الحقول المقرأة من Firestore: subjectName (المادة) / teacherName (الأستاذ) /
+// messageContent (الرسالة) / detailsLink (الرابط) / date (التاريخ)
+let unsubClassAnn = null;
+let classAnnData = [];
+
+// تحويل حقل date إلى ملّي ثانية — يدعم Firestore Timestamp والرقم والنص و ISO
+function classAnnMs(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  if (typeof v.toMillis === 'function') return v.toMillis();              // Firestore Timestamp
+  if (typeof v === 'object' && typeof v.seconds === 'number') return v.seconds * 1000; // Timestamp خام
+  const n = Number(v);
+  if (Number.isFinite(n)) return n > 1e11 ? n : (n > 1e9 ? n * 1000 : n); // ملّي أو ثانية
+  const t = Date.parse(v);
+  return Number.isNaN(t) ? 0 : t;                                          // نص/ISO
+}
+
+function subscribeClassAnnouncements() {
+  if (unsubClassAnn) return;
+  // جلب لحظي (Real-time) لكل مجموعة الإعلانات
+  unsubClassAnn = onSnapshot(collection(db, 'class_announcements'), (snap) => {
+    classAnnData = [];
+    snap.forEach(d => classAnnData.push({ ...d.data(), id: d.id }));
+    // الأحدث أولاً بناءً على حقل date (ترتيب محلي — لا يحتاج فهرس Firestore)
+    classAnnData.sort((a, b) => classAnnMs(b.date) - classAnnMs(a.date));
+    // ── إشعار عام لجميع الحسابات عند نشر إعلان أستاذ جديد (نفس نمط البلاغات) ──
+    let hasNewAnn = false;
+    snap.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        const rawMs = classAnnMs(data.date || data.createdAt);
+        const createdAtMs = rawMs || Date.now();
+        const rawTitle = data.subjectName || data.title || 'إعلان جديد';
+        // عرض الاسم العربي للمادة في الإشعار (نفس منطق بطاقة الإعلان) — مع إبقاء الاسم الخام لـ cleanAnnMessage
+        const sjT = splitAnnSubject(rawTitle);
+        const title = sjT.main ? (sjT.sub ? sjT.main + ' — ' + sjT.sub : sjT.main) : rawTitle;
+        const msg = cleanAnnMessage(data.messageContent || data.message, data.subjectName || data.title);
+        const body = msg ? (msg.length > 60 ? msg.slice(0, 60) + '…' : msg) : 'تم نشر إعلان جديد';
+        // التنبيه الصوتي/المنبّه فقط للإعلانات المنشورة منذ أقل من 5 دقائق
+        const age = rawMs ? (Date.now() - rawMs) : Infinity;
+        if (age < 5 * 60 * 1000 && age >= -60 * 1000) {
+          hasNewAnn = true;
+          showToast('📢', title, body);
+          playNotifSound();
+        }
+        if (!notifications.find(n => n.id === ('classann_' + change.doc.id))) {
+          hasNewAnn = true;
+          notifications.push({
+            id: 'classann_' + change.doc.id,
+            text: `📢 ${sanitizeText(title)}`,
+            type: 'إعلان',
+            dayId: null,
+            time: createdAtMs
+          });
+        }
+      } else if (change.type === 'removed') {
+        // إزالة الإشعار من لوحة الجرس عند حذف الإعلان
+        const before = notifications.length;
+        notifications = notifications.filter(n => n.id !== ('classann_' + change.doc.id));
+        if (notifications.length !== before) hasNewAnn = true;
+      }
+    });
+    // العدّاد = عدد الإشعارات غير المقروءة فعلياً للـ UID الحالي
+    updateUnreadBadge();
+    if (hasNewAnn) renderNotifPanel();
+    renderClassAnnouncements();
+  }, (err) => {
+    console.error('خطأ في تحميل إعلانات الأساتذه:', err);
+    renderClassAnnouncements();
+  });
+}
+
+// ══════════════════ تليغات الممثل (مجموعة «تليغ من ممثل الشعبة» — لحظي) ══════════════════
+// تُعرض في قسم مستقل فوق إعلانات الأساتذه بنفس تنسيق البطاقات
+const AGENT_ANN_COLLECTION = 'تليغ من ممثل الشعبة';
+let unsubAgentAnn = null;
+let agentAnnData = [];
+
+function subscribeAgentAnnouncements() {
+  if (unsubAgentAnn) return;
+  unsubAgentAnn = onSnapshot(collection(db, AGENT_ANN_COLLECTION), (snap) => {
+    agentAnnData = [];
+    snap.forEach(d => agentAnnData.push({ ...d.data(), id: d.id }));
+    // الأحدث أولاً — يدعم date أو createdAt (ترتيب محلي — لا يحتاج فهرس Firestore)
+    agentAnnData.sort((a, b) => classAnnMs(b.date || b.createdAt) - classAnnMs(a.date || a.createdAt));
+    renderAgentAnnouncements();
+  }, (err) => {
+    console.error('خطأ في تحميل تليغات الممثل:', err);
+    renderAgentAnnouncements();
+  });
+}
+
+// تنظيف نص الرسالة قبل العرض: إزالة ترويسات/تذييلات الإيميل والروابط ونطاقات البريد
+// حتى يبقى نص الأستاذ الفعلي فقط
+function cleanAnnMessage(txt, subject) {
+  let s = String(txt || '');
+  // 1) حذف أي روابط http/https (طويلة أو مختصرة)
+  s = s.replace(/https?:\/\/\S+/gi, ' ');
+  // 2) حذف عناوين البريد الإلكتروني (مثل someone@mtu.edu.iq)
+  s = s.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/gi, ' ');
+  // 3) حذف النطاقات المتبقة (مثل mtu.edu.iq) حتى بدون @
+  s = s.replace(/\b[\w-]+(?:\.[\w-]+)*\.(?:edu|com|org|net|gov|mil|iq|info|app|io|me)\b/gi, ' ');
+  // 4) حذف كلمات/عبارات الإيميل الإنجليزية (ترويسات وتعليقات تلقائية)
+  s = s.replace(/\b(new announcement|notification settings|view announcement|announcement details|sent from|you received this (message|email)|manage (email )?notifications|unsubscribe|click (here|the link)|regards|sincerely|get outlook for (android|ios)?|outlook for mobile|powered by)\b[:\-]?/gi, ' ');
+  // 5) حذف نفس العبارات بالعربية إن وُجدت
+  s = s.replace(/(إعلان جديد|إعدادات الإشعارات|عرض الإعلان|تم الإرسال من|أُرسل إليك هذا|إلغاء الاشتراك|انقر هنا|مع التحية)\s*[:\-]?/g, ' ');
+  // 6) حذف أي سطر يطابق اسم المادة تماماً (ترويسة الإيميل تكرّرها أحياناً)
+  const subj = String(subject || '').trim().toLowerCase();
+  if (subj) s = s.split('\n').filter(l => l.trim().toLowerCase() !== subj).join('\n');
+  // 7) إزالة السطور التي صارت فارغة بعد التنظيف وضغط المسافات
+  s = s.split(/\r?\n/).map(l => l.replace(/[ \t]+/g, ' ').trim()).filter(Boolean).join('\n').trim();
+  // 8) دمج أكثر من سطرين متتاليين فارغين
+  s = s.replace(/\n{2,}/g, '\n');
+  return s;
+}
+
+// ── قاموس ترجمة أسماء المواد الإنكليزية إلى العربية (أضف أي مادة جديدة هنا) ──
+const ANN_SUBJECT_AR = {
+  'fundamentals of intermediate accounting': 'أساسيات المحاسبة المتوسطة',
+  'fundamentals of financial accounting': 'أساسيات المحاسبة المالية',
+  'fundamentals of cost accounting': 'أساسيات المحاسبة التكاليفية',
+  'fundamentals of management accounting': 'أساسيات المحاسبة الإدارية',
+  'intermediate accounting': 'المحاسبة المتوسطة',
+  'financial accounting': 'المحاسبة المالية',
+  'cost accounting': 'المحاسبة التكاليفية',
+  'management accounting': 'المحاسبة الإدارية',
+  'tax accounting': 'المحاسبة الضريبية',
+  'accounting principles': 'مبادئ المحاسبة',
+  'business math': 'رياضيات الأعمال',
+  'business english': 'الإنكليزية للأعمال',
+  'micro economics': 'الاقتصاد الجزئي',
+  'macro economics': 'الاقتصاد الكلي',
+  'statistics': 'الإحصاء',
+};
+function annTranslateSubject(en) {
+  const k = String(en || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return ANN_SUBJECT_AR[k] || null;
+}
+
+// فصل عنوان الإعلان: الرئيسي = اسم المادة (بالعربية إن أمكن)، الفرعي = المرحلة والشعبة
+// يدعم صيغة الإيميل الحقيقية: «‫المرحلة الثانية مسائي‬‎ Fundamentals of Intermediate Accounting»
+function splitAnnSubject(subject) {
+  // إزالة علامات الاتجاه المخفية (RLM/LRM) القادمة من الإيميل ثم ضغط المسافات
+  const s = String(subject || '')
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
+    .replace(/\s+/g, ' ').trim();
+  if (!s) return { main: '', sub: '' };
+  const enStart = s.search(/[A-Za-z]/);
+  if (enStart === -1) {
+    // لا نص إنكليزي: ترجمة إن توفّرت، ثم فصل على «المرحلة» إن وُجدت
+    const t = annTranslateSubject(s);
+    if (t) return { main: t, sub: '' };
+    const kw = s.search(/المرحلة/);
+    if (kw > 0) {
+      const main = s.slice(0, kw).replace(/[\s\-–—|(:،,]+$/, '').trim();
+      const sub = s.slice(kw).trim();
+      if (main && sub) return { main, sub };
+    }
+    return { main: s, sub: '' };
+  }
+  // يوجد مقطع إنكليزي: نفصله عن المقطع العربي (المرحلة/الشعبة أو اسم عربي)
+  let lastLatin = enStart;
+  for (let i = s.length - 1; i >= 0; i--) { if (/[A-Za-z]/.test(s[i])) { lastLatin = i; break; } }
+  const enPart = s.slice(enStart, lastLatin + 1).trim();
+  const arPart = (s.slice(0, enStart) + ' ' + s.slice(lastLatin + 1))
+    .replace(/[\s\-–—|(:،,)\]}]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!arPart) {
+    // إنكليزي فقط: ترجمة إن توفّرت، ثم فصل على كلمات مفتاحية (Fundamentals / Level ...)
+    const t = annTranslateSubject(enPart);
+    if (t) return { main: t, sub: '' };
+    const kw2 = enPart.search(/\bfundamentals?\b|\bintermediate\b|\badvanced\b|\bpreparation\b|\blevel\s*\d/i);
+    if (kw2 > 0) {
+      const m2 = enPart.slice(0, kw2).replace(/[\s\-–—|(:،,]+$/, '').trim();
+      const s2 = enPart.slice(kw2).replace(/[\s)\]}]+$/, '').trim();
+      if (m2 && s2) return { main: m2, sub: s2 };
+    }
+    return { main: enPart, sub: '' };
+  }
+  // المقطع العربي قد يحوي اسم المادة ثم «المرحلة» — نفصله
+  let arMain = '', arStage = '';
+  const kw = arPart.search(/المرحلة/);
+  if (kw > 0) {
+    arMain = arPart.slice(0, kw).replace(/[\s\-–—|(:،,]+$/, '').trim();
+    arStage = arPart.slice(kw).trim();
+  } else if (kw === 0) arStage = arPart;  // يبدأ بـ«المرحلة» → كله مرحلة وشعبة
+  else arMain = arPart;                    // عربي بدون «المرحلة» → اسم مادة عربي
+  const main = arMain || annTranslateSubject(enPart) || enPart;
+  const sub = arStage || (arMain ? enPart : '');
+  return { main, sub };
+}
+
+// ── سجل الأساتذة: الاسم بالعربية + رابط صورة حساب Google (أضف أي أستاذ جديد هنا) ──
+const ANN_TEACHERS = {
+  'dr. enas saad': { ar: 'الدكتورة إيناس سعد', img: 'https://lh3.googleusercontent.com/a-/ALV-UjVT46eT_pQYKNoGpPbsM2SC8z7kFp7LuLYgogfSRJtAp10SWsw=s32-c' },
+  'dr enas saad': { ar: 'الدكتورة إيناس سعد', img: 'https://lh3.googleusercontent.com/a-/ALV-UjVT46eT_pQYKNoGpPbsM2SC8z7kFp7LuLYgogfSRJtAp10SWsw=s32-c' },
+  'enas saad': { ar: 'الدكتورة إيناس سعد', img: 'https://lh3.googleusercontent.com/a-/ALV-UjVT46eT_pQYKNoGpPbsM2SC8z7kFp7LuLYgogfSRJtAp10SWsw=s32-c' },
+  'batool younus': { ar: 'بتول يونس', img: 'https://lh3.googleusercontent.com/a/ACg8ocKJCzkynq-Vgcc4pJz_R2EdQl-zb5WSkWmofRmkf930WZU3ng=s40-c-mo' },
+  'ms. batool younus': { ar: 'بتول يونس', img: 'https://lh3.googleusercontent.com/a/ACg8ocKJCzkynq-Vgcc4pJz_R2EdQl-zb5WSkWmofRmkf930WZU3ng=s40-c-mo' },
+};
+// إرجاع { ar, img } لاسم أستاذ — يبحث بالاسم الكامل ثم بدون لقب (Dr./Ms./...)
+function annTeacherInfo(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return { ar: '', img: '' };
+  const k = raw.toLowerCase().replace(/\s+/g, ' ');
+  const bare = k.replace(/^(dr|doctor|mr|mrs|ms|prof|professor|instructor|teacher|eng|mgr)\.?\s+/i, '').trim();
+  const hit = ANN_TEACHERS[k] || ANN_TEACHERS[bare];
+  if (hit) return { ar: hit.ar, img: hit.img || '' };
+  return { ar: raw, img: '' }; // أستاذ غير مسجل: يُعرض اسمه كما وصل
+}
+
+const ANN_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+// بناء بطاقة إعلان واحدة — تُستخدم للأساتذه وللممثل بنفس التنسيق،
+// مع شريط جانبي كهرماني (.ann-card--agent) للتمييز بين القسمين
+// ── شارة «جديد» على إعلان الأساتذ — مربوطة بنظام تتبّع القراءة في Firestore (user_reads/{uid}) ──
+function isAnnRead(annId) { return isItemRead('announcements', annId); }
+
+function annBuildCard(a, isAgent) {
+  try {
+    const ms = classAnnMs(a.date || a.createdAt);
+    const d = new Date(ms || Date.now());
+    const dateStr = `${d.getDate()} ${ANN_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    const timeStr = d.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+    // رابط التفاصيل: نقبل http(s) فقط ونزيل الأحرف الخطرة لحماية خصائص HTML
+    const rawLink = String(a.detailsLink || '').trim();
+    const safeLink = /^https?:\/\//i.test(rawLink) ? rawLink.replace(/["'`\s<>]/g, '') : '';
+    // تنظيف نص الرسالة من تفاصيل الإيميل (روابط/ترويسات/نطاقات) قبل العرض
+    const msg = cleanAnnMessage(a.messageContent || a.message, a.subjectName || a.title);
+    // فصل العنوان: مادة أساسية (أعلى بخط كبير) + عنوان فرعي للمرحلة والشعبة
+    const sj = splitAnnSubject(a.subjectName || a.title);
+    // بيانات الأستاذ: اسم بالعربية + صورة حسابه (إن وُجدت في السجل)
+    const t = annTeacherInfo(a.teacherName);
+    return `
+      <div class="ann-card${isAgent ? ' ann-card--agent' : ''}" data-ann-id="${sanitizeText(a.id)}">
+        <div class="ann-subject" dir="auto">📚 ${sanitizeText(sj.main || 'إعلان')}</div>
+        ${sj.sub ? `<div class="ann-subject-sub" dir="auto">${sanitizeText(sj.sub)}</div>` : ''}
+        ${msg ? `<div class="ann-message" dir="auto">${sanitizeText(msg)}</div>` : ''}
+        ${a.teacherName ? `<div class="ann-teacher">${t.img ? `<img class="ann-teacher-avatar" src="${sanitizeText(t.img)}" alt="" loading="lazy" onerror="this.outerHTML='👨‍🏫'">` : '👨‍🏫'}<span class="ann-teacher-name" dir="auto">${sanitizeText(t.ar)}</span></div>` : ''}
+        <div class="ann-foot">
+          ${!isAgent && !isAnnRead(a.id) ? `<span class="new-badge" data-badge-key="announcements:${sanitizeText(a.id)}">جديد</span>` : ''}
+          <span class="ann-date">${ms ? `🕒 ${dateStr} — ${timeStr}` : ''}</span>
+          ${safeLink ? `<a class="ann-link-btn" href="${sanitizeText(safeLink)}" target="_blank" rel="noopener noreferrer">🔗 انقر على التفاصيل</a>` : ''}
+        </div>
+      </div>`;
+  } catch (e) {
+    console.error('خطأ في بناء بطاقة إعلان (id:', a && a.id, '):', e);
+    return `<div class="ann-card"><div class="ann-message">خطأ في عرض الإعلان</div></div>`;
+  }
+}
+
+// عرض قائمة بطاقات داخل حاوية — لكل قسم (ممثل/أساتذه)
+function renderAnnList(listId, data, isAgent) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  list.innerHTML = data.length ? data.map(a => annBuildCard(a, isAgent)).join('') : '';
+}
+
+function renderClassAnnouncements() { renderAnnList('class-ann-list', classAnnData, false); }
+function renderAgentAnnouncements() { renderAnnList('agent-ann-list', agentAnnData, true); }
+
+// ── شريط تبويبات الأقسام (الممثل ↔ الأساتذه) مع مؤشر منزلق تحت التبويب النشط ──
+let annActiveTab = 'agent'; // التبويب الافتراضي: تليغات الممثل
+function annTabsUpdate() {
+  const tabs = document.querySelectorAll('#ann-tabs .ann-tab');
+  const ind = document.getElementById('ann-tabs-ind');
+  if (!tabs.length) return;
+  tabs.forEach(b => b.classList.toggle('on', b.dataset.tab === annActiveTab));
+  const agentPanel = document.getElementById('ann-panel-agent');
+  const teacherPanel = document.getElementById('ann-panel-teacher');
+  if (agentPanel) agentPanel.style.display = annActiveTab === 'agent' ? '' : 'none';
+  if (teacherPanel) teacherPanel.style.display = annActiveTab === 'teacher' ? '' : 'none';
+  // تحديد مكان/عرض المؤشر حسب التبويب النشط (نصف عرض التبويب في منتصفه)
+  const active = document.querySelector('#ann-tabs .ann-tab.on');
+  if (active && ind) {
+    const w = Math.max(28, Math.round(active.offsetWidth * 0.5));
+    ind.style.width = w + 'px';
+    ind.style.left = (active.offsetLeft + (active.offsetWidth - w) / 2) + 'px';
+  }
+}
+function initAnnTabs() {
+  document.querySelectorAll('#ann-tabs .ann-tab').forEach(btn => {
+    btn.onclick = () => { annActiveTab = btn.dataset.tab; annTabsUpdate(); };
+  });
+  annTabsUpdate();
+  requestAnimationFrame(annTabsUpdate); // إعادة حساب بعد فتح القسم (الأبعاد قد لا تكون جاهزة لحظياً)
+}
+// إعادة ضبط مكان المؤشر عند تغيير حجم النافذة (once)
+window.addEventListener('resize', () => { if (document.getElementById('ann-tabs')) annTabsUpdate(); });
+
+
 // ── النقر على منشور في الجدول = تعليمه كمقروء (كتابة واحدة إلى user_reads/{uid}) ──
 document.addEventListener('click', (e) => {
   const postItem = e.target.closest && e.target.closest('.post-item[data-post-id]');
@@ -7528,6 +7937,14 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('.btn-edit, .btn-delete')) return; // أزرار الإدارة لا تُعدّ قراءة
   const pid = postItem.dataset.postId;
   if (pid && !isItemRead('posts', pid)) markItemRead('posts', pid);
+});
+
+// ── النقر على إعلان أستاذ = تعليمه كمقروء (شارة «جديد» تختفي بكتابة واحدة إلى user_reads/{uid}) ──
+document.addEventListener('click', (e) => {
+  const card = e.target.closest && e.target.closest('#class-ann-list .ann-card[data-ann-id]');
+  if (!card) return;
+  const aid = card.dataset.annId;
+  if (aid && !isItemRead('announcements', aid)) markItemRead('announcements', aid);
 });
 
 // ── شرائح المرفقات (فتح/غلق اللوحات) ──
@@ -8258,6 +8675,9 @@ window.votePoll = async function(reportId, idx, coll = 'reports') {
 
 function openReportsView() {
   subscribeReports();
+  subscribeClassAnnouncements(); // إعلانات الأساتذه تظهر فور فتح قسم البلاغات
+  subscribeAgentAnnouncements(); // تليغات الممثل (مجموعة منفصلة) — تُعرض فوق إعلانات الأساتذه
+  initAnnTabs(); // تبويبات الأقسام (الممثل ↔ الأساتذه) مع المؤشر المنزلق
   const ownerZone = document.getElementById('reports-owner-zone');
   if (ownerZone) ownerZone.style.display = currentUser?.isAdmin ? 'block' : 'none';
   // تعليم البلاغات كمقروءة (يُخفي عدّاد الـ badge)
@@ -8277,7 +8697,7 @@ const VOICE_MAX_SEC = 15 * 60; // الحد الأقصى: 15 دقيقة
 
 function resetReportModal() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-  set('rep-type', 'تنبيه عاجل'); set('rep-title', ''); set('rep-body', ''); set('poll-question', '');
+  set('rep-title', ''); set('rep-body', ''); set('poll-question', '');
   reportImages = []; reportFiles = [];
   renderReportImages(); renderReportFiles();
   clearReportVoice();
@@ -8304,7 +8724,7 @@ window.openReportModal = function() {
 document.getElementById('btn-do-report')?.addEventListener('click', async () => {
   if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص لمالك الموقع فقط'); return; }
   const btn = document.getElementById('btn-do-report');
-  const type = document.getElementById('rep-type').value;
+  const type = 'أخرى'; // حقل «نوع البلاغ» حُذف من النموذج — القيمة الافتراضية تُخزَّن للتوافق مع البلاغات القديمة
   const title = document.getElementById('rep-title').value.trim();
   const body  = document.getElementById('rep-body').value.trim();
   if (title.length < 3) { showToast('⚠️', 'خطأ', 'اكتب عنوان البلاغ (3 أحرف على الأقل)'); return; }
@@ -9627,6 +10047,8 @@ function init() {
     requestNotifPermission();
     refreshOfflinePosts();
     subscribeReports(); // الاشتراك في البلاغات لتحديث العدّاد في الخلفية
+    subscribeClassAnnouncements(); // اشتراك إعلانات الأساتذه (لحظي) في الخلفية
+    subscribeAgentAnnouncements(); // اشتراك تليغات الممثل (لحظي) في الخلفية
   });
 
   // الدردشة الآن تُفتح عند الضغط على "استفسار" - لا حاجة للاشتراك المسبق

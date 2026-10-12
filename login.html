@@ -250,8 +250,8 @@ $('#backBtn').onclick=()=>go('step1',-1);
 $('#signBtn').onclick=async()=>{
   const u=$('#lfa-f4'),p=$('#lfa-f5'),p2=$('#lfa-f6');showForm('#signErr');
   const un=u.value.trim();
-  const e1=setErr(u,!un?'أدخل اسم المستخدم':!/^[A-Za-z0-9_]+$/.test(un)?'حروف إنجليزية وأرقام فقط':un.length<3?'يجب ألا يقل عن 3 أحرف':'');
-  const e2=setErr(p,!p.value?'أدخل كلمة السر':p.value.length<6?'يجب ألا تقل عن 6 أحرف':'');
+  const e1=setErr(u,!un?'أدخل اسم المستخدم':!/^[A-Za-z0-9_]+$/.test(un)?'حروف إنجليزية وأرقام فقط':un.length<3?'يجب ألا يقل عن 3 أحرف':!/[A-Za-z]/.test(un)?'يجب أن يحوي اسم المستخدم على حرف إنجليزي واحد على الأقل':'');
+  const e2=setErr(p,!p.value?'أدخل كلمة السر':p.value.length<8?'يجب ألا تقل عن 8 أحرف':'');
   const e3=setErr(p2,!p2.value?'أعد كتابة كلمة السر':p2.value!==p.value?'كلمتا السر غير متطابقتين':'');
   if(!(e1&&e2&&e3))return;
   const b=$('#signBtn');b.disabled=true;
