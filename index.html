@@ -283,19 +283,24 @@
   body.materials-mode main { padding-top: 0; }
   /* دفع محتوى الملازم للأسفل حتى لا يمرّ تحت شريط البحث الثابت (64px) */
   body.materials-mode #view-materials { padding-top: 64px; }
+  /* شاشات كبيرة (آيباد/سطح مكتب): توسيع عمود الملازم ليناسب العرض المتاح بدل شريط ضيق 500px */
+  @media (min-width: 640px) {
+    body.materials-mode main { max-width: 640px; }
+  }
 
-  /* ── تصنيفات المواد الأفقية (قابلة للتمرير يمين/يسار) ── */
+  /* ── شريط المواد (الأعلى): صف واحد فقط يمرّر بالإصبع يمين/يسار — لا ينزل للأسفل مهما صغرت الشاشة ── */
   .subject-chips {
-    display: flex; gap: 8px;
+    display: flex; flex-wrap: nowrap; gap: 8px;
     overflow-x: auto;
-    padding: 6px 14px 10px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    padding: 6px 0 10px; /* الحشو الأفقي (16px) يحدده قاعدة الامتداد الكامل #subject-chips/#type-chips أدناه */
   }
   .subject-chips::-webkit-scrollbar { display: none; }
   .subject-chip {
     flex-shrink: 0;
     display: flex; align-items: center; gap: 6px;
+    min-height: 36px; box-sizing: border-box;
     padding: 8px 16px;
     border-radius: 999px;
     font-size: 13px; font-weight: 600;
@@ -314,6 +319,13 @@
     color: var(--accent2);
   }
   .subject-chip:active { transform: scale(0.96); }
+
+  /* ── الشريطان (مواد + أنواع): يمتدان على كامل عرض الشاشة يمين ويسار — مناسب لكل الأجهزة ── */
+  #subject-chips, #type-chips {
+    width: 100vw;
+    margin-inline: calc(50% - 50vw); /* الخروج من حدود العمود المركزي حتى حافتي الشاشة */
+    padding-inline: 16px; /* حشو داخلي ثابت حتى لا تلمس الرقائق الحافة الفيزيائية */
+  }
 
   /* زر تسجيل الدخول */
   .btn-login {
@@ -873,16 +885,20 @@
   .btn-back-materials:active { transform: scale(0.92); }
 
 
+  /* ── شريط الأنواع (الأسفل): الصف الثاني فوق وتحت شريط المواد — صف واحد يمرّر بالإصبع ولا ينزل للأسفل ── */
   .type-chips {
-    display: flex; gap: 8px;
+    display: flex; flex-wrap: nowrap; gap: 8px;
     overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: 6px;
     margin-bottom: 16px;
-    scrollbar-width: none;
   }
   .type-chips::-webkit-scrollbar { display: none; }
   .type-chip {
     flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 34px; box-sizing: border-box;
     padding: 6px 14px;
     border-radius: 99px;
     font-size: 12px; font-weight: 600;
@@ -906,6 +922,17 @@
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 8px 10px;
+  }
+
+  /* ── رقائق الملازم: حجم مناسب حسب عرض الشاشة (هاتف صغير ↔ آيباد/سطح مكتب) ── */
+  @media (max-width: 380px) {
+    .subject-chip { padding: 7px 12px; font-size: 12px; gap: 5px; }
+    .subject-chip .subject-chip-ico { font-size: 13.5px; }
+    .type-chip { padding: 5px 11px; font-size: 11.5px; }
+  }
+  @media (min-width: 768px) {
+    .subject-chip { padding: 9px 18px; font-size: 14px; }
+    .type-chip { padding: 7px 16px; font-size: 13px; }
   }
 
   .materials-grid {
@@ -7925,6 +7952,37 @@ function initAnnTabs() {
   });
   annTabsUpdate();
   requestAnimationFrame(annTabsUpdate); // إعادة حساب بعد فتح القسم (الأبعاد قد لا تكون جاهزة لحظياً)
+
+  // ── سحب الإصبع يمين/يسار داخل القسم = التبديل بين «الممثل» و«الأساتذه» ──
+  // يسار = الممثل / يمين = الأساتذه — الاتجاه معكوس عن عارض الصور العربية (حسب الطلب)
+  const annView = document.getElementById('view-reports');
+  if (annView) {
+    let swOn = false, swX = 0, swY = 0, swT = 0;
+    annView.ontouchstart = (e) => {
+      if (!e.touches || e.touches.length !== 1) { swOn = false; return; }
+      swOn = true; swX = e.touches[0].clientX; swY = e.touches[0].clientY; swT = Date.now();
+    };
+    annView.ontouchcancel = () => { swOn = false; };
+    annView.ontouchend = (e) => {
+      if (!swOn || !e.changedTouches || e.changedTouches.length !== 1) return;
+      swOn = false;
+      const dx = e.changedTouches[0].clientX - swX;
+      const dy = e.changedTouches[0].clientY - swY;
+      if (Math.abs(dx) <= 60 || Math.abs(dx) <= Math.abs(dy)) return; // ليست حركة أفقية كافية
+      e.stopPropagation(); // منع مستمع السحب العالمي من تغيير الأسبوع داخل هذا القسم
+      if (Date.now() - swT > 1200) return; // حركة بطيئة جداً — تُتجاهل
+      const next = dx < 0 ? 'agent' : 'teacher';
+      if (next === annActiveTab) return;
+      annActiveTab = next;
+      annTabsUpdate();
+      requestAnimationFrame(annTabsUpdate);
+      // وميض خفيف للوحة الواردة عند التبديل بالسحب
+      const panel = document.getElementById(next === 'teacher' ? 'ann-panel-teacher' : 'ann-panel-agent');
+      if (panel && panel.animate) {
+        try { panel.animate([{ opacity: 0.35, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 200, easing: 'ease-out' }); } catch (err) {}
+      }
+    };
+  }
 }
 // إعادة ضبط مكان المؤشر عند تغيير حجم النافذة (once)
 window.addEventListener('resize', () => { if (document.getElementById('ann-tabs')) annTabsUpdate(); });
