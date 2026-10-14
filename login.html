@@ -149,7 +149,7 @@ onAuthStateChanged(auth,u=>{
         localStorage.setItem('isLoggedIn','true');
         localStorage.setItem('name',d.fullName||name);
         localStorage.setItem('username',d.username||name);
-        localStorage.setItem('role',d.role==='owner'?'مالك الموقع':(d.shift||''));
+        localStorage.setItem('role',d.role==='owner'?'':(d.shift||''));
         localStorage.setItem('color',d.role==='owner'?'#fbbf24':'#a78bfa');
         localStorage.setItem('isAdmin',d.role==='owner'?'true':'false');
         localStorage.setItem('isSuperAdmin',d.role==='owner'?'true':'false');
@@ -219,7 +219,7 @@ $('#loginBtn').onclick=async()=>{
       localStorage.setItem('isLoggedIn','true');
       localStorage.setItem('name',d.fullName||name);
       localStorage.setItem('username',d.username||name);
-      localStorage.setItem('role',d.role==='owner'?'مالك الموقع':(d.shift||''));
+      localStorage.setItem('role',d.role==='owner'?'':(d.shift||''));
       localStorage.setItem('color',d.role==='owner'?'#fbbf24':'#a78bfa');
       localStorage.setItem('isAdmin',d.role==='owner'?'true':'false');
       localStorage.setItem('isSuperAdmin',d.role==='owner'?'true':'false');
@@ -289,7 +289,7 @@ $('#signBtn').onclick=async()=>{
     localStorage.setItem('isLoggedIn','true');
     localStorage.setItem('name',$('#lfa-f3').value.trim());
     localStorage.setItem('username',name);
-    localStorage.setItem('role',isOwner?'مالك الموقع':radio('shift'));
+    localStorage.setItem('role',isOwner?'':radio('shift'));
     localStorage.setItem('color',isOwner?'#fbbf24':'#a78bfa');
     localStorage.setItem('isAdmin',isOwner?'true':'false');
     localStorage.setItem('isSuperAdmin',isOwner?'true':'false');

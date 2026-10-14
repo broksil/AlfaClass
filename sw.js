@@ -1,6 +1,18 @@
-const CACHE_NAME = 'alfaclass-v46';
-const DYNAMIC_CACHE = 'alfaclass-images-v1';
-const urlsToCache = [
+/* =============================================================
+   AlfaClass — Service Worker (Zero Maintenance)
+   الاستراتيجية: Stale-While-Revalidate
+   ─────────────────────────────────────────────────────────────
+   • يعرض الملف فوراً من الكاش (سرعة فورية للطالب)
+   • ويجلب نسخة طازجة من السيرفر في الخلفية لتحديث الكاش
+     لتصبح جاهزة لزيارة الطالب القادمة
+   • لا توجد أرقام إصدارات (Versions) في أي مكان:
+     اسم الكاش ثابت، والمحتوى يتجدد تلقائياً في كل زيارة
+     => رفع تحديث جديد للموقع لا يتطلب أي تعديل في هذا الملف
+   ============================================================= */
+
+const CACHE_NAME = 'alfaclass-core'; // اسم ثابت للأبد — لا يُغيَّر عند رفع تحديث
+const KEEP_CACHES = [CACHE_NAME, 'downloaded-files']; // كاش تنزيلات الملفات لا يُحذف
+const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
@@ -11,92 +23,85 @@ const urlsToCache = [
   './icon.svg'
 ];
 
-// تنصيب Service Worker وتخزين الملفات الأساسية
+// ── التنصيب: تجهيز الملفات الأساسية مباشرة من السيرفر (تجاوز كاش HTTP) ──
 self.addEventListener('install', event => {
-  self.skipWaiting();
+  self.skipWaiting(); // تفعيل فوري دون انتظار إغلاق كل التبويبات
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache).catch(() => {}))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(CORE_ASSETS.map(url =>
+        fetch(new Request(url, { cache: 'no-cache' }))
+          .then(res => { if (res && res.ok) return cache.put(url, res); })
+          .catch(() => {}) // فشل ملف واحد لا يمنع تنصيب Service Worker
+      ))
+    )
   );
 });
 
-// تنظيف الملفات القديمة من الكاش عند تحديث Service Worker
+// ── التفعيل: حذف كاشات الإصدارات القديمة المرقّمة (v1 … v46) مرة واحدة ──
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME, DYNAMIC_CACHE];
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (!cacheWhitelist.includes(cacheName)) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(key => !KEEP_CACHES.includes(key)).map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim()) // سيطرة فورية على الصفحات المفتوحة
   );
 });
 
-// تخزين/إرجاع الصور بأسلوب Cache First
-function cacheFirstImage(req) {
-  return caches.match(req).then(cachedRes => {
-    if (cachedRes) return cachedRes; // إرجاع الصورة من الكاش إذا كانت موجودة
-    return fetch(req).then(fetchRes => {
-      return caches.open(DYNAMIC_CACHE).then(cache => {
-        cache.put(req, fetchRes.clone()); // حفظ نسخة من الصورة الجديدة
-        return fetchRes;
-      });
-    }).catch(() => {
-      // صورة فارغة بدلاً من خطأ TypeError
-      return new Response(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>',
-        { headers: { 'Content-Type': 'image/svg+xml' } }
-      );
-    });
+// ── الاستراتيجية الأساسية: Stale-While-Revalidate ──
+function staleWhileRevalidate(event) {
+  const req = event.request;
+  const cacheP = caches.open(CACHE_NAME);
+  const cachedP = cacheP.then(cache => cache.match(req)).catch(() => null);
+
+  // التحديث في الخلفية: نسخة طازجة من السيرفر (تجاوز كاش HTTP) ثم تخزينها
+  const revalidateP = Promise.all([cacheP, fetch(req, { cache: 'no-cache' })])
+    .then(([cache, res]) => {
+      if (res && res.ok) {
+        return cache.put(req, res.clone())
+          .catch(() => {})
+          .then(() => res);
+      }
+      return res;
+    })
+    .catch(() => null);
+
+  // نضمن بقاء المتصفح حياً حتى يكتمل التحديث في الخلفية
+  event.waitUntil(revalidateP);
+
+  // الإرجاع: الكاش أولاً (فوري)، وإلا الشبكة، وإلا صفحة أوفلاين للصفحات
+  return cachedP.then(cached => {
+    if (cached) return cached;
+    return revalidateP.then(res => res || offlineResponse(req));
   });
 }
 
-// جلب الملفات: الصور Cache First، وملفات التطبيق Stale-While-Revalidate (سريعة + تحديث بالخلفية)
+// صفحة أوفلاين مصغّرة عند انقطاع الإنترنت وعدم وجود نسخة مخزنة
+function offlineResponse(req) {
+  if (req.mode === 'navigate' || req.destination === 'document') {
+    return new Response(
+      '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>ألفاكلاس</title></head>' +
+      '<body style="font-family:sans-serif;text-align:center;padding:40px;background:#080818;color:#f0f0ff">' +
+      '<h1>أنت غير متصل بالإنترنت</h1><p>تحقق من اتصالك ثم أعد المحاولة.</p></body></html>',
+      { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
+  }
+  return new Response('', { status: 503 });
+}
+
+// ── اعتراض الطلبات ──
 self.addEventListener('fetch', event => {
   const req = event.request;
-  if (req.method !== 'GET') return; // لا نتدخل في طلبات الرفع (POST/PUT)
 
-  const url = new URL(req.url);
+  // طلبات الرفع/التعديل (POST/PUT…) لا تُاعتبر
+  if (req.method !== 'GET') return;
 
-  // الصور (بما فيها صور Cloudinary) → Cache First
-  if (req.destination === 'image' || url.hostname.indexOf('res.cloudinary.com') !== -1) {
-    event.respondWith(cacheFirstImage(req));
-    return;
-  }
+  // الطلبات الخارجية (Firebase / Cloudinary / Fonts / APIs) → للشبكة مباشرة
+  if (new URL(req.url).origin !== self.location.origin) return;
 
-  // الطلبات الخارجية (Firebase / Fonts / APIs) → تُترك للشبكة بدون تدخل
-  if (url.origin !== self.location.origin) return;
+  // نحترم الطلبات التي طلب التطبيق عدم كاشها (تنزيلات الملفات / Range / no-store)
+  if (req.cache === 'no-store' || req.cache === 'only-if-cached' || req.headers.has('range')) return;
 
-  // [إصلاح] طلبات التنقل (index.html) → الشبكة أولاً مع كاش احتياطي للعمل دون اتصال
-  // لضمان ظهور أي تعديل على الصفحة فوراً بدل النسخة المخزنة القديمة
-  if (req.mode === 'navigate' || req.destination === 'document') {
-    event.respondWith(
-      fetch(req).then(res => {
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(req, clone));
-        }
-        return res;
-      }).catch(() => caches.match(req).then(c => c || new Response('Offline', { status: 503 })))
-    );
-    return;
-  }
-
-  // ملفات التطبيق الأساسية → Stale-While-Revalidate
-  event.respondWith(
-    caches.match(req).then(cached => {
-      const network = fetch(req).then(res => {
-        if (res && res.status === 200 && res.type === 'basic') {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(req, clone));
-        }
-        return res;
-      }).catch(() => cached || new Response('Offline', { status: 503 }));
-      return cached || network; // الإرجاع الفوري من الكاش إن وُجد، مع التحديث في الخلفية
-    })
-  );
+  // كل الطلبات الأخرى → Stale-While-Revalidate
+  event.respondWith(staleWhileRevalidate(event));
 });

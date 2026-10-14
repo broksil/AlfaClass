@@ -2,6 +2,10 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<!-- منع كاش المتصفح الافتراضي لصفحة HTML: لا تُخدَم نسخة قديمة من السيرفر أبداً -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="google-site-verification" content="JhgaPzeHK7LxgNwh_sOUL9eyO087c2Em0I0LD0UteKk" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0a0a1a">
@@ -545,7 +549,7 @@
   }
   .avatar-slot.sm { width: 26px; height: 26px; font-size: 11.5px; border-width: 1.5px; }
   .avatar-slot .avatar-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .report-author-name { font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .report-author-name { font-size: 12.5px; font-weight: 700; color: #ffffff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .report-del {
     padding: 5px 10px; border-radius: 8px; cursor: pointer;
     font-family: var(--font); font-size: 11px; font-weight: 700;
@@ -553,6 +557,13 @@
     border: 1px solid rgba(239,68,68,0.3);
   }
   .report-del:active { transform: scale(0.94); }
+  .report-edit {
+    padding: 5px 10px; border-radius: 8px; cursor: pointer;
+    font-family: var(--font); font-size: 11px; font-weight: 700;
+    background: rgba(167,139,250,0.14); color: var(--accent, #a78bfa);
+    border: 1px solid rgba(167,139,250,0.35);
+  }
+  .report-edit:active { transform: scale(0.94); }
 
   /* ── إعلانات الأساتذه (class_announcements — لحظي من Firestore) ── */
   .class-ann-block { margin-bottom: 14px; }
@@ -1965,6 +1976,8 @@
   .chat-attachment-preview.show { display: flex; }
   .chat-preview-item { position: relative; width: 45px; height: 45px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
   .chat-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+  .chat-preview-item.is-doc { background: rgba(255,255,255,0.06); }
+  .rc-doc-thumb { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
   .chat-preview-rm { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; background: rgba(239,68,68,0.9); color: white; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; line-height: 1; transition: transform 0.2s; }
   .chat-preview-rm:active { transform: scale(0.8); }
   .chat-input-row { display: flex; align-items: center; gap: 8px; }
@@ -1978,6 +1991,59 @@
   .chat-upload-progress { font-size: 11px; color: var(--accent2); display: none; text-align: center; }
   .chat-typing-indicator { font-size: 11px; color: var(--accent2); padding: 0 12px 4px; font-style: italic; display: none; }
   .chat-typing-indicator.show { display: block; animation: pulseOpacity 1.5s infinite; }
+
+  /* ── تعليقات البلاغات (تستخدم أنماط الدردشة المشتركة) ── */
+  .report-foot-actions { display: inline-flex; gap: 8px; align-items: center; }
+  .report-cm-toggle { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-secondary); font-family: var(--font); font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 10px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+  .report-cm-toggle:hover { background: rgba(255,255,255,0.09); color: var(--text-primary); }
+  .report-cm-toggle:active { transform: scale(0.94); }
+  .rc-count-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 5px; background: var(--accent); color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800; line-height: 1; }
+  .chat-meta { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .chat-meta .chat-time { margin-top: 0; }
+  .rc-del-btn { background: none; border: none; color: rgba(255,255,255,0.45); font-family: var(--font); font-size: 10.5px; font-weight: 700; cursor: pointer; padding: 2px 4px; transition: 0.2s; }
+  .rc-del-btn:hover { color: #f87171; }
+
+  /* ── ورقة اختيار نوع المرفق (صورة / ملف) ── */
+  .rc-attach-sheet,
+  #chat-attach-sheet {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);
+    display: none; align-items: flex-end;
+  }
+  .rc-attach-sheet.show,
+  #chat-attach-sheet.show { display: flex; animation: rcSheetFade 0.18s ease both; }
+  @keyframes rcSheetFade { from { opacity: 0; } to { opacity: 1; } }
+  .rc-attach-opts {
+    width: 100%; background: var(--bg-card, #16171d);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 8px 14px calc(14px + var(--safe-bottom, 0px));
+    display: flex; flex-direction: column; gap: 8px;
+    animation: rcSheetUp 0.22s cubic-bezier(0.2,0.8,0.2,1) both;
+  }
+  @keyframes rcSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .rc-attach-grip { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 2px auto 6px; }
+  .rc-attach-opt {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text-primary); font-family: var(--font); font-size: 15px; font-weight: 700;
+    padding: 14px 16px; border-radius: 14px; cursor: pointer; transition: 0.18s; text-align: right;
+  }
+  .rc-attach-opt:hover { background: rgba(255,255,255,0.09); }
+  .rc-attach-opt:active { transform: scale(0.98); }
+  .rc-attach-cancel {
+    background: none; border: none; color: var(--text-secondary);
+    font-family: var(--font); font-size: 14px; font-weight: 700;
+    padding: 10px; cursor: pointer;
+  }
+  .rc-edited-tag { font-size: 9px; opacity: 0.55; font-style: italic; margin-right: 4px; }
+  /* أفاتار المُرسِل بجانب كل تعليق (نمط تيليجرام) */
+  .rc-inner { display: flex; flex-direction: row; gap: 8px; align-items: flex-end; max-width: 100%; }
+  .chat-msg-wrap.mine .rc-inner { flex-direction: row-reverse; }
+  .rc-avatar { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, var(--accent), #4f46e5); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 15px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 2px 8px rgba(0,0,0,0.3); margin-bottom: 2px; }
+  .rc-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rc-avatar.placeholder { visibility: hidden; }
+  .chat-msg-wrap .rc-inner .chat-msg { min-width: 0; }
 
   /* ── عداد الاستفسارات ── */
   .enq-count-badge {
@@ -2068,6 +2134,42 @@
 
   #view-account { padding-bottom: 12px; }
 
+  /* ═══════════ الملف الشخصي على كامل الشاشة (جميع الأجهزة والأحجام) ═══════════ */
+  body.account-mode header { display: none !important; }
+  /* إزالة حدود العمود (500px) ومسافة الهيدر المحجوزة (80px) — المحتوى يبدأ من أعلى الشاشة ويمتد بالكامل */
+  body.account-mode main {
+    padding: 6px 0 24px;
+    max-width: none;
+    width: 100%;
+  }
+  /* هوامش أفقية مرنة: ضيقة على الهواتف وتتسع تدريجياً على الشاشات الكبيرة */
+  #view-account { padding-inline: clamp(12px, 3vw, 22px); }
+  /* الترويسة تخرج إلى حافتي الشاشة تماماً: ☰ أقصى اليمين و + أقصى اليسار (اتجاه rtl) */
+  #view-account .ig-topbar {
+    margin-inline: calc(clamp(12px, 3vw, 22px) * -1);
+    padding-inline: clamp(8px, 2vw, 16px);
+    padding-top: 4px;
+  }
+
+  /* شاشات أكبر (آيباد/سطح مكتب): تكبير عناصر الملف الشخصي مع بقاءه على كامل العرض */
+  @media (min-width: 700px) {
+    #view-account .ig-topbar { padding-top: 8px; }
+    #view-account .ig-icon-btn { width: 48px; height: 48px; font-size: 24px; border-radius: 14px; }
+    #view-account .ig-brand { font-size: 21px; }
+    #view-account .ig-profile { gap: 40px; padding-bottom: 22px; }
+    #view-account .ig-profile .acc-avatar { width: 150px; height: 150px; font-size: 60px; }
+    #view-account .ig-stat b { font-size: 23px; }
+    #view-account .ig-stat span { font-size: 13.5px; }
+    #view-account .ig-name { font-size: 18px; }
+    #view-account .ig-bio { font-size: 15px; }
+    #view-account .ig-actions { gap: 12px; }
+    #view-account .ig-btn { padding: 14px 18px; font-size: 15.5px; border-radius: 14px; }
+    #view-account .ig-highlight { padding: 13px; font-size: 15px; }
+    #view-account .acc-card { padding: 24px; border-radius: 22px; }
+    #view-account .acc-row { padding: 16px 6px; font-size: 16px; }
+    #view-account .acc-section-title { font-size: 14.5px; margin: 26px 8px 12px; }
+  }
+
   /* ── بطاقة البروفايل العلوية ── */
   .acc-banner {
     display: flex; align-items: center; gap: 16px;
@@ -2080,20 +2182,13 @@
   .acc-avatar {
     position: relative; flex-shrink: 0;
     width: 76px; height: 76px; border-radius: 50%;
-    border: 2px solid var(--a-gold);
+    border: none; /* بدون إطار حول الصورة */
     background: var(--a-field) center/cover no-repeat;
     display: flex; align-items: center; justify-content: center;
     font-size: 32px; font-weight: 800; color: var(--a-gold);
     cursor: pointer; overflow: visible; padding: 0;
   }
   .acc-avatar:active { transform: scale(0.95); }
-  .acc-avatar-edit {
-    position: absolute; bottom: -2px; inset-inline-start: -2px;
-    width: 26px; height: 26px; border-radius: 50%;
-    background: var(--a-gold); color: var(--a-gold-ink);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; border: 2px solid var(--a-surface);
-  }
   .acc-avatar.loading::after {
     content: ''; position: absolute; inset: -2px; border-radius: 50%;
     border: 3px solid transparent; border-top-color: var(--a-gold);
@@ -2123,21 +2218,37 @@
     transition: transform .15s, background .2s;
   }
   .ig-icon-btn:active { transform: scale(0.92); }
+  /* اسم المستخدم في منتصف الترويسة (بدل الحرف) — يتوسّط المساحة المتبقية ويُقصّ إذا طال */
   .ig-brand {
-    font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
-    color: var(--a-gold); text-shadow: 0 0 18px rgba(245,192,74,0.35);
+    flex: 1; min-width: 0;
+    font-size: 17px; font-weight: 900; letter-spacing: -0.3px;
+    color: #ffffff; text-shadow: 0 0 14px rgba(255,255,255,0.25);
+    direction: ltr; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding-inline: 8px;
   }
   .ig-profile { display: flex; align-items: center; gap: 22px; padding: 4px 2px 16px; }
   .ig-avatar-wrap { flex-shrink: 0; }
-  .ig-profile .acc-avatar { width: 92px; height: 92px; font-size: 38px; }
+  .ig-profile .acc-avatar { width: 118px; height: 118px; font-size: 48px; }
   .ig-stats { flex: 1; display: flex; justify-content: space-around; gap: 8px; }
   .ig-stat { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .ig-stat b { font-size: 18px; font-weight: 900; color: var(--a-text); }
   .ig-stat span { font-size: 12px; color: var(--a-muted); font-weight: 600; }
   .ig-identity { padding: 0 2px 14px; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
-  .ig-name { font-size: 15px; font-weight: 800; color: var(--a-text); line-height: 1.4; }
-  .ig-username { font-size: 13px; color: var(--a-gold); font-weight: 700; direction: ltr; }
-  html[dir="rtl"] .ig-username, .acc[dir="rtl"] .ig-username { text-align: right; }
+  .ig-name { font-size: 15px; font-weight: 800; color: var(--a-text); line-height: 1.4; display: inline-flex; align-items: center; gap: 6px; }
+  /* علامة التوثيق المُسنّنة (ختم/نجمة زرقاء + علامة صح بيضاء) بجانب الاسم — للمالك فقط (.is-owner). عبر ::after حتى لا يمسحها تحديث الاسم بالجافاسكربت */
+  .ig-name.is-owner::after {
+    content: '';
+    display: inline-block; flex-shrink: 0;
+    width: 1.15em; height: 1.15em;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpolygon fill='%231D9BF0' points='46.5,24 40.64,29.41 42.2,37.23 34.29,38.16 30.95,45.4 24,41.5 17.05,45.4 13.71,38.16 5.8,37.23 7.36,29.41 1.5,24 7.36,18.59 5.8,10.77 13.71,9.84 17.05,2.6 24,6.5 30.95,2.6 34.29,9.84 42.2,10.77 40.64,18.59'/%3E%3Cpath d='M19.5 26 l6 6 L31 20' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+  /* شارة توثيق عامة قابلة للإضافة بجانب أي اسم ناشر/مستخدم */
+  .verified-badge {
+    display: inline-block; flex-shrink: 0; vertical-align: -0.12em;
+    width: 1em; height: 1em; margin-inline-start: 4px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpolygon fill='%231D9BF0' points='46.5,24 40.64,29.41 42.2,37.23 34.29,38.16 30.95,45.4 24,41.5 17.05,45.4 13.71,38.16 5.8,37.23 7.36,29.41 1.5,24 7.36,18.59 5.8,10.77 13.71,9.84 17.05,2.6 24,6.5 30.95,2.6 34.29,9.84 42.2,10.77 40.64,18.59'/%3E%3Cpath d='M19.5 26 l6 6 L31 20' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
   .ig-bio { font-size: 13px; color: var(--a-text); line-height: 1.6; margin: 2px 0 6px; white-space: pre-wrap; }
   .ig-actions { display: flex; gap: 8px; margin-bottom: 10px; }
   .ig-btn {
@@ -2155,6 +2266,102 @@
     transition: border-color .2s, color .2s;
   }
   .ig-highlight:hover { border-color: var(--a-gold); color: var(--a-gold); }
+  /* ── «منشوراتي»: شبكة مرتبة (نمط إنستغرام) لملازمي المنشورة ── */
+  .acc-posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  @media (min-width: 640px) { .acc-posts-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; } }
+  @media (min-width: 1000px) { .acc-posts-grid { grid-template-columns: repeat(5, 1fr); } }
+  .acc-post {
+    position: relative; aspect-ratio: 1 / 1; border-radius: 16px; overflow: hidden;
+    background: var(--a-card); border: 1px solid var(--a-line);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform .15s, border-color .2s;
+  }
+  .acc-post:active { transform: scale(0.96); }
+  .acc-post:hover { border-color: rgba(245,192,74,0.45); }
+  .acc-post-cover {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--a-field); font-size: 34px;
+  }
+  .acc-post-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .acc-post-name {
+    position: absolute; inset-inline: 0; bottom: 0;
+    padding: 16px 8px 6px; font-size: 11px; font-weight: 800; color: #fff;
+    background: linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0));
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-align: right;
+  }
+  .acc-post-like {
+    position: absolute; top: 6px; inset-inline-start: 6px;
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 800;
+    background: rgba(0,0,0,0.55); color: #fff;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    direction: ltr;
+  }
+  .acc-post-dot {
+    position: absolute; top: 8px; inset-inline-end: 8px;
+    width: 9px; height: 9px; border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.35);
+  }
+  .acc-posts-empty {
+    grid-column: 1 / -1; text-align: center; padding: 30px 14px;
+    color: var(--a-muted); font-size: 13.5px; font-weight: 600; line-height: 1.9;
+    border: 1.5px dashed var(--a-line); border-radius: 18px;
+  }
+  /* عدّاد «الأعجابات» قابل للنقر — يفتح لوحة الإعجابات من داخل الملف الشخصي */
+  .acc-stat-likes {
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    padding: 6px 12px; border-radius: 14px;
+    transition: background .2s, transform .15s;
+  }
+  .acc-stat-likes span { color: #ffffff; font-weight: 700; }
+  .acc-stat-likes:active { transform: scale(0.93); }
+  .acc-stat-likes:hover { background: var(--a-gold-soft); }
+  #acc-likes-panel .acc-posts-grid { margin-top: 6px; }
+  /* في لوحة الإعجابات: الشارة تصبح زراً لإزالة الإعجاب مباشرةً من داخل */
+  #acc-likes-panel .acc-post-like { cursor: pointer; transition: transform .15s, background .2s; }
+  #acc-likes-panel .acc-post-like:active { transform: scale(0.88); }
+  /* ── أنيميشن دخول واجهة «الإعجابات» (القلب) ── */
+  /* اللوحة تدخل بتكبير ناعم (يتفوّق على igSettingsIn العام بأولوية الـ ID) */
+  #acc-likes-panel:not([hidden]) { animation: likesPanelIn .34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes likesPanelIn {
+    from { opacity: 0; transform: scale(0.93) translateY(18px); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* القلب في العنوان ينبض عند الفتح (مرتبط بحالة hidden ⇒ مرة واحدة) */
+  #acc-likes-panel:not([hidden]) .ig-settings-head h3 { animation: heartBeat .58s ease both .06s; }
+  @keyframes heartBeat {
+    0%   { transform: scale(0.5); opacity: 0; }
+    45%  { transform: scale(1.28); opacity: 1; }
+    66%  { transform: scale(0.94); }
+    86%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+  /* البطاقات تظهر تدريجيًا (staggered) — عند الفتح فقط عبر كلاس likes-opening */
+  #acc-likes-grid.likes-opening .acc-post { animation: likeCardIn .4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(1)  { animation-delay: .04s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(2)  { animation-delay: .09s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(3)  { animation-delay: .14s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(4)  { animation-delay: .19s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(5)  { animation-delay: .24s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(6)  { animation-delay: .29s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(7)  { animation-delay: .34s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(8)  { animation-delay: .39s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(9)  { animation-delay: .44s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(10) { animation-delay: .49s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(11) { animation-delay: .54s; }
+  #acc-likes-grid.likes-opening .acc-post:nth-child(12) { animation-delay: .59s; }
+  @keyframes likeCardIn {
+    from { opacity: 0; transform: scale(0.72) translateY(18px); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* احترام تقليل الحركة لدى بعض المستخدمين */
+  @media (prefers-reduced-motion: reduce) {
+    #acc-likes-panel:not([hidden]),
+    #acc-likes-panel:not([hidden]) .ig-settings-head h3,
+    #acc-likes-grid.likes-opening .acc-post { animation: none; }
+  }
   .ig-settings { margin-top: 8px; }
   .ig-settings[hidden] { display: none; }
   /* عند الفتح بزر ☰: لوحة إعدادات تغطّي كامل الشاشة */
@@ -2205,6 +2412,18 @@
   .acc-full-close:hover { background: rgba(255,255,255,0.12); }
   .acc-full-close:active { transform: scale(0.90); }
   #acc-manage-modal .modal-box.closing { animation: modalOut 0.25s ease forwards; }
+  /* قسم تغيير الصورة داخل نافذة تعديل الملف الشخصي */
+  .acc-mg-photo {
+    display: flex; align-items: center; gap: 16px;
+    padding: 6px 0 16px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--a-line);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: opacity .2s;
+  }
+  .acc-mg-photo:active { opacity: 0.75; }
+  .acc-mg-photo .acc-avatar { width: 84px; height: 84px; font-size: 34px; cursor: pointer; }
+  .acc-mg-photo-info { flex: 1; min-width: 0; }
+  .acc-mg-photo-title { font-size: 15px; font-weight: 800; color: var(--a-text); }
   /* ── العناوين والبطاقات ── */
   .acc-section-title { font-size: 13px; font-weight: 700; color: var(--a-muted); margin: 22px 6px 10px; letter-spacing: .2px; }
   .acc-card {
@@ -2429,7 +2648,7 @@
   // تسجيل Service Worker مبكرًا (شرط أساسي لتفعيل التثبيت كتطبيق PWA)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
     });
   }
   /* ── حيل صارمة: منع الأوتوفيل (readonly) + تثبيت تركيز الكيبورد عند تغيير اللغة ── */
@@ -2610,21 +2829,20 @@
         <!-- شريط أعلى البروفايل: همبرغر (يسار) + علامة + إضافة (يمين) -->
         <div class="ig-topbar">
           <button class="ig-icon-btn" type="button" data-act="toggle-settings" aria-label="الإعدادات">☰</button>
-          <div class="ig-brand">أ</div>
+          <div class="ig-brand" id="acc-topbar-user">@—</div>
           <button class="ig-icon-btn" type="button" data-act="ig-add" aria-label="إضافة">+</button>
         </div>
 
         <!-- ترويسة البروفايل (نمط إنستغرام) -->
         <div class="ig-profile">
           <div class="ig-avatar-wrap">
-            <button class="acc-avatar" id="acc-avatar" data-act="pick-avatar" aria-label="تغيير الصورة الشخصية">
+            <button class="acc-avatar" id="acc-avatar" data-act="open-manage" aria-label="تعديل الملف الشخصي (تغيير الصورة)">
               <span id="acc-avatar-letter">؟</span>
-              <span class="acc-avatar-edit">📷</span>
             </button>
             <input type="file" id="acc-avatar-file" accept="image/*" hidden>
           </div>
           <div class="ig-stats">
-            <div class="ig-stat"><b>0</b><span>منشورات</span></div>
+            <div class="ig-stat acc-stat-likes" id="acc-likes-stat" data-act="open-likes" role="button" tabindex="0" aria-label="عرض الإعجابات"><b id="acc-likes-count">0</b><span>الأعجابات</span></div>
             <div class="ig-stat"><b>0</b><span>متابعون</span></div>
             <div class="ig-stat"><b>0</b><span>يتابع</span></div>
           </div>
@@ -2632,7 +2850,6 @@
 
         <div class="ig-identity">
           <div class="ig-name" id="acc-name">—</div>
-          <div class="ig-username" id="acc-username">@—</div>
           <div class="ig-bio" id="acc-bio">لا يوجد وصف بعد.</div>
           <span class="acc-badge" id="acc-badge">🎓 طالب</span>
         </div>
@@ -2642,6 +2859,18 @@
           <button class="ig-btn ghost" type="button" data-act="share-profile">مشاركة الملف الشخصي</button>
         </div>
         <button class="ig-highlight" type="button" data-act="ig-add">+ إضافة بارانات</button>
+        <!-- منشوراتي: ملازمي المنشورة معروضة بشكل مرتب داخل الملف الشخصي -->
+        <div class="acc-section-title" data-i18n="myPosts">منشوراتي</div>
+        <div class="acc-posts-grid" id="acc-posts-grid"></div>
+        <!-- لوحة الإعجابات: الملازم التي أعجبت بها — تُفتح بالنقر على عدّاد «الأعجابات» وتتحدّث لحظياً -->
+        <div id="acc-likes-panel" class="ig-settings" hidden>
+          <div class="ig-settings-head">
+            <button class="ig-icon-btn" type="button" data-act="close-likes" aria-label="رجوع">✕</button>
+            <h3 data-i18n="likedPosts">الإعجابات ❤️</h3>
+            <span style="width:40px"></span>
+          </div>
+          <div class="acc-posts-grid" id="acc-likes-grid"></div>
+        </div>
         <!-- لوحة الإعدادات (تظهر بزر الهامبرغر ☰ على كامل الشاشة) -->
         <div id="acc-settings" class="ig-settings" hidden>
           <div class="ig-settings-head">
@@ -2794,6 +3023,16 @@
     <div class="modal-handle"></div>
     <button type="button" class="acc-full-close" onclick="closeModal('acc-manage-modal')" aria-label="إغلاق">✕</button>
     <div class="modal-title" data-i18n="manageAccount">إدارة الحساب</div>
+    <!-- تغيير الصورة الشخصية — من هنا (بدل الضغط المباشر على صورة البروفايل) -->
+    <div class="acc-mg-photo" data-act="pick-avatar" role="button" tabindex="0" aria-label="تغيير الصورة الشخصية">
+      <button type="button" class="acc-avatar" id="acc-mg-avatar" tabindex="-1">
+        <span id="acc-mg-avatar-letter">؟</span>
+      </button>
+      <div class="acc-mg-photo-info">
+        <div class="acc-mg-photo-title" data-i18n="photoLabel">الصورة الشخصية</div>
+        <div class="acc-hint" data-i18n="photoHint" style="margin-top:3px">اضغط على الصورة لاختيار صورة جديدة — تُرفع تلقائياً بعد الاختيار</div>
+      </div>
+    </div>
     <div class="acc-grid">
       <div class="acc-field">
         <label for="acc-f-name" data-i18n="fullName">الاسم الكامل</label>
@@ -3466,14 +3705,62 @@
     <div id="chat-attachment-preview" class="chat-attachment-preview"></div>
     <div id="chat-upload-progress" class="chat-upload-progress">⏳ جارٍ رفع المرفق...</div>
     <div class="chat-input-row">
-      <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()">📎</button>
-      <input type="file" id="chat-file-input" hidden accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple onchange="handleChatImageUpload(this)">
+      <button class="chat-attach-btn" onclick="showChatAttachSheet()">📎</button>
+      <input type="file" id="chat-image-input" hidden accept="image/*" multiple onchange="handleChatImageUpload(this)">
+      <input type="file" id="chat-doc-input" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple onchange="handleChatImageUpload(this)">
       <textarea id="chat-input" class="chat-input" placeholder="اكتب رسالتك هنا..." rows="1" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" autocomplete="off" oninput="handleChatTyping(); autoResizeChatInput(this);" onkeydown="if(event.key==='Enter' && !event.shiftKey && window.innerWidth < 768) { event.preventDefault(); sendChatMessage(); }"></textarea>
       <button class="chat-send-btn" onclick="sendChatMessage()">🚀</button>
     </div>
   </div>
+  <!-- ورقة اختيار نوع المرفق (صورة / ملف) -->
+  <div id="chat-attach-sheet" class="rc-attach-sheet" onclick="hideChatAttachSheet()">
+    <div class="rc-attach-opts" onclick="event.stopPropagation();">
+      <div class="rc-attach-grip"></div>
+      <button class="rc-attach-opt" onclick="chatChooseImage()">📷 صورة</button>
+      <button class="rc-attach-opt" onclick="chatChooseDoc()">📄 ملف</button>
+      <button class="rc-attach-cancel" onclick="hideChatAttachSheet()">إلغاء</button>
+    </div>
+  </div>
   <div id="chat-login-prompt" style="display:none; padding: 16px; padding-bottom: calc(16px + var(--safe-bottom)); text-align: center; background: rgba(0,0,0,0.5); border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary);">
     للمشاركة في المحادثة، يرجى <a href="#" onclick="openModal('login-modal'); return false;" style="color: var(--accent2); text-decoration: underline;">تسجيل الدخول</a>.
+  </div>
+</div>
+
+<!-- ── REPORT COMMENTS WINDOW ── -->
+<div id="report-comments-window" class="alfachat-window">
+  <div class="chat-header">
+    <div id="rc-header-title" style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">💬 تعليقات البلاغ</div>
+    <button class="chat-close" onclick="closeReportComments()">✖</button>
+  </div>
+  <div class="chat-messages" id="report-comments-list">
+    <div class="text-center" style="color:var(--text-muted);font-size:12px;margin-top:20px;">💬 لا توجد تعليقات بعد — كن أول من يعلّق</div>
+  </div>
+  <div class="chat-input-container" id="rc-input-container" style="display:none;">
+    <div id="rc-context-banner" class="chat-context-banner">
+      <div id="rc-context-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;"></div>
+      <button onclick="cancelRcContext()" style="background:none;border:none;color:var(--text-primary);cursor:pointer;font-size:16px;">✖</button>
+    </div>
+    <div id="rc-attachment-preview" class="chat-attachment-preview"></div>
+    <div id="rc-upload-progress" class="chat-upload-progress">⏳ جارٍ رفع المرفق...</div>
+    <div class="chat-input-row">
+      <button class="chat-attach-btn" onclick="showRcAttachSheet()">📎</button>
+      <input type="file" id="rc-image-input" hidden accept="image/*" multiple onchange="handleReportCommentUpload(this)">
+      <input type="file" id="rc-doc-input" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple onchange="handleReportCommentUpload(this)">
+      <textarea id="rc-input" class="chat-input" placeholder="اكتب تعليقك هنا..." rows="1" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" autocomplete="off" oninput="autoResizeChatInput(this);" onkeydown="if(event.key==='Enter' && !event.shiftKey && window.innerWidth < 768) { event.preventDefault(); sendReportComment(); }"></textarea>
+      <button class="chat-send-btn" onclick="sendReportComment()">🚀</button>
+    </div>
+  </div>
+  <!-- ورقة اختيار نوع المرفق (صورة / ملف) -->
+  <div class="rc-attach-sheet" id="rc-attach-sheet" onclick="hideRcAttachSheet()">
+    <div class="rc-attach-opts" onclick="event.stopPropagation();">
+      <div class="rc-attach-grip"></div>
+      <button class="rc-attach-opt" onclick="rcChooseImage()">📷 صورة</button>
+      <button class="rc-attach-opt" onclick="rcChooseDoc()">📄 ملف</button>
+      <button class="rc-attach-cancel" onclick="hideRcAttachSheet()">إلغاء</button>
+    </div>
+  </div>
+  <div id="rc-login-prompt" style="display:none; padding:16px; padding-bottom:calc(16px + var(--safe-bottom)); text-align:center; background:rgba(0,0,0,0.5); border-top:1px solid var(--border); font-size:13px; color:var(--text-secondary);">
+    للمشاركة في التعليقات، يرجى <a href="#" onclick="openModal('login-modal'); return false;" style="color:var(--accent2); text-decoration:underline;">تسجيل الدخول</a>.
   </div>
 </div>
 
@@ -3841,8 +4128,8 @@ function updateHeaderUI(skipRender = false) {
     userInfoEl.classList.add('show');
     const iconHtml = currentUser.icon ? `<img src="${currentUser.icon}" class="author-badge" alt="شعار">` : '';
     userNameEl.innerHTML = sanitizeText(currentUser.name) + iconHtml;
-    userNameEl.style.color = currentUser.color;
-    userRoleEl.textContent = `(${currentUser.role})`;
+    userNameEl.style.color = '#ffffff'; // اسم المستخدم دائماً أبيض في الهيدر
+    userRoleEl.textContent = currentUser.role ? `(${currentUser.role})` : '';
     document.getElementById('btn-notif').style.display = 'flex';
 
     const chatInputCont = document.getElementById('chat-input-container');
@@ -3896,7 +4183,7 @@ function applyUserProfile(profile, fallbackName, uid) {
   const isOwner = profile.role === 'owner';
   const user = {
     name: profile.fullName || fallbackName,
-    role: isOwner ? 'مالك الموقع' : (profile.shift || 'طالب'),
+    role: isOwner ? '' : (profile.shift || 'طالب'),
     color: isOwner ? '#fbbf24' : '#a78bfa',
     icon: '',
     isAdmin: isOwner,
@@ -3979,7 +4266,7 @@ async function doLogin() {
     await loadProfileAndApply(username, cred.user.uid);
     closeModal('login-modal');
     uEl.value = ''; pEl.value = '';
-    showToast('✅','مرحباً', `${currentUser.name} (${currentUser.role})`);
+    showToast('✅','مرحباً', currentUser.role ? `${currentUser.name} (${currentUser.role})` : currentUser.name);
     requestNotifPermission();
   } catch (e) {
     showAuthErr('auth-login-err', authMsg(e && e.code));
@@ -4373,7 +4660,7 @@ function renderPostsForDay(dayId, posts) {
       ${noteHTML}
       ${mediaHTML}
       ${pubExtraHTML}
-      <div class="post-author">${authorAvatarHTML}<span style="color:${post.authorColor || '#aaa'}">${sanitizeText(post.author || '')}</span></div>
+      <div class="post-author">${authorAvatarHTML}<span style="color:#ffffff">${sanitizeText(post.author || '')}${verifiedBadgeHTML(post.authorId, post.author)}</span></div>
       ${actionsHtml}
     `;
     fragment.appendChild(item);
@@ -6223,6 +6510,7 @@ const MATERIAL_TYPE_COLORS = { 'كتاب مادة':'#3b82f6','ملازم مؤش�
 const MATERIALS_PER_PAGE = 9;
 
 let allMaterials            = [];
+let materialsLoadedOnce     = false; // هل وصلت نسخة الملازم الأولى من Firestore؟
 let unsubMaterials          = null;
 let materialsCurrentSubject = null;
 let materialsTypeFilter     = 'الكل';
@@ -6391,6 +6679,7 @@ function subscribeMaterials() {
   unsubMaterials = onSnapshot(collection(db, 'materials'), snap => {
     allMaterials = [];
     snap.forEach(d => allMaterials.push({ ...d.data(), id: d.id }));
+    materialsLoadedOnce = true; // وصلت البيانات — لا تعرض «جارٍ التحميل» بعد الآن
     // إخفاء الملزمة المؤقتة إذا وصلت نسختها الحقيقية من Firestore
     const _sigs = new Set(allMaterials.map(m => m.clientSig).filter(Boolean));
     uploadingMaterials = uploadingMaterials.filter(m => !(m.clientSig && _sigs.has(m.clientSig)));
@@ -6427,6 +6716,12 @@ function subscribeMaterials() {
     renderMaterialsGrid();
     refreshMaterialDetailLike(allMaterials.find(m => String(m.id) === String(detailMatId))); // عدّاد القلوب في التفاصيل المفتوحة (تغيّر من أي مستخدم)
     updateUnreadBadge(); // تحديث عدّاد غير المقروء بعد بناء الشبكات
+    // حدّث عدّاد «الأعجابات» وشبكة «منشوراتي» في الملف الشخصي إن كان مفتوحاً (تغيّر لحظي من أي مستخدم)
+    if (typeof accUpdateLikesStat === 'function') { try { accUpdateLikesStat(); } catch (e) {} }
+    if (typeof accRenderMyPosts === 'function') { try { accRenderMyPosts(); } catch (e) {} }
+    // لوحة «الإعجابات» مفتوحة؟ أعد رسمها لحظياً (إضافة/إزالة إعجاب من أي جهاز)
+    const _lp = document.getElementById('acc-likes-panel');
+    if (_lp && !_lp.hidden && typeof accRenderLikedPosts === 'function') { try { accRenderLikedPosts(); } catch (e) {} }
   });
 }
 
@@ -6781,7 +7076,7 @@ window.openMaterialDetail = function(mat) {
     avatarEl.textContent = pubName.charAt(0) || 'م';
     applyMaterialDetailAvatar(avatarEl, mat, pubName); // صورة الملف الشخصي فوق الحرف الأول
   }
-  if (pubEl)    pubEl.textContent    = pubName;
+  if (pubEl)    pubEl.innerHTML = sanitizeText(pubName) + verifiedBadgeHTML(mat.authorId, mat.createdBy);
   if (dateEl) {
     const ds = mat.createdAt ? formatMaterialDate(mat.createdAt) : '';
     dateEl.textContent = ds;
@@ -7065,7 +7360,8 @@ const ACC_EN = {
   secSecurity:'Security', changePassword:'Change password', changePasswordSub:'Set a new password for your account', newPassword:'New password', confirmPassword:'Confirm new password', rulePassLen:'At least 8 characters', rulePassMatch:'Passwords match', advanced:'Advanced account options', deleteHint:'Deletion is scheduled after typing the prayer, and is cancelled automatically if you sign in within 7 days.', deleteAccount:'Delete account permanently',
   deleteTitle:'⚠️ Delete account permanently', deleteWarn:'To request deletion, type the prayer upon Muhammad and his family. The account is not deleted immediately: deletion is scheduled and cancelled automatically if you sign in within 7 days, otherwise it is permanently removed.',
   typeSalawat:'Type: اللهم صلِّ على محمد وآل محمد', salawatHint:'Type it exactly to confirm the deletion request.', deleteConfirm:'Confirm deletion request',
-  secSupport:'Support & info', contact:'Contact us', contactHint:'Write your problem or suggestion and it will reach the support team.', privacy:'Privacy policy', terms:'Terms & conditions', instagram:'Our Instagram', version:'Version', logout:'Sign out', logoutAccount:'Sign out of account', logoutConfirmTitle:'Sign out', logoutConfirmMsg:'Do you want to sign out of your account?', logoutYes:'Yes, sign out', settings:'Settings', bio:'Bio', bioLabel:'Bio (about you)', bioPlaceholder:'Write a short bio that appears on your profile'
+  secSupport:'Support & info', contact:'Contact us', contactHint:'Write your problem or suggestion and it will reach the support team.', privacy:'Privacy policy', terms:'Terms & conditions', instagram:'Our Instagram', version:'Version', logout:'Sign out', logoutAccount:'Sign out of account', logoutConfirmTitle:'Sign out', logoutConfirmMsg:'Do you want to sign out of your account?', logoutYes:'Yes, sign out', settings:'Settings', bio:'Bio', bioLabel:'Bio (about you)', bioPlaceholder:'Write a short bio that appears on your profile',
+  photoLabel:'Profile picture', photoHint:'Tap the photo to choose a new one — it uploads automatically after selection', myPosts:'My posts', likedPosts:'Likes ❤️'
 };
 const ACC_EN_MAP = {
   'المرحلة الأولى':'First stage','المرحلة الثانية':'Second stage','المرحلة الثالثة':'Third stage','المرحلة الرابعة':'Fourth stage',
@@ -7206,7 +7502,7 @@ function accFillForm() {
   if (mgUser) { mgUser.value = p.username || p._id || ''; accSetErr('acc-mg-user-err', ''); accUpdateRules(); }
 }
 function accRoleBadge(p) {
-  if (p.role === 'owner') return '👑 ' + (accLang === 'en' ? 'Site owner' : 'مالك الموقع');
+  if (p.role === 'owner') return '';  // لا شارة للمالك بعد حذف النص
   if (['rep', 'representative', 'mod', 'moderator'].includes(p.role)) return '⭐ ' + (accLang === 'en' ? 'Section rep' : 'ممثل شعبة');
   return '🎓 ' + (accLang === 'en' ? 'Student' : 'طالب');
 }
@@ -7218,22 +7514,174 @@ function accRender() {
   const p = accProfile;
   const name = p.fullName || currentUser.name || '—';
   accEl('acc-name').textContent = name;
-  accEl('acc-username').textContent = '@' + (p.username || p._id); // بلا الآيدي — يبقى في فايربيس فقط
+  // علامة التوثيق للمالك فقط (معرّف 666) — نُضيف/نحذف الكلاس حسب صاحب هذا الملف
+  const nameEl = accEl('acc-name');
+  if (nameEl) {
+    const pid = String(p.userId || p._id || currentUser.userId || '');
+    nameEl.classList.toggle('is-owner', pid === String(OWNER_USER_ID));
+  }
+  const topU = accEl('acc-topbar-user'); if (topU) topU.textContent = '@' + (p.username || p._id); // اسم المستخدم في منتصف الترويسة
   const rowU = accEl('acc-row-username'); if (rowU) rowU.textContent = '@' + (p.username || p._id);
-  accEl('acc-badge').textContent = accRoleBadge(p);
+  const badgeEl = accEl('acc-badge');
+  if (badgeEl) { const bt = accRoleBadge(p); badgeEl.textContent = bt; badgeEl.style.display = bt ? '' : 'none'; }
   const bioEl = accEl('acc-bio');
   if (bioEl) bioEl.textContent = (p.bio && String(p.bio).trim()) ? p.bio : 'لا يوجد وصف بعد.';
   const av = accEl('acc-avatar'), photo = p.photoURL || localStorage.getItem('accAvatar') || '';
   av.style.backgroundImage = photo ? 'url("' + photo.replace(/"/g, '%22') + '")' : '';
   accEl('acc-avatar-letter').style.display = photo ? 'none' : '';
   accEl('acc-avatar-letter').textContent = (name.trim()[0] || '؟');
+  // معاينة الصورة داخل نافذة تعديل الملف الشخصي
+  const mgAv = accEl('acc-mg-avatar');
+  if (mgAv) {
+    mgAv.style.backgroundImage = photo ? 'url(\"' + photo.replace(/\"/g, '%22') + '\")' : '';
+    const mgL = accEl('acc-mg-avatar-letter');
+    if (mgL) { mgL.style.display = photo ? 'none' : ''; mgL.textContent = (name.trim()[0] || '؟'); }
+  }
   const stage = p.stage || '', course = p.course || ACC_COURSES[0];
   accEl('acc-period-val').textContent = stage ? accT(stage) + ' - ' + accT(course) : '—';
   accEl('acc-emoji-val').textContent = p.favReaction || localStorage.getItem('alfa_reaction') || '👍';
   accEl('acc-version').textContent = ACC_CONFIG.APP_VERSION;
   accEl('acc-instagram').href = ACC_CONFIG.INSTAGRAM_URL;
+  // ابدأ اشتراك الملازم (إن لم يكن يعمل) ثم حدّث عدّاد الإعجابات على ملازمي
+  try { if (typeof subscribeMaterials === 'function' && !unsubMaterials) subscribeMaterials(); } catch (e) {}
+  accUpdateLikesStat();
+  accRenderMyPosts();
   accFillInfo();
 }
+// ── مطابقة «هذه ملزمتي؟» — بالمعرّف الداخلي أو اسم المستخدم، أو بالاسم للملازم القديمة بلا authorId ──
+function accIsMyMaterial(m) {
+  if (!m || m.uploading || !accProfile) return false;
+  const uid  = accProfile.userId ? String(accProfile.userId) : '';
+  const user = String(accProfile.username || accProfile._id || '');
+  const nm   = String(accProfile.fullName || (currentUser && currentUser.name) || '');
+  const a = String(m.authorId || '');
+  return !!((uid && a === uid) || (user && a === user) || (!a && nm && String(m.createdBy || '') === nm));
+}
+// ── عدّاد «الأعجابات» في الملف الشخصي: مجموع إعجابات الآخرين على ملازمي المنشورة ──
+function accMyLikesTotal() {
+  let n = 0;
+  (Array.isArray(allMaterials) ? allMaterials : []).forEach(m => {
+    if (!accIsMyMaterial(m)) return;
+    n += Array.isArray(m.likesBy) ? m.likesBy.length : 0;
+  });
+  return n;
+}
+function accUpdateLikesStat() {
+  const el = accEl('acc-likes-count');
+  if (!el) return;
+  const n = accProfile ? accMyLikesTotal() : 0;
+  el.textContent = n > 999 ? '999+' : String(n);
+}
+// ── وقت نشر الملزمة (لترتيب «منشوراتي»: الأحدث أولاً) — يقبل Firestore Timestamp أو Date أو رقم ──
+function accPostTime(m) {
+  try {
+    const c = m && m.createdAt;
+    if (c && typeof c.toMillis === 'function') return c.toMillis();
+    if (c instanceof Date) return c.getTime();
+    return Number(c) || 0;
+  } catch (e) { return 0; }
+}
+// ── بطاقة منشور واحدة — مشتركة بين «منشوراتي» و«الإعجابات» ──
+function accBuildPostCard(m) {
+  const imgs  = matImageList(m);
+  const cover = imgs[0]?.url || m.previewUrl || null;
+  const isPdf = m.fileUrl && String(m.fileUrl).toLowerCase().endsWith('.pdf') && !cover;
+  const thumb = isPdf ? _getThumbnailUrl(m.fileUrl) : cover;
+  const lazy  = !thumb && m.fileUrl;
+  const likes = Array.isArray(m.likesBy) ? m.likesBy.length : 0;
+  const color = MATERIAL_TYPE_COLORS[m.type] || '#6b7280';
+  const q = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const card = document.createElement('div');
+  card.className = 'acc-post';
+  card.setAttribute('role', 'button');
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('aria-label', q(m.name || 'منشور'));
+  card.innerHTML = `
+    <div class="acc-post-cover"${lazy ? ` data-cover-url="${q(m.fileUrl)}"` : ''}>
+      ${thumb ? `<img src="${q(thumb)}" loading="lazy" decoding="async" alt="" onerror="this.remove()">` : (lazy ? '' : '📄')}
+    </div>
+    <span class="acc-post-dot" style="background:${color}"></span>
+    <span class="acc-post-like">❤️ ${likes}</span>
+    <span class="acc-post-name">${sanitizeText(m.name || '')}</span>`;
+  const open = () => {
+    markItemRead('materials', m.id);   // تعليمها مقروءة (يشطب شارة «جديد» في قسم الملازم)
+    openMaterialDetail(m);             // فتح نفس نافذة التفاصيل
+  };
+  card.onclick = open;
+  card.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
+  return card;
+}
+// ── «منشوراتي»: شبكة مرتبة لملازمي المنشورة داخل الملف الشخصي ──
+function accRenderMyPosts() {
+  const grid = accEl('acc-posts-grid');
+  if (!grid) return;
+  if (!accProfile) { grid.innerHTML = ''; return; }
+  const mine = (Array.isArray(allMaterials) ? allMaterials : [])
+    .filter(m => m && m.id && !m.uploading && accIsMyMaterial(m))
+    .sort((a, b) => accPostTime(b) - accPostTime(a));
+  if (!mine.length) {
+    grid.innerHTML = materialsLoadedOnce
+      ? '<div class="acc-posts-empty">📭 لم تنشر أي ملزمة بعد — ما تنشره في قسم الملازم سيظهر هنا تلقائياً</div>'
+      : '<div class="acc-posts-empty">⏳ جارٍ تحميل منشوراتك…</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  mine.forEach(m => grid.appendChild(accBuildPostCard(m)));
+  applyLazyCovers(grid); // أغلفة PDF/الملفات المؤجلة
+}
+// ── لوحة «الإعجابات»: الملازم التي أعجبت بها (تُفتح من عدّاد الإعجابات) ──
+function accRenderLikedPosts() {
+  const grid = accEl('acc-likes-grid');
+  if (!grid) return;
+  if (!accProfile) { grid.innerHTML = ''; return; }
+  const key = getMyVoterKey();
+  const liked = (Array.isArray(allMaterials) ? allMaterials : [])
+    .filter(m => m && m.id && !m.uploading && Array.isArray(m.likesBy) && m.likesBy.includes(key))
+    .sort((a, b) => accPostTime(b) - accPostTime(a));
+  if (!liked.length) {
+    grid.innerHTML = materialsLoadedOnce
+      ? '<div class="acc-posts-empty">🤍 لم تعجب بأي ملزمة بعد — اضغط ♡ في أي ملزمة لتظهر هنا</div>'
+      : '<div class="acc-posts-empty">⏳ جارٍ تحميل…</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  liked.forEach(m => {
+    const card = accBuildPostCard(m);
+    // تعديل من داخل اللوحة: شارة القلب تُزيل الإعجاب فوراً دون فتح التفاصيل
+    const chip = card.querySelector('.acc-post-like');
+    if (chip) {
+      chip.setAttribute('role', 'button');
+      chip.setAttribute('tabindex', '0');
+      chip.setAttribute('title', 'اضغط لإزالة إعجابك');
+      const drop = ev => {
+        ev.stopPropagation(); ev.preventDefault();
+        toggleMaterialLike(m.id);            // إزالة فورية (محلّياً + Firestore)
+        accRenderLikedPosts();               // تختفي البطاقة من الشبكة
+        setTimeout(accRenderLikedPosts, 1000); // شبكة أمان: تعود إن فشل الحفظ
+      };
+      chip.onclick = drop;
+      chip.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') drop(e); };
+    }
+    grid.appendChild(card);
+  });
+  applyLazyCovers(grid);
+}
+// فتح/غلق لوحة الإعجابات داخل الملف الشخصي
+function accOpenLikes() {
+  const panel = accEl('acc-likes-panel');
+  if (!panel) return;
+  const st = accEl('acc-settings'); if (st && !st.hidden) st.hidden = true; // منع تراكب اللوحات
+  panel.hidden = false;
+  accRenderLikedPosts();
+  // تشغيل أنيميشن ظهور البطاقات التدريجي — مرة واحدة عند الفتح فقط
+  const grid = accEl('acc-likes-grid');
+  if (grid) {
+    grid.classList.add('likes-opening');
+    clearTimeout(grid._likesAnimT);
+    grid._likesAnimT = setTimeout(() => grid.classList.remove('likes-opening'), 1150);
+  }
+}
+function accCloseLikes() { const panel = accEl('acc-likes-panel'); if (panel) panel.hidden = true; }
 // تعبئة بيانات الملف الشخصي للعرض (قراءة فقط) — عناصر العرض أُزيلت، نُبقيها آمنة
 function accFillInfo() { /* البيانات الشخصية لم تعد معروضة في الملف الشخصي */ }
 // فتح نافذة «إدارة الحساب» لتعديل البيانات
@@ -7294,7 +7742,7 @@ function accProfileData() { const d = Object.assign({}, accProfile); delete d._i
 function accApplyToSession() {
   const p = accProfile, isOwner = p.role === 'owner';
   currentUser.name = p.fullName || currentUser.name;
-  currentUser.role = isOwner ? 'مالك الموقع' : (p.shift || 'طالب');
+  currentUser.role = isOwner ? '' : (p.shift || 'طالب');
   currentUser.code = p.username || p._id;          // اليوزر (لا مسار المستند)
   currentUser.userId = p.userId ? String(p.userId) : (currentUser.userId || '');
   saveSession(currentUser);
@@ -7511,6 +7959,7 @@ async function accUploadAvatar(file) {
   if (!file || !accProfile) return;
   if (!/^image\//.test(file.type)) { showToast('⚠️', 'تنبيه', 'اختر ملف صورة'); return; }
   const av = accEl('acc-avatar'); av.classList.add('loading');
+  const mgAv = accEl('acc-mg-avatar'); if (mgAv) mgAv.classList.add('loading');
   try {
     const blob = await accResizeToBlob(file, 400);
     try {
@@ -7533,7 +7982,7 @@ async function accUploadAvatar(file) {
     }
     accRender();
   } catch (e) { showToast('❌', 'خطأ', 'تعذّر قراءة الصورة'); }
-  finally { av.classList.remove('loading'); accEl('acc-avatar-file').value = ''; }
+  finally { av.classList.remove('loading'); if (mgAv) mgAv.classList.remove('loading'); accEl('acc-avatar-file').value = ''; }
 }
 
 // ═══════════ وجه التفاعل السريع ═══════════
@@ -7674,11 +8123,21 @@ document.addEventListener('click', ev => {
     case 'open-privacy':  openModal('acc-privacy-modal'); break;
     case 'open-terms':    openModal('acc-terms-modal'); break;
     case 'toggle-settings': accToggleSettings(); break;
+    case 'open-likes':      accOpenLikes(); break;
+    case 'close-likes':     accCloseLikes(); break;
     case 'share-profile': accShareProfile(); break;
     case 'ig-add':        accAddHighlight(); break;
   }
 });
 accEl('acc-avatar-file').addEventListener('change', e => accUploadAvatar(e.target.files[0]));
+// لوحة المفاتيح: Enter/Space على أقسام قابلة للنقر + Esc لإغلاق لوحة الإعجابات
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { const lp = accEl('acc-likes-panel'); if (lp && !lp.hidden) { accCloseLikes(); return; } }
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  if (!e.target.matches) return;
+  if (e.target.matches('.acc-mg-photo')) { e.preventDefault(); accEl('acc-avatar-file').click(); }
+  else if (e.target.matches('#acc-likes-stat')) { e.preventDefault(); accOpenLikes(); }
+});
 
 // ── إشعار "جديد" للبلاغات — مربوط بنظام تتبّع القراءة في Firestore (user_reads/{uid}) ──
 function isReportRead(reportId) {
@@ -7703,7 +8162,7 @@ accApplyLang(accLang);             // تطبيق اللغة المحفوظة
 accApplyTheme(accTheme);
 
 // ══════════════════ قسم البلاغات ══════════════════
-// النشر والحذف مخصصان لمالك الموقع (baqer) — العرض متاح للجميع
+// النشر والحذف مخصصان للمالك (baqer) — العرض متاح للجميع
 let unsubReports = null;
 let reportsData = [];
 let reportsSeenAt = Number(localStorage.getItem('reportsSeenAt') || 0);
@@ -7800,7 +8259,10 @@ function renderReports() {
           ${safeReportAttachments(r)}
           <div class="report-foot">
             <span class="report-author">${reportAuthorHtml(r)}</span>
-            ${currentUser?.isAdmin ? `<button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+            <span class="report-foot-actions">
+              <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" style="display:none">0</span></button>
+              ${currentUser?.isAdmin ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+            </span>
           </div>
         </div>`;
     } catch (e) {
@@ -7813,6 +8275,17 @@ function renderReports() {
     list.querySelectorAll('.poll-bar .fill[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
   });
   enhanceAvatars(list); // صور الملفات الشخصية (تتجدد عند تغييرها في الملف الشخصي)
+
+  // شارة عدد التعليقات لكل بلاغ (عدّ سريع من الخادم — لا يؤثّر على العرض إن فشل)
+  list.querySelectorAll('.rc-count-chip[data-rc-id]').forEach(chip => {
+    const rid = chip.getAttribute('data-rc-id');
+    if (!rid) return;
+    getCountFromServer(collection(db, 'reports', rid, 'comments')).then(s => {
+      const n = Number(s.data().count) || 0;
+      chip.textContent = n > 99 ? '99+' : String(n);
+      if (n > 0) chip.style.display = 'inline-flex';
+    }).catch(() => {});
+  });
 }
 // ── الإشارة على اختيار بطاقة البلاغ (إشارة للقراءة) ──
 if (document.getElementById('reports-list')) {
@@ -7821,6 +8294,10 @@ if (document.getElementById('reports-list')) {
     if (!card) return;
     const delBtn = e.target.closest('.report-del');
     if (delBtn) return; // لا نُشير إلى القراءة عند الضغط على حذف
+    const editBtn = e.target.closest('.report-edit');
+    if (editBtn) return; // ولا عند الضغط على تعديل
+    const cmBtn = e.target.closest('.report-cm-toggle');
+    if (cmBtn) return; // ولا عند فتح التعليقات
     const id = card.dataset.reportId;
     if (id) markReportAsRead(id);
   });
@@ -8205,17 +8682,22 @@ function renderReportImages() {
   const c = document.getElementById('rep-images-preview');
   if (!c) return;
   c.innerHTML = '';
-  reportImages.forEach((f, i) => {
-    const item = document.createElement('div');
-    item.className = 'preview-item';
+  reportImages.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'preview-item';
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(f);
-    item.appendChild(img);
+    if (item && item.existingUrl) {
+      img.src = item.existingUrl;               // صورة قديمة (URL) أثناء التعديل
+      if (item.existing === undefined) el.title = 'صورة محفوظة';
+    } else {
+      img.src = URL.createObjectURL(item.file || item); // ملف جديد
+    }
+    el.appendChild(img);
     const rm = document.createElement('div');
     rm.className = 'remove-file'; rm.textContent = '×';
     rm.onclick = () => { reportImages.splice(i, 1); renderReportImages(); };
-    item.appendChild(rm);
-    c.appendChild(item);
+    el.appendChild(rm);
+    c.appendChild(el);
   });
 }
 
@@ -8233,13 +8715,20 @@ window.handleReportFiles = function(input) {
 function renderReportFiles() {
   const c = document.getElementById('rep-files-list');
   if (!c) return;
-  c.innerHTML = reportFiles.map((f, i) => `
+  c.innerHTML = reportFiles.map((item, i) => {
+    const existing = item && item.existingFile ? item.existingFile : null;
+    const f = item && item.file ? item.file : item; // ملف جديد
+    const name = existing ? existing.name : (f && f.name) || 'ملف';
+    const size = existing ? existing.size : (f && f.size) || 0;
+    const icon = existing ? '🔗' : '📄';
+    return `
     <div class="rep-file-row">
-      <span>📄</span>
-      <span class="name">${sanitizeText(f.name)}</span>
-      <span class="sz">${formatFileSize(f.size)}</span>
+      <span>${icon}</span>
+      <span class="name">${sanitizeText(name)}</span>
+      <span class="sz">${size ? formatFileSize(size) : (existing ? 'محفوظ' : '')}</span>
       <span class="rm" onclick="removeReportFile(${i})" title="إزالة">✕</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 window.removeReportFile = function(i) { reportFiles.splice(i, 1); renderReportFiles(); };
 
@@ -8590,7 +9079,7 @@ function loadPubAttachmentsForEdit(post) {
 
 // ── صورة الملف الشخصي للمُنشئ (بديل كلمة «بواسطة») ──
 function reportAuthorHtml(r) {
-  const name = sanitizeText(r.author || 'مالك الموقع');
+  const name = sanitizeText(r.author || 'الإدارة');
   const color = sanitizeText(r.authorColor || '');
   const photo = typeof r.authorPhoto === 'string' ? r.authorPhoto : '';
   const authorId = typeof r.authorId === 'string' ? r.authorId : '';
@@ -8600,7 +9089,15 @@ function reportAuthorHtml(r) {
     ? `<img class="avatar-photo" src="${photo}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
     : '';
   return `<span class="avatar-slot" data-author-id="${authorId.replace(/"/g, '&quot;')}" data-author-name="${authorName}">${letter}${img}</span>` +
-         `<span class="report-author-name" style="${color ? 'color:' + color : ''}">${name}</span>`;
+         `<span class="report-author-name"><span class="report-author-text">${name}</span>${verifiedBadgeHTML(authorId, r.author)}</span>`;
+}
+
+// ── شارة التوثيق للمالك فقط (id=666) — تُعاد فارغة لغيره ──
+function verifiedBadgeHTML(authorId, authorName) {
+  if (authorId != null && authorId !== '' && String(authorId) === String(OWNER_USER_ID)) {
+    return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+  }
+  return '';
 }
 
 // ── خدمة صور الملفات الشخصية (مصدر واحد + كاش يتجدد عند تغيير الصورة) ──
@@ -8920,6 +9417,7 @@ let reportVoiceRec = null;        // MediaRecorder
 let reportVoiceTimer = null, reportVoiceSec = 0, reportVoiceDiscard = false;
 let pollOptionsDraft = ['', ''];  // نصوص خيارات الاستفتاء
 const VOICE_MAX_SEC = 15 * 60; // الحد الأقصى: 15 دقيقة
+let editingReport = null;         // كائن البلاغ قيد التعديل (null = نشر جديد)
 
 function resetReportModal() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
@@ -8934,21 +9432,90 @@ function resetReportModal() {
     if (chip) chip.classList.remove('on');
     if (panel) panel.classList.add('hidden');
   });
+  // أعد النافذة لوضع «نشر جديد»
+  editingReport = null;
+  const mt = document.getElementById('report-modal-title');
+  if (mt) mt.textContent = '📣 نشر بلاغ';
+  const btn = document.getElementById('btn-do-report');
+  if (btn) btn.textContent = '🚀 نشر البلاغ';
 }
 
 window.cancelReportModal = function() { resetReportModal(); closeModal('report-modal'); };
 
 window.openReportModal = function() {
   if (!currentUser?.isAdmin) {
-    showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص لمالك الموقع فقط');
+    showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص للإدارة فقط');
     return;
   }
   resetReportModal();
   openModal('report-modal');
 };
 
+// ── تعديل بلاغ منشور (للمالك/الأدمن) ──
+window.editReport = function(id) {
+  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'هذه العملية مخصصة للإدارة فقط'); return; }
+  const rep = reportsData.find(r => String(r.id) === String(id));
+  if (!rep) { showToast('⚠️', 'خطأ', 'لم يُعثر على البلاغ'); return; }
+
+  resetReportModal();
+  editingReport = rep;
+
+  // العنوان والتفاصيل
+  const t = document.getElementById('rep-title'); if (t) t.value = rep.title || '';
+  const b = document.getElementById('rep-body');  if (b) b.value = rep.body || '';
+
+  // الصور القديمة: تُخزَّن كعناصر وهمية في reportImages لتظهر في المعاينة
+  // (كل عنصر = { existingUrl, file }) — عند النشر تُبقى الروابط القديمة كما هي.
+  if (Array.isArray(rep.images) && rep.images.length) {
+    reportImages = rep.images.slice(0, PUB_MAX_IMAGES).map(url => ({ existingUrl: url, file: null }));
+    renderReportImages();
+    const chip = document.getElementById('chip-images'); const panel = document.getElementById('att-panel-images');
+    if (chip) chip.classList.add('on'); if (panel) panel.classList.remove('hidden');
+  }
+
+  // الملفات القديمة (URL) بنفس الأسلوب
+  if (Array.isArray(rep.files) && rep.files.length) {
+    reportFiles = rep.files.slice(0, PUB_MAX_FILES).map(f => ({ existingFile: f, file: null }));
+    renderReportFiles();
+    const chip = document.getElementById('chip-files'); const panel = document.getElementById('att-panel-files');
+    if (chip) chip.classList.add('on'); if (panel) panel.classList.remove('hidden');
+  }
+
+  // الصوت القديم: مشغّل فقط (بدون blob — لا يمكن إعادة رفعه إلا إن سُجّل جديد)
+  if (rep.voiceUrl) {
+    reportVoice = { blob: null, url: rep.voiceUrl, duration: rep.voiceDuration || 0, existing: true };
+    const au = document.getElementById('voice-audio'); const pl = document.getElementById('voice-player');
+    if (au) au.src = rep.voiceUrl;
+    if (pl) pl.classList.remove('hidden');
+    const chip = document.getElementById('chip-voice'); const panel = document.getElementById('att-panel-voice');
+    if (chip) chip.classList.add('on'); if (panel) panel.classList.remove('hidden');
+  }
+
+  // الاستفتاء: نحتفظ به كما هو (بدون إعادة تهيئة — إن وُجد)
+  if (rep.poll && Array.isArray(rep.poll.options) && rep.poll.options.length >= 2) {
+    pollOptionsDraft = rep.poll.options.map(o => o.text || '');
+    renderPollOptions();
+    const q = document.getElementById('poll-question'); if (q) q.value = rep.poll.question || '';
+    const set = (cid, v) => { const el = document.getElementById(cid); if (el) el.checked = v; };
+    set('poll-opt-hide-pct', !!rep.poll.hidePercent);
+    set('poll-opt-hide-voters', !!rep.poll.hideVoters);
+    set('poll-opt-lock', !!(rep.poll.lockVote || rep.poll.locked));
+    const chip = document.getElementById('chip-poll'); const panel = document.getElementById('att-panel-poll');
+    if (chip) chip.classList.add('on'); if (panel) panel.classList.remove('hidden');
+  }
+
+  // نصوص وضع التعديل
+  const mt = document.getElementById('report-modal-title');
+  if (mt) mt.textContent = '✏️ تعديل البلاغ';
+  const btn = document.getElementById('btn-do-report');
+  if (btn) btn.textContent = '💾 حفظ التعديلات';
+
+  openModal('report-modal');
+};
+
+
 document.getElementById('btn-do-report')?.addEventListener('click', async () => {
-  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص لمالك الموقع فقط'); return; }
+  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص للإدارة فقط'); return; }
   const btn = document.getElementById('btn-do-report');
   const type = 'أخرى'; // حقل «نوع البلاغ» حُذف من النموذج — القيمة الافتراضية تُخزَّن للتوافق مع البلاغات القديمة
   const title = document.getElementById('rep-title').value.trim();
@@ -8962,6 +9529,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
   const fls  = reportFiles.slice();
   const voice = reportVoice;
   const poll = pollRes.poll;
+  const editingId = editingReport ? String(editingReport.id) : null; // قبل إعادة التعيين التي تُصفّره
 
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   closeModal('report-modal');
@@ -8979,47 +9547,72 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
     };
 
     const imageUrls = [];
-    for (const f of imgs) { imageUrls.push(await uploadToCloudinary(f, p => step(p))); done++; step(); }
+    for (const item of imgs) {
+      if (item && item.existingUrl) { imageUrls.push(item.existingUrl); continue; } // صورة قديمة — نُبقيها كما هي
+      imageUrls.push(await uploadToCloudinary(item, p => step(p))); done++; step();
+    }
 
     const fileItems = [];
-    for (const f of fls) {
-      const url = await uploadToCloudinary(f, p => step(p));
-      fileItems.push({ url, name: f.name, size: f.size });
+    for (const item of fls) {
+      if (item && item.existingFile) { fileItems.push(item.existingFile); continue; } // ملف قديم — نُبقيه كما هو
+      const url = await uploadToCloudinary(item, p => step(p));
+      fileItems.push({ url, name: item.name, size: item.size });
       done++; step();
     }
 
     let voiceUrl = '', voiceDuration = 0;
     if (voice) {
-      const mime = voice.blob.type || '';
-      const ext = mime.includes('mp4') ? 'm4a' : (mime.includes('ogg') ? 'ogg' : 'webm');
-      const vf = new File([voice.blob], `report-voice-${Date.now()}.${ext}`, { type: mime || 'audio/webm' });
-      voiceUrl = await uploadToCloudinary(vf, p => step(p));
-      voiceDuration = voice.duration;
-      done++; step();
+      if (voice.blob) {
+        const mime = voice.blob.type || '';
+        const ext = mime.includes('mp4') ? 'm4a' : (mime.includes('ogg') ? 'ogg' : 'webm');
+        const vf = new File([voice.blob], `report-voice-${Date.now()}.${ext}`, { type: mime || 'audio/webm' });
+        voiceUrl = await uploadToCloudinary(vf, p => step(p));
+        voiceDuration = voice.duration;
+        done++; step();
+      } else {
+        // صوت قديم محفوظ (لا يمكن رفعه بلا blob) — نُبقي رابطه
+        voiceUrl = voice.url || '';
+        voiceDuration = voice.duration || 0;
+      }
     }
     if (total === 0) pubProgressReal(100);
 
-    await addDoc(collection(db, 'reports'), {
-      type, title, body,
-      images: imageUrls,
-      files: fileItems,
-      voiceUrl, voiceDuration,
-      poll,
-      author: currentUser.name,
-      authorColor: currentUser.color || '',
-      authorId: currentUser.userId || currentUser.code || '',
-      authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
-      createdAt: Date.now()
-    });
-
-    pubProgressDone(); // العدّاد يبلغ 100
-    setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
-    showToast('✅', 'تم النشر', 'ظهر البلاغ لجميع المستخدمين فوراً');
+    if (editingId) {
+      // تعديل بلاغ قائم: نُحدّث الحقول فقط ونحتفظ بالمؤلف والتاريخ الأصليين، ونضيف وسم التعديل
+      await updateDoc(doc(db, 'reports', editingId), {
+        type, title, body,
+        images: imageUrls,
+        files: fileItems,
+        voiceUrl, voiceDuration,
+        poll,
+        editedAt: Date.now()
+      });
+      pubProgressDone();
+      setTimeout(() => { bgPublishFinish('✅ تم حفظ التعديلات', 'ok'); pubProgressStop(); }, 700);
+      showToast('✅', 'تم التعديل', 'حُدِّث البلاغ لجميع المستخدمين فوراً');
+    } else {
+      // نشر بلاغ جديد
+      await addDoc(collection(db, 'reports'), {
+        type, title, body,
+        images: imageUrls,
+        files: fileItems,
+        voiceUrl, voiceDuration,
+        poll,
+        author: currentUser.name,
+        authorColor: currentUser.color || '',
+        authorId: currentUser.userId || currentUser.code || '',
+        authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
+        createdAt: Date.now()
+      });
+      pubProgressDone(); // العدّاد يبلغ 100
+      setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
+      showToast('✅', 'تم النشر', 'ظهر البلاغ لجميع المستخدمين فوراً');
+    }
   } catch (e) {
     console.error(e);
     pubProgressStop();
-    bgPublishFinish('❌ فشل النشر', 'err');
-    showToast('❌', 'خطأ', e.message || 'فشل نشر البلاغ — حاول مجدداً');
+    bgPublishFinish('❌ فشل الحفظ', 'err');
+    showToast('❌', 'خطأ', e.message || (editingId ? 'فشل حفظ التعديلات — حاول مجدداً' : 'فشل نشر البلاغ — حاول مجدداً'));
   } finally {
     btn.disabled = false; btn.textContent = '🚀 نشر البلاغ';
   }
@@ -9053,6 +9646,7 @@ window.setActiveNav = function(id) {
   const isMaterials = (id === 'schedule');
   const isAccount = (id === 'user');
   document.body.classList.toggle('materials-mode', isMaterials);
+  document.body.classList.toggle('account-mode', isAccount);   // الملف الشخصي على كامل الشاشة (أنماط CSS)
   if (appHeader) appHeader.style.display = (isMaterials || isAccount) ? 'none' : '';
   if (matsSearch) matsSearch.style.display = isMaterials ? 'flex' : 'none';
 
@@ -10028,7 +10622,7 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
   if (iconSrc) {
     senderIconHtml = `<img src="${iconSrc}" class="author-badge" alt="شعار">`;
   }
-  const senderHtml = (!isMine && !isContinuation) ? `<div class="chat-sender" style="color:${msg.senderColor || 'var(--accent2)'}; display:flex; align-items:center; gap:4px;">${sanitizeText(msg.senderName)}${senderIconHtml}</div>` : '';
+  const senderHtml = (!isMine && !isContinuation) ? `<div class="chat-sender" style="color:#ffffff; display:flex; align-items:center; gap:4px;">${sanitizeText(msg.senderName)}${senderIconHtml}${verifiedBadgeHTML(msg.senderId, msg.senderName)}</div>` : '';
   
   // Add a class to the message bubble if it's not the last one in a group
   const msgBubbleClass = isLastInGroup ? '' : 'not-last-in-group';
@@ -10132,6 +10726,7 @@ window.sendChatMessage = async function() {
          senderName: currentUser.name,
          senderColor: currentUser.color || '#a0a0b0',
          senderIcon: currentUser.icon || (currentUser.name === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : ''),
+         senderId: currentUser.userId || currentUser.code || '',
          createdAt: Date.now(),
          edited: false,
          readBy: []
@@ -10217,6 +10812,436 @@ window.removeChatImage = function(idx) {
   pendingChatFiles.splice(idx, 1);
   renderChatAttachmentPreview();
 };
+
+// ══════════════════════ تعليقات البلاغات (reports/{id}/comments) ══════════════════════
+// تتفاعل لحظياً عبر onSnapshot وتدعم إرفاق الصور عبر Cloudinary — بنفس منطق دردشة الملازم.
+let currentReportCommentId = null;
+let reportCommentsUnsub = null;
+let pendingReportFiles = [];
+let rcReplyContext = null;
+let rcEditContext = null;
+
+window.openReportComments = function(reportId) {
+  if (!reportId) return;
+  const win = document.getElementById('report-comments-window');
+  const list = document.getElementById('report-comments-list');
+  if (!win || !list) return;
+
+  // ألغِ أي اشتراك سابق قبل فتح بلاغ آخر
+  if (reportCommentsUnsub) { reportCommentsUnsub(); reportCommentsUnsub = null; }
+
+  currentReportCommentId = String(reportId);
+  pendingReportFiles = [];
+  renderReportCommentPreview();
+  rcReplyContext = null;
+  rcEditContext = null;
+  hideRcContext();
+
+  // العنوان من البلاغ المحمّل مسبقاً (reportsData)
+  const rep = reportsData.find(x => String(x.id) === String(reportId));
+  const title = rep ? (rep.title || 'البلاغ') : 'البلاغ';
+  const tEl = document.getElementById('rc-header-title');
+  if (tEl) tEl.textContent = '💬 ' + title;
+
+  // إظهار/إخفاء حقل الإدخال حسب حالة الدخول
+  const inputC = document.getElementById('rc-input-container');
+  const loginP = document.getElementById('rc-login-prompt');
+  const canPost = currentUser && currentUser.name !== 'زائر';
+  if (inputC) inputC.style.display = canPost ? 'flex' : 'none';
+  if (loginP) loginP.style.display = canPost ? 'none' : 'block';
+
+  list.innerHTML = '<div class="text-center" style="color:var(--text-muted);font-size:12px;margin-top:20px;">⏳ جارٍ تحميل التعليقات...</div>';
+  win.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+
+  subscribeReportComments(currentReportCommentId, list);
+};
+
+window.closeReportComments = function() {
+  const win = document.getElementById('report-comments-window');
+  if (!win) return;
+  win.classList.remove('open');
+  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
+  if (reportCommentsUnsub) { reportCommentsUnsub(); reportCommentsUnsub = null; }
+  currentReportCommentId = null;
+  pendingReportFiles = [];
+  rcReplyContext = null;
+  rcEditContext = null;
+  hideRcContext();
+  const inp = document.getElementById('rc-input');
+  if (inp) { inp.value = ''; inp.style.height = 'auto'; }
+};
+
+function subscribeReportComments(reportId, list) {
+  // استعلام بسيط بدون orderBy لتجنّب الحاجة لـ Composite Index — نرتّب من جهة العميل
+  const q = query(collection(db, 'reports', reportId, 'comments'), limit(300));
+
+  // إغلاق قائمة الأزرار عند النقر في مساحة فارغة (نفس منطق الاستفسار)
+  list.onclick = () => {
+    document.querySelectorAll('#report-comments-list .chat-msg-wrap.show-actions').forEach(el => el.classList.remove('show-actions'));
+  };
+
+  reportCommentsUnsub = onSnapshot(q, (snap) => {
+    if (currentReportCommentId !== reportId) return;
+
+    const msgs = [];
+    snap.forEach(d => { const m = d.data(); m.id = d.id; msgs.push(m); });
+    msgs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+    // حدّث شارة العدد في بطاقة البلاغ إن كانت ظاهرة
+    const chip = document.querySelector(`.rc-count-chip[data-rc-id="${reportId}"]`);
+    if (chip) {
+      chip.textContent = msgs.length > 99 ? '99+' : String(msgs.length);
+      chip.style.display = msgs.length > 0 ? 'inline-flex' : 'none';
+    }
+
+    if (!msgs.length) {
+      list.innerHTML = '<div class="text-center" style="color:var(--text-muted);font-size:12px;margin-top:20px;">💬 لا توجد تعليقات بعد — كن أول من يعلّق</div>';
+      return;
+    }
+    list.innerHTML = '';
+    let lastDate = null;
+    const frag = document.createDocumentFragment();
+    msgs.forEach((msg, i) => {
+      const prev = msgs[i - 1];
+      const dStr = new Date(msg.createdAt || Date.now()).toDateString();
+      if (dStr !== lastDate) {
+        const sep = document.createElement('div');
+        sep.className = 'chat-date-separator';
+        sep.innerHTML = `<span>${formatChatDate(msg.createdAt || Date.now())}</span>`;
+        frag.appendChild(sep);
+        lastDate = dStr;
+      }
+      const cont = prev && prev.senderName === msg.senderName && ((msg.createdAt || 0) - (prev.createdAt || 0) < 5 * 60 * 1000);
+      renderReportComment(msg, frag, cont);
+    });
+    list.appendChild(frag);
+    setTimeout(() => { list.scrollTop = list.scrollHeight; }, 40);
+  }, (err) => {
+    console.error('خطأ تحميل تعليقات البلاغ:', err);
+    list.innerHTML = '<div class="text-center" style="color:#ef4444;font-size:12px;margin-top:20px;padding:16px;">تعذّر تحميل التعليقات</div>';
+  });
+}
+
+function renderReportComment(msg, container, isContinuation = false) {
+  const isMine = currentUser && msg.senderName === currentUser.name;
+  const wrap = document.createElement('div');
+  wrap.className = `chat-msg-wrap ${isMine ? 'mine' : 'theirs'}${isContinuation ? ' grouped' : ''}`;
+  wrap.dataset.id = msg.id;
+
+  // عرض/إخفاء قائمة الأزرار عند النقر على التعليق (نفس منطق الاستفسار)
+  wrap.onclick = (e) => {
+    e.stopPropagation();
+    const wasOpen = wrap.classList.contains('show-actions');
+    document.querySelectorAll('#report-comments-list .chat-msg-wrap.show-actions').forEach(el => el.classList.remove('show-actions'));
+    if (!wasOpen) wrap.classList.add('show-actions');
+  };
+
+  // الردّ المقتبس (replyTo)
+  let replyHtml = '';
+  if (msg.replyTo && msg.replyTo.id) {
+    replyHtml = `<div class="chat-reply-ref" onclick="scrollToReportComment('${msg.replyTo.id}'); event.stopPropagation();">
+      <div style="font-weight:bold; color:${isMine ? '#fff' : 'var(--accent2)'}; font-size:11px;">${sanitizeText(msg.replyTo.senderName || '')}</div>
+      <div style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${sanitizeText(msg.replyTo.text || 'صورة 🖼️')}</div>
+    </div>`;
+  }
+
+  // الصور (مع استبعاد أي روابط ملفات غير صورية احتياطاً)
+  let imgHtml = '';
+  const urls = Array.isArray(msg.imageUrls) ? msg.imageUrls : (msg.imageUrl ? [msg.imageUrl] : []);
+  if (urls.length) {
+    const pureImages = urls.filter(u => !String(u).match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip|rar)$/i));
+    const docFiles = urls.filter(u => String(u).match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip|rar)$/i));
+    const safeUrls = JSON.stringify(pureImages).replace(/"/g, '&quot;');
+    const els = pureImages.map(u => `<img src="${u}" loading="lazy" onclick="openLightbox(${safeUrls}, ${pureImages.indexOf(u)}); event.stopPropagation();">`);
+    if (els.length) imgHtml = `<div class="chat-msg-gallery">${els.join('')}</div>`;
+    // الملفات غير الصورية: PDF كمصغّرة + باقي المستندات كرابط تحميل (مطابق للاستفسار)
+    const docEls = docFiles.map(u => {
+      if (/\.pdf$/i.test(u)) {
+        const thumb = _getThumbnailUrl(u);
+        return `<div class="media-file-wrap" style="width:100px;height:130px;margin-top:6px;" onclick="downloadFileWithProgress('${u}', 'ملف مرفق', this); event.stopPropagation();">
+          ${thumb ? `<img src="${thumb}" loading="lazy" alt="PDF" onerror="this.style.display='none'">` : `<div style="display:flex;align-items:center;justify-content:center;height:70%;font-size:40px;">📄</div>`}
+          <div class="file-info-badge" style="justify-content:center;">📄 PDF</div>
+          <div class="dl-overlay"><div class="dl-circle" style="--p:0%"><div class="dl-circle-inner"><span class="dl-pct">⬇️</span></div></div></div>
+        </div>`;
+      }
+      const fName = decodeURIComponent(u.split('/').pop().split('?')[0] || 'ملف_مرفق');
+      return `<span class="media-file-link" style="margin-top:6px;display:inline-flex;cursor:pointer" onclick="downloadFileWithProgress('${u}', '${fName.replace(/'/g, "\\'")}', this); event.stopPropagation()">📎 تحميل الملف</span>`;
+    });
+    if (docEls.length) imgHtml += `<div style="display:flex;flex-direction:column;gap:6px;">${docEls.join('')}</div>`;
+  }
+
+  const timeStr = new Date(msg.createdAt || Date.now()).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+  const editedTag = msg.edited ? '<span class="rc-edited-tag">(معدّلة)</span>' : '';
+  let iconHtml = '';
+  if (msg.senderIcon) iconHtml = `<img src="${msg.senderIcon}" class="author-badge" alt="" style="width:16px;height:16px;border-radius:50%;">`;
+  const senderHtml = (!isMine && !isContinuation)
+    ? `<div class="chat-sender" style="color:${msg.senderColor || 'var(--accent2)'};">${sanitizeText(msg.senderName || 'مستخدم')}${iconHtml}${verifiedBadgeHTML(msg.senderId, msg.senderName)}</div>`
+    : '';
+
+  // نصوص آمنة للأزرار
+  const safeSenderName = encodeURIComponent(msg.senderName || '').replace(/'/g, "%27");
+  const safeReplyText = encodeURIComponent(msg.text || 'صورة').replace(/'/g, "%27");
+  const safeEditText = encodeURIComponent(msg.text || '').replace(/'/g, "%27");
+
+  // قائمة الأزرار: رد / حذف / تعديل (نفس صلاحيات الاستفسار)
+  const canDel = isMine || currentUser?.isAdmin;
+  let actionsHtml = `<div class="chat-actions-menu">`;
+  if (currentUser && currentUser.name !== 'زائر') {
+    actionsHtml += `<button class="chat-action-btn" onclick="setRcReply('${msg.id}', decodeURIComponent('${safeSenderName}'), decodeURIComponent('${safeReplyText}')); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">↩️ رد</button>`;
+  }
+  if (canDel) {
+    actionsHtml += `<button class="chat-action-btn" style="color:#ef4444;" onclick="deleteReportComment('${msg.id}'); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">🗑️ حذف</button>`;
+  }
+  if (isMine && urls.length === 0) {
+    actionsHtml += `<button class="chat-action-btn" onclick="setRcEdit('${msg.id}', decodeURIComponent('${safeEditText}')); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">✏️ تعديل</button>`;
+  }
+  actionsHtml += `</div>`;
+
+  wrap.innerHTML = `
+    ${actionsHtml}
+    <div class="rc-inner">
+      <div class="chat-msg" id="rc-msg-${msg.id}">
+        ${senderHtml}
+        ${replyHtml}
+        ${msg.text ? `<div class="chat-text">${formatChatText(msg.text)}</div>` : ''}
+        ${imgHtml}
+        <div class="chat-meta"><span class="chat-time">${timeStr} ${editedTag}</span></div>
+      </div>
+      <div class="rc-avatar${isContinuation ? ' placeholder' : ''}">${(msg.senderName || '؟').trim().charAt(0) || '؟'}</div>
+    </div>`;
+  container.appendChild(wrap);
+
+  // تحميل صورة المُرسِل الحقيقية من Firestore (نمط تيليجرام) — نُخفي الحرف الأول عند توفّر الصورة
+  if (!isContinuation && msg.senderId) {
+    const av = wrap.querySelector('.rc-avatar');
+    if (av) {
+      loadAuthorPhoto(msg.senderId).then(url => {
+        if (url && av.isConnected) {
+          av.textContent = '';
+          const im = document.createElement('img');
+          im.src = url;
+          im.alt = '';
+          im.loading = 'lazy';
+          im.referrerPolicy = 'no-referrer';
+          im.onerror = () => { av.textContent = (msg.senderName || '؟').trim().charAt(0) || '؟'; };
+          av.appendChild(im);
+        }
+      }).catch(() => {});
+    }
+  }
+}
+
+window.scrollToReportComment = function(id) {
+  const el = document.getElementById('rc-msg-' + id);
+  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.transform = 'scale(1.02)'; el.style.transition = 'transform 0.3s'; setTimeout(() => el.style.transform = 'scale(1)', 400); }
+};
+
+window.sendReportComment = async function() {
+  if (!currentUser || currentUser.name === 'زائر') {
+    showToast('🔒', 'تنبيه', 'سجّل الدخول للمشاركة في التعليقات');
+    return;
+  }
+  if (!currentReportCommentId) return;
+  const inputEl = document.getElementById('rc-input');
+  const text = (inputEl?.value || '').trim();
+  if (!text && pendingReportFiles.length === 0) return;
+
+  const btn = document.querySelector('#rc-input-container .chat-send-btn');
+  if (btn) btn.disabled = true;
+  const prog = document.getElementById('rc-upload-progress');
+  if (pendingReportFiles.length && prog) prog.style.display = 'block';
+
+  // الاحتفاظ بالسياق قبل التفريغ (إصلاح فقدان السياق عند فشل الإرسال)
+  const editCtx = rcEditContext;
+  const replyCtx = rcReplyContext;
+  const files = [...pendingReportFiles];
+  try {
+    const uploadedUrls = [];
+    for (let i = 0; i < files.length; i++) {
+      if (prog) prog.innerText = `⏳ جارٍ رفع الصورة ${i + 1} من ${files.length}...`;
+      const url = await uploadToCloudinary(files[i]);
+      uploadedUrls.push(url);
+    }
+    if (editCtx) {
+      // تعديل رسالة موجودة — لا نغيّر الصور إن لم يُرفق جديد (نُبقي القديمة إن أُرسل نص فقط)
+      const upd = { text: text, edited: true };
+      if (uploadedUrls.length) { upd.imageUrls = uploadedUrls; upd.imageUrl = uploadedUrls[0]; }
+      await updateDoc(doc(db, 'reports', currentReportCommentId, 'comments', editCtx.id), upd);
+    } else {
+      // تعليق جديد — نُرفق الردّ إن وُجد
+      const data = {
+        text: text,
+        imageUrls: uploadedUrls,
+        imageUrl: uploadedUrls[0] || '',
+        senderName: currentUser.name,
+        senderColor: currentUser.color || '#a0a0b0',
+        senderIcon: currentUser.icon || '',
+        senderId: currentUser.userId || currentUser.code || '',
+        createdAt: Date.now()
+      };
+      if (replyCtx) data.replyTo = replyCtx;
+      await addDoc(collection(db, 'reports', currentReportCommentId, 'comments'), data);
+    }
+    if (inputEl) { inputEl.value = ''; inputEl.style.height = 'auto'; }
+    pendingReportFiles = [];
+    rcReplyContext = null;
+    rcEditContext = null;
+    hideRcContext();
+    renderReportCommentPreview();
+  } catch (e) {
+    console.error('فشل إرسال التعليق:', e);
+    showToast('❌', 'خطأ', 'فشل إرسال التعليق، تأكد من اتصالك');
+    if (inputEl) { inputEl.value = text; autoResizeChatInput(inputEl); }
+    pendingReportFiles = files;
+    rcEditContext = editCtx;
+    rcReplyContext = replyCtx;
+  } finally {
+    if (prog) { prog.style.display = 'none'; prog.innerText = '⏳ جارٍ رفع المرفق...'; }
+    if (btn) btn.disabled = false;
+  }
+};
+
+// ── سياق الرد/التعديل للتعليقات ──
+window.setRcReply = function(id, senderName, text) {
+  rcReplyContext = { id, senderName, text };
+  rcEditContext = null;
+  showRcContext('reply', senderName, text);
+  const inp = document.getElementById('rc-input');
+  if (inp) inp.focus();
+};
+
+window.setRcEdit = function(id, text) {
+  rcEditContext = { id, text };
+  rcReplyContext = null;
+  const inp = document.getElementById('rc-input');
+  if (inp) { inp.value = text; inp.style.height = 'auto'; autoResizeChatInput(inp); inp.focus(); }
+  showRcContext('edit', null, 'تعديل التعليق');
+};
+
+function showRcContext(type, name, text) {
+  const banner = document.getElementById('rc-context-banner');
+  const txt = document.getElementById('rc-context-text');
+  if (!banner || !txt) return;
+  banner.classList.add('show');
+  if (type === 'reply') txt.innerHTML = `<b>رد على ${sanitizeText(name)}:</b> ${sanitizeText(text)}`;
+  else if (type === 'edit') txt.innerHTML = `<b>✏️ ${sanitizeText(text)}</b>`;
+}
+
+function hideRcContext() {
+  const banner = document.getElementById('rc-context-banner');
+  if (banner) banner.classList.remove('show');
+}
+
+window.cancelRcContext = function() {
+  const wasEditing = !!rcEditContext;
+  rcReplyContext = null;
+  rcEditContext = null;
+  hideRcContext();
+  renderReportCommentPreview();
+  if (wasEditing) {
+    const inp = document.getElementById('rc-input');
+    if (inp) { inp.value = ''; inp.style.height = 'auto'; }
+  }
+};
+
+window.deleteReportComment = async function(commentId) {
+  if (!currentReportCommentId || !commentId) return;
+  const ok = await confirmDialog({
+    icon: '🗑️',
+    title: 'حذف التعليق',
+    message: 'هل تريد حذف هذا التعليق نهائياً؟',
+    confirmText: 'حذف',
+    cancelText: 'إلغاء'
+  });
+  if (!ok) return;
+  try {
+    await deleteDoc(doc(db, 'reports', currentReportCommentId, 'comments', commentId));
+    showToast('🗑️', 'حذف', 'تم حذف التعليق');
+  } catch (e) {
+    console.error('فشل حذف التعليق:', e);
+    showToast('❌', 'خطأ', 'تعذّر حذف التعليق');
+  }
+};
+
+window.handleReportCommentUpload = function(input) {
+  if (!input.files || !input.files.length) return;
+  const files = Array.from(input.files); // يقبل الصور والملفات معاً
+  pendingReportFiles = [...pendingReportFiles, ...files].slice(0, 8); // حد أقصى 8 مرفقات
+  renderReportCommentPreview();
+  input.value = '';
+};
+
+window.removeReportFile = function(idx) {
+  pendingReportFiles.splice(idx, 1);
+  renderReportCommentPreview();
+};
+
+// ورقة اختيار نوع المرفق: إظهار / إخفاء / اختيار صورة / اختيار ملف
+window.showRcAttachSheet = function() {
+  const sheet = document.getElementById('rc-attach-sheet');
+  if (sheet) sheet.classList.add('show');
+};
+window.hideRcAttachSheet = function() {
+  const sheet = document.getElementById('rc-attach-sheet');
+  if (sheet) sheet.classList.remove('show');
+};
+window.rcChooseImage = function() {
+  hideRcAttachSheet();
+  const inp = document.getElementById('rc-image-input');
+  if (inp) inp.click();
+};
+window.rcChooseDoc = function() {
+  hideRcAttachSheet();
+  const inp = document.getElementById('rc-doc-input');
+  if (inp) inp.click();
+};
+
+// ورقة اختيار المرفق للاستفسار (نفس منطق التعليقات لكن للنافذة alfachat-window)
+window.showChatAttachSheet = function() {
+  const sheet = document.getElementById('chat-attach-sheet');
+  if (sheet) sheet.classList.add('show');
+};
+window.hideChatAttachSheet = function() {
+  const sheet = document.getElementById('chat-attach-sheet');
+  if (sheet) sheet.classList.remove('show');
+};
+window.chatChooseImage = function() {
+  hideChatAttachSheet();
+  const inp = document.getElementById('chat-image-input');
+  if (inp) inp.click();
+};
+window.chatChooseDoc = function() {
+  hideChatAttachSheet();
+  const inp = document.getElementById('chat-doc-input');
+  if (inp) inp.click();
+};
+
+function renderReportCommentPreview() {
+  const c = document.getElementById('rc-attachment-preview');
+  if (!c) return;
+  if (!pendingReportFiles.length) { c.classList.remove('show'); c.innerHTML = ''; return; }
+  c.classList.add('show');
+  c.innerHTML = '';
+  pendingReportFiles.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'chat-preview-item';
+    if (f.type && f.type.startsWith('image/')) {
+      // معاينة صورة حقيقية
+      const url = URL.createObjectURL(f);
+      item.innerHTML = `<img src="${url}" alt="مرفق"><div class="chat-preview-rm" onclick="removeReportFile(${i})">×</div>`;
+    } else {
+      // بطاقة ملف (اسم مختصر + أيقونة النوع)
+      item.classList.add('is-doc');
+      const isPdf = /\.pdf$/i.test(f.name);
+      item.innerHTML = `<div class="rc-doc-thumb">${isPdf ? '📕' : '📄'}</div><div class="chat-preview-rm" onclick="removeReportFile(${i})">×</div>`;
+      item.title = f.name;
+    }
+    c.appendChild(item);
+  });
+}
 
 window.setChatReply = function(id, senderName, text) {
   chatReplyContext = { id, senderName, text };
@@ -10386,6 +11411,10 @@ window.addEventListener('popstate', () => {
     if (lightbox && lightbox.classList.contains('open')) {
       if (typeof closeLightbox === 'function') closeLightbox();
     }
+    const rcWin = document.getElementById('report-comments-window');
+    if (rcWin && rcWin.classList.contains('open')) {
+      if (typeof closeReportComments === 'function') closeReportComments();
+    }
     const chatWin = document.getElementById('alfachat-window');
     if (chatWin && chatWin.classList.contains('open')) {
       if (typeof closePostChat === 'function') closePostChat();
@@ -10457,7 +11486,7 @@ if ('serviceWorker' in navigator) {
     swHadController = true;
   });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
       .then(reg => console.log('تم تسجيل Service Worker بنجاح', reg))
       .catch(err => console.log('فشل تسجيل Service Worker', err));
 
