@@ -9,6 +9,23 @@
 <meta name="google-site-verification" content="JhgaPzeHK7LxgNwh_sOUL9eyO087c2Em0I0LD0UteKk" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0a0a1a">
+<meta name="description" content="الفاكلاس — منصة تعليمية شاملة: ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد، مع ملفك الشخصي ومنشوراتك في مكان واحد.">
+<!-- ═══ معاينة غنية عند مشاركة الرابط (Open Graph + Twitter Cards) — تليكرام/واتساب/X ═══ -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="الفاكلاس">
+<meta property="og:title" content="الفاكلاس | منصة تعليمية للملازم والملخصات">
+<meta property="og:description" content="كل ما يحتاجه الطالب في مكان واحد: ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد — منصة الفاكلاس التعليمية.">
+<meta property="og:url" content="https://broksil.github.io/AlfaClass/">
+<meta property="og:image" content="https://broksil.github.io/AlfaClass/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="شعار منصة الفاكلاس التعليمية">
+<meta property="og:locale" content="ar_AR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="الفاكلاس | منصة تعليمية للملازم والملخصات">
+<meta name="twitter:description" content="ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد — منصة الفاكلاس التعليمية.">
+<meta name="twitter:image" content="https://broksil.github.io/AlfaClass/og-image.png">
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ألفاكلاس">
@@ -540,14 +557,14 @@
   .avatar-slot {
     position: relative; width: 34px; height: 34px; flex-shrink: 0;
     border-radius: 50%; overflow: hidden;
-    border: 2px solid rgba(167,139,250,0.5);
+    border: none; /* بدون الإطار البنفسجي حول صور المنشورات/البلاغات */
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 14px; font-weight: 800; line-height: 1;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     background: linear-gradient(135deg, var(--accent), #4f46e5);
     color: #fff; vertical-align: middle;
   }
-  .avatar-slot.sm { width: 26px; height: 26px; font-size: 11.5px; border-width: 1.5px; }
+  .avatar-slot.sm { width: 26px; height: 26px; font-size: 11.5px; }
   .avatar-slot .avatar-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .report-author-name { font-size: 12.5px; font-weight: 700; color: #ffffff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .report-del {
@@ -636,7 +653,7 @@
   /* صورة الأستاذ (حساب Google) بجانب اسمه — دائرة صغيرة يمين الصف في RTL */
   .ann-teacher-avatar {
     width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
-    border: 2px solid rgba(167,139,250,0.5); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3); /* بدون الإطار البنفسجي */
     background: rgba(255,255,255,0.08);
   }
   .ann-teacher-name { line-height: 1.4; }
@@ -6481,7 +6498,10 @@ async function requestNotifPermission() {
     const permission = await Notification.requestPermission();
     if (permission === 'granted' && messaging) {
       // استبدل المفتاح أدناه بمفتاح الـ VAPID الخاص بك من منصة فايربيس
-      const token = await getToken(messaging, { vapidKey: 'YOUR_VAPID_KEY_HERE' });
+      // [دمج FCM] نربط التوكن بتسجيل sw.js الحالي بدل ترك SDK يسجّل firebase-messaging-sw.js المنافس
+      const swReg = await navigator.serviceWorker.getRegistration() ||
+        await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+      const token = await getToken(messaging, { vapidKey: 'YOUR_VAPID_KEY_HERE', serviceWorkerRegistration: swReg });
       if (token) {
         console.log('FCM Token:', token);
         // يُفضل هنا إرسال الـ token إلى قاعدة بيانات فايربيس لربطه بالمستخدم وتتمكن من مراسلته لاحقاً
@@ -7468,6 +7488,19 @@ function accSegGet(id) { const b = document.querySelector('#' + id + ' button.on
 function accSegSet(id, val) { document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.val === val)); }
 
 // ═══════════ تحميل الملف الشخصي وعرضه ═══════════
+// كاش محلي للملف الشخصي: يعرض المعلومات والصورة فوراً عند الدخول دون انتظار الشبكة،
+// ثم يُحدَّث من السيرفر في الخلفية ويُحفظ تلقائياً مع كل عرض (Stale-While-Revalidate)
+function accProfileCacheGet(uname) {
+  try {
+    const raw = localStorage.getItem('accProfileCache');
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    return (c && c.u === uname && c.p) ? c.p : null;
+  } catch (e) { return null; }
+}
+function accProfileCacheSet(uname, profile) {
+  try { localStorage.setItem('accProfileCache', JSON.stringify({ u: uname, p: profile })); } catch (e) {}
+}
 async function accLoadProfile() {
   if (!currentUser) { accProfile = null; return; }
   const key = String(currentUser.code || '').toLowerCase();
@@ -7476,17 +7509,28 @@ async function accLoadProfile() {
   if (resolved) {
     data = resolved.data;
   } else {
-    data = { username: key, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
-    resolved = { id: key, data };
+    // لا مستند أو فشلت القراءة: نكمل من الكاش المحلي حتى لا تضيع الاسم/الصورة عند ضعف الشبكة
+    const cached = accProfileCacheGet(key);
+    if (cached && (cached.fullName || cached.photoURL)) {
+      data = Object.assign({}, cached, { username: key, fullName: cached.fullName || currentUser.name });
+      resolved = { id: String(cached._id || key), data };
+    } else {
+      data = { username: key, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
+      resolved = { id: key, data };
+    }
   }
   // الترحيل إلى مسار المعرّف الرقمي (Firestore يعتمد على الأيدي لا اليوزرات)
   if (data.userId && !/^\d+$/.test(resolved.id)) {
-    const moved = await migrateUserDocToId(resolved);
-    if (moved) resolved = { id: String(data.userId), data };
+    try {
+      const moved = await migrateUserDocToId(resolved);
+      if (moved) resolved = { id: String(data.userId), data };
+    } catch (e) { /* تعذّر الترحيل مؤقتاً — نعرض ما لدينا ولا نوقف التحميل */ }
   }
   if (!data.userId) {
-    const id = await ensureUserId(key);
-    if (id) data.userId = id;
+    try {
+      const id = await ensureUserId(key);
+      if (id) data.userId = id;
+    } catch (e) { /* تعذّر توليد المعرّف الآن — لا يمنع عرض الملف */ }
   }
   accProfile = Object.assign({}, data, { _id: resolved.id }); // _id = مسار المستند (رقمي بعد الترحيل)
 }
@@ -7511,6 +7555,7 @@ function accRender() {
   accEl('acc-guest').style.display = guest ? 'block' : 'none';
   accEl('acc-main').style.display  = guest ? 'none'  : 'block';
   if (guest || !accProfile) return;
+  accProfileCacheSet(String(currentUser.code || '').toLowerCase(), accProfile); // حفظ فوري: ظهور سريع في المرة القادمة
   const p = accProfile;
   const name = p.fullName || currentUser.name || '—';
   accEl('acc-name').textContent = name;
@@ -7702,9 +7747,15 @@ async function accOpen(autoLogin = false) {
     return;
   }
   const currentUname = String(currentUser.code || '').toLowerCase();
-  if (!accProfile || String(accProfile.username || accProfile._id).toLowerCase() !== currentUname) await accLoadProfile();
-  accFillForm();
-  accRender();
+  if (!accProfile || String(accProfile.username || accProfile._id).toLowerCase() !== currentUname) {
+    // ظهور فوري من الكاش المحلي (معلومات + صورة) دون انتظار الشبكة…
+    const cached = accProfileCacheGet(currentUname);
+    if (cached) { accProfile = cached; accFillForm(); accRender(); }
+    // …ثم جلب أي تحديث من السيرفر في الخلفية وإعادة العرض به
+    await accLoadProfile();
+    accFillForm();
+    accRender();
+  }
 }
 // تُستدعى من updateHeaderUI عند أي تغيير في حالة الدخول
 window.__accOnAuth = function () {
@@ -8055,7 +8106,7 @@ async function accResolvePendingDelete(username, pendingAt) {
 async function accFinalizeDelete(username) {
   try { await deleteDoc(doc(db, 'users', username)); } catch (e) {}
   try { const u = fireAuth.currentUser; if (u) await deleteUser(u); } catch (e) {}
-  ['accAvatar', 'username', 'shift', 'section', 'firebaseUid', 'deletePendingAt'].forEach(k => localStorage.removeItem(k));
+  ['accAvatar', 'username', 'shift', 'section', 'firebaseUid', 'deletePendingAt', 'accProfileCache'].forEach(k => localStorage.removeItem(k));
   clearSession(); accProfile = null;
   try { await firebaseSignOut(fireAuth); } catch (e) {}
   updateHeaderUI();

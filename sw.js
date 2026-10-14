@@ -105,3 +105,57 @@ self.addEventListener('fetch', event => {
   // كل الطلبات الأخرى → Stale-While-Revalidate
   event.respondWith(staleWhileRevalidate(event));
 });
+
+// ═══════════════ دمج إشعارات Firebase (FCM) ═══════════════
+// هذا الملف هو الـ Service Worker الوحيد الآن: كاش + إشعارات معاً
+// (دُمج فيه ملف firebase-messaging-sw.js القديم — لا تسجيل ثانٍ ولا تعارض)
+try {
+  importScripts(
+    'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js'
+  );
+  firebase.initializeApp({
+    apiKey: 'AIzaSyDrT10AouY-MAtS4Brt-1fPpPt4YoT8spc',
+    authDomain: 'alfaclass-120e3.firebaseapp.com',
+    projectId: 'alfaclass-120e3',
+    messagingSenderId: '548886375389',
+    appId: '1:548886375389:web:a49c2a446981cd2836e434'
+  });
+
+  // استقبال الإشعارات عندما يكون التطبيق في الخلفية
+  firebase.messaging().onBackgroundMessage(function (payload) {
+    const n = (payload && payload.notification) || {};
+    self.registration.showNotification(n.title || 'ألفاكلاس', {
+      body: n.body || '',
+      icon: 'صور/ألفاكلاس.png',
+      data: payload && payload.data // يحمل البيانات الإضافية مثل dayId للتوجه المباشر
+    });
+  });
+} catch (e) {
+  // تعذّر تحميل مكتبات فايربيس (إنترنت ضعيف/محجوب): الكاش والاستراتيجية تبقى تعمل
+  console.warn('FCM غير جاهز داخل Service Worker:', e && e.message);
+}
+
+// النقر على الإشعار → تركيز التطبيق المفتوح أو فتحه على اليوم المطلوب
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  const dayId = event.notification.data && event.notification.data.dayId;
+  if (!dayId) return;
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then(windowClients => {
+      // إذا كان التطبيق مفتوحاً في تبويبة أخرى: ركّزه وأرسل يوم النقر إليه
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          client.postMessage({ type: 'NOTIFICATION_CLICK', dayId: dayId });
+          return client.focus();
+        }
+      }
+      // إذا كان التطبيق مغلقاً تماماً: افتحه على نطاق الموقع كاملاً مع اليوم
+      // (تصحيح عن الملف القديم '/#day-' الذي كان يفتح جذر النطاق بدل /AlfaClass/)
+      if (clients.openWindow) {
+        return clients.openWindow(self.registration.scope + '#day-' + dayId);
+      }
+    })
+  );
+});
