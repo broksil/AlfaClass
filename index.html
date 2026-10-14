@@ -629,11 +629,10 @@
     background: rgba(255,255,255,0.08);
   }
   .ann-teacher-name { line-height: 1.4; }
-  /* نص الرسالة: رمادي فاتح مريح + قص بعد 4 أسطر مع (...) في النهاية */
+  /* نص الرسالة: يظهر كامل دون قصّ مهما طال — مع إظهار أسطر النص الأصلية (pre-wrap) */
   .ann-message {
     font-size: 13px; color: rgba(226,226,240,0.75); line-height: 1.75; overflow-wrap: anywhere;
-    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4;
-    overflow: hidden; max-height: calc(1.75em * 4);
+    white-space: pre-wrap;
   }
   html[data-theme="light"] .ann-message { color: var(--text-secondary); }
   /* الجزء السفلي: flex — التاريخ يميناً (باهت وصغير) والزر يساراً في RTL */
@@ -1041,16 +1040,7 @@
   .fab-add-material.show { display: flex; }
   .fab-add-material:active { transform: scale(0.94); }
 
-  /* تفاصيل الملزمة */
-  .material-detail-cover {
-    width: 100%; max-height: 260px;
-    border-radius: 16px; overflow: hidden;
-    background: rgba(255,255,255,0.05);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 46px;
-    margin-bottom: 16px;
-  }
-  .material-detail-cover img { width: 100%; height: 100%; object-fit: contain; }
+  /* تفاصيل الملزمة (تم حذف الغلاف من هذه الواجهة — صور الملزمة تُفتح من المعرض داخلها) */
   .material-detail-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .material-detail-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
   /* ── صف معلومات الناشر + تاريخ النشر + زر القلوب في تفاصيل الملزمة ── */
@@ -1663,29 +1653,71 @@
   #lightbox {
     /* 990: فوق المودالات (.modal-overlay = 950) لتظهر الصورة بالأمام عند الضغط داخل تفاصيل المنشور، وتحت التنبيهات (1001) ونافذة التأكيد (1100) */
     position: fixed; inset: 0; z-index: 990;
-    background: rgba(0,0,0,0.95);
+    /* خلفية متدرّجة داكنة (الوسط أفتح قليلاً) بدل الأسود الصافٍ — تُبرز الصورة وتخفّف الوهج */
+    background: radial-gradient(ellipse at center, #23232e 0%, #0c0c11 78%);
     display: none; align-items: center; justify-content: center;
   }
   #lightbox.open { display: flex; }
   .lightbox-header {
     position: absolute; top: 0; left: 0; right: 0;
-    padding: 16px; display: flex; justify-content: space-between; align-items: center;
-    z-index: 901; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    padding: 14px 14px 24px; display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; z-index: 901; background: linear-gradient(to bottom, rgba(0,0,0,0.72), transparent);
   }
-  .lightbox-counter { color: #fff; font-size: 15px; font-weight: 700; direction: ltr; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  .lightbox-counter { color: #fff; font-size: 13px; font-weight: 700; direction: ltr; text-shadow: 0 2px 6px rgba(0,0,0,0.6); background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.16); padding: 5px 10px; border-radius: 999px; backdrop-filter: blur(6px); white-space: nowrap; flex-shrink: 0; }
   /* عنوان اسم الملزمة داخل العارض — يُميّز المنشور عند كثرة الملازم (يختفي إن لم يُمرَّر) */
-  .lightbox-title { flex: 1; min-width: 0; margin: 0 10px; color: #fff; font-size: 14px; font-weight: 800; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  .lightbox-title { flex: 1; min-width: 0; margin: 0 8px; color: #fff; font-size: 14px; font-weight: 800; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
   .lightbox-title:empty { display: none; }
-  .lightbox-actions { display: flex; gap: 12px; }
+  .lightbox-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
   .lightbox-btn {
-    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: #fff;
-    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+    min-width: 40px; height: 40px; padding: 0; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; cursor: pointer; text-decoration: none;
-    backdrop-filter: blur(5px); transition: all 0.2s;
+    font-size: 17px; cursor: pointer; text-decoration: none;
+    backdrop-filter: blur(6px); transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
   }
-  .lightbox-btn:active { transform: scale(0.9); }
-  #lightbox img { max-width: 100vw; max-height: 100dvh; object-fit: contain; transform-origin: center; touch-action: none; }
+  .lightbox-btn:active { transform: scale(0.88); }
+  .lightbox-btn.busy { opacity: 0.6; pointer-events: none; }
+  /* مساحة عرض الصورة: هوامش كافية حتى لا تلامس الشريط العلوي/السفلي */
+  #lightbox img {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 150px);
+    max-height: calc(100dvh - 150px);
+    object-fit: contain; transform-origin: center; touch-action: none;
+    border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+    user-select: none; -webkit-user-drag: none; will-change: transform;
+  }
+  /* قائمة خيارات التحميل: تنبث تحت زر ⬇️ في الترويسة */
+  .lightbox-dl-menu {
+    position: absolute; top: 64px; left: 14px; z-index: 905;
+    display: flex; flex-direction: column; gap: 8px; min-width: 215px;
+    background: rgba(18,18,26,0.94); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 14px; padding: 10px; backdrop-filter: blur(10px);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.5);
+  }
+  .lightbox-dl-menu[hidden] { display: none; }
+  .lightbox-dl-menu button {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.16);
+    color: #fff; border-radius: 10px; padding: 10px 12px;
+    font-size: 13.5px; font-weight: 700; white-space: nowrap; cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+  }
+  .lightbox-dl-menu button:hover { background: rgba(255,255,255,0.18); }
+  .lightbox-dl-menu button:active { transform: scale(0.96); }
+  .lightbox-dl-menu button.busy { opacity: 0.6; pointer-events: none; }
+  /* الشريط السفلي: نقاط الترقيم + حالة التحميل */
+  .lightbox-footer {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 901;
+    padding: 20px 14px 14px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.72), transparent);
+  }
+  .lb-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 92%; max-height: 44px; overflow-y: auto; scrollbar-width: none; }
+  .lb-dots::-webkit-scrollbar { display: none; }
+  .lb-dots:empty { display: none; }
+  .lb-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.32); transition: all 0.25s; flex: 0 0 auto; }
+  .lb-dot.on { background: #fff; transform: scale(1.4); box-shadow: 0 0 8px rgba(255,255,255,0.7); }
+  .lb-status { color: #fff; font-size: 12.5px; font-weight: 700; text-align: center; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+  .lb-status:empty { display: none; }
 
   .lb-anim { animation: lbFadeIn 0.25s ease-out; }
   @keyframes lbFadeIn {
@@ -2078,6 +2110,101 @@
     border: 1px solid rgba(245,192,74,0.35);
     border-radius: 99px; padding: 3px 12px; font-size: 12px; font-weight: 700;
   }
+  /* ═══════════ ترويسة البروفايل بنمط إنستغرام ═══════════ */
+  .ig-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 4px 2px 14px;
+  }
+  .ig-icon-btn {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    border: 1px solid var(--a-line); background: var(--a-surface);
+    color: var(--a-text); font-size: 20px; font-weight: 700; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: transform .15s, background .2s;
+  }
+  .ig-icon-btn:active { transform: scale(0.92); }
+  .ig-brand {
+    font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
+    color: var(--a-gold); text-shadow: 0 0 18px rgba(245,192,74,0.35);
+  }
+  .ig-profile { display: flex; align-items: center; gap: 22px; padding: 4px 2px 16px; }
+  .ig-avatar-wrap { flex-shrink: 0; }
+  .ig-profile .acc-avatar { width: 92px; height: 92px; font-size: 38px; }
+  .ig-stats { flex: 1; display: flex; justify-content: space-around; gap: 8px; }
+  .ig-stat { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .ig-stat b { font-size: 18px; font-weight: 900; color: var(--a-text); }
+  .ig-stat span { font-size: 12px; color: var(--a-muted); font-weight: 600; }
+  .ig-identity { padding: 0 2px 14px; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .ig-name { font-size: 15px; font-weight: 800; color: var(--a-text); line-height: 1.4; }
+  .ig-username { font-size: 13px; color: var(--a-gold); font-weight: 700; direction: ltr; }
+  html[dir="rtl"] .ig-username, .acc[dir="rtl"] .ig-username { text-align: right; }
+  .ig-bio { font-size: 13px; color: var(--a-text); line-height: 1.6; margin: 2px 0 6px; white-space: pre-wrap; }
+  .ig-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+  .ig-btn {
+    flex: 1; padding: 10px 12px; border-radius: 12px; border: none; cursor: pointer;
+    background: var(--a-gold); color: var(--a-gold-ink);
+    font-family: var(--font); font-size: 13.5px; font-weight: 800;
+    transition: transform .15s, opacity .2s;
+  }
+  .ig-btn:active { transform: scale(0.97); }
+  .ig-btn.ghost { background: rgba(255,255,255,0.07); color: var(--a-text); }
+  .ig-highlight {
+    width: 100%; padding: 9px; border-radius: 12px; cursor: pointer;
+    border: 1.5px dashed var(--a-line); background: transparent;
+    color: var(--a-muted); font-family: var(--font); font-size: 13px; font-weight: 700;
+    transition: border-color .2s, color .2s;
+  }
+  .ig-highlight:hover { border-color: var(--a-gold); color: var(--a-gold); }
+  .ig-settings { margin-top: 8px; }
+  .ig-settings[hidden] { display: none; }
+  /* عند الفتح بزر ☰: لوحة إعدادات تغطّي كامل الشاشة */
+  .ig-settings:not([hidden]) {
+    position: fixed; inset: 0; z-index: 940;
+    background: var(--a-bg);
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding: 0 16px calc(28px + var(--safe-bottom));
+    animation: igSettingsIn .26s ease both;
+  }
+  .ig-settings-head {
+    position: sticky; top: 0; z-index: 3;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: calc(12px + var(--safe-top)) 4px 12px;
+    margin: 0 -16px; padding-inline: 16px;
+    background: var(--a-bg);
+    border-bottom: 1px solid var(--a-line);
+  }
+  .ig-settings-head h3 { margin: 0; font-size: 17px; font-weight: 900; color: var(--a-text); }
+  @keyframes igSettingsIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+  /* ══════════ تعديل الملف الشخصي على كامل الشاشة ══════════ */
+  #acc-manage-modal { padding: 0; align-items: stretch; background: var(--a-bg); }
+  #acc-manage-modal .modal-box {
+    position: relative; width: 100%; max-width: 100%;
+    min-height: 100dvh; height: auto; max-height: none;
+    border: none; border-radius: 0;
+    padding: calc(60px + var(--safe-top)) 20px calc(28px + var(--safe-bottom));
+    display: flex; flex-direction: column;
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    background: var(--a-bg);
+  }
+  #acc-manage-modal .modal-handle { display: none; }
+  #acc-manage-modal .modal-title {
+    position: sticky; top: calc(var(--safe-top)); z-index: 2;
+    background: var(--a-bg); padding: 8px 0 12px; margin: 0;
+    font-size: 19px; font-weight: 900;
+  }
+  #acc-manage-modal .acc-grid { flex: 1; }
+  #acc-manage-modal .acc-actions { position: sticky; bottom: 0; background: var(--a-bg); padding: 12px 0; margin-top: 8px; }
+  .acc-full-close {
+    position: absolute; top: calc(12px + var(--safe-top)); inset-inline-end: 16px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.07); border: 1px solid var(--a-line);
+    color: var(--a-text); font-size: 15px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font); transition: background .2s, transform .15s;
+  }
+  .acc-full-close:hover { background: rgba(255,255,255,0.12); }
+  .acc-full-close:active { transform: scale(0.90); }
+  #acc-manage-modal .modal-box.closing { animation: modalOut 0.25s ease forwards; }
   /* ── العناوين والبطاقات ── */
   .acc-section-title { font-size: 13px; font-weight: 700; color: var(--a-muted); margin: 22px 6px 10px; letter-spacing: .2px; }
   .acc-card {
@@ -2480,32 +2607,48 @@
       <div id="acc-main" style="display:none">
 
         <!-- الهيدر: بطاقة البروفايل -->
-        <div class="acc-banner">
-          <button class="acc-avatar" id="acc-avatar" data-act="pick-avatar" aria-label="تغيير الصورة الشخصية">
-            <span id="acc-avatar-letter">؟</span>
-            <span class="acc-avatar-edit">📷</span>
-          </button>
-          <input type="file" id="acc-avatar-file" accept="image/*" hidden>
-          <div class="acc-banner-info">
-            <div class="acc-banner-name" id="acc-name">—</div>
-            <div class="acc-banner-user" id="acc-username">@—</div>
-            <span class="acc-badge" id="acc-badge">🎓 طالب</span>
+        <!-- شريط أعلى البروفايل: همبرغر (يسار) + علامة + إضافة (يمين) -->
+        <div class="ig-topbar">
+          <button class="ig-icon-btn" type="button" data-act="toggle-settings" aria-label="الإعدادات">☰</button>
+          <div class="ig-brand">أ</div>
+          <button class="ig-icon-btn" type="button" data-act="ig-add" aria-label="إضافة">+</button>
+        </div>
+
+        <!-- ترويسة البروفايل (نمط إنستغرام) -->
+        <div class="ig-profile">
+          <div class="ig-avatar-wrap">
+            <button class="acc-avatar" id="acc-avatar" data-act="pick-avatar" aria-label="تغيير الصورة الشخصية">
+              <span id="acc-avatar-letter">؟</span>
+              <span class="acc-avatar-edit">📷</span>
+            </button>
+            <input type="file" id="acc-avatar-file" accept="image/*" hidden>
+          </div>
+          <div class="ig-stats">
+            <div class="ig-stat"><b>0</b><span>منشورات</span></div>
+            <div class="ig-stat"><b>0</b><span>متابعون</span></div>
+            <div class="ig-stat"><b>0</b><span>يتابع</span></div>
           </div>
         </div>
-    <!-- عرض البيانات الشخصية داخل الملف الشخصي -->
-        <div class="acc-card">
-          <div class="acc-card-head"><span class="ico">📝</span><span data-i18n="personalData">البيانات الشخصية</span></div>
-          <div class="acc-info-list">
-            <div class="acc-info-row"><span class="k" data-i18n="governorate">المحافظة</span><span class="v" id="acc-v-governorate">—</span></div>
-            <div class="acc-info-row"><span class="k" data-i18n="university">الجامعة</span><span class="v" id="acc-v-university">—</span></div>
-            <div class="acc-info-row"><span class="k" data-i18n="college">الكلية</span><span class="v" id="acc-v-college">—</span></div>
-            <div class="acc-info-row"><span class="k" data-i18n="department">القسم</span><span class="v" id="acc-v-department">—</span></div>
-            <div class="acc-info-row"><span class="k" data-i18n="shift">نوع الدوام</span><span class="v" id="acc-v-shift">—</span></div>
-            <div class="acc-info-row"><span class="k" data-i18n="stage">المرحلة الدراسية</span><span class="v" id="acc-v-stage">—</span></div>
-            <div class="acc-info-row"><span class="k" data-i18n="section">الشعبة</span><span class="v" id="acc-v-section">—</span></div>
-            <div class="acc-info-row"><span class="k">المعرّف الثابت (ID)</span><span class="v" id="acc-v-userid">—</span></div>
-          </div>
+
+        <div class="ig-identity">
+          <div class="ig-name" id="acc-name">—</div>
+          <div class="ig-username" id="acc-username">@—</div>
+          <div class="ig-bio" id="acc-bio">لا يوجد وصف بعد.</div>
+          <span class="acc-badge" id="acc-badge">🎓 طالب</span>
         </div>
+
+        <div class="ig-actions">
+          <button class="ig-btn" type="button" data-act="open-manage">تعديل الملف الشخصي</button>
+          <button class="ig-btn ghost" type="button" data-act="share-profile">مشاركة الملف الشخصي</button>
+        </div>
+        <button class="ig-highlight" type="button" data-act="ig-add">+ إضافة بارانات</button>
+        <!-- لوحة الإعدادات (تظهر بزر الهامبرغر ☰ على كامل الشاشة) -->
+        <div id="acc-settings" class="ig-settings" hidden>
+          <div class="ig-settings-head">
+            <button class="ig-icon-btn" type="button" data-act="toggle-settings" aria-label="رجوع">✕</button>
+            <h3 data-i18n="settings">الإعدادات</h3>
+            <span style="width:40px"></span>
+          </div>
 
         <!-- إدارة الحساب -->
         <div class="acc-section-title" data-i18n="secAccount">إدارة الحساب</div>
@@ -2513,12 +2656,7 @@
         <div class="acc-card" style="padding-top:6px;padding-bottom:6px">
           <button class="acc-row" data-act="open-manage">
             <span class="ico">⚙️</span>
-            <span class="grow"><span data-i18n="manageAccount">إدارة الحساب</span><span class="sub" data-i18n="manageAccountSub" style="direction:inherit">تعديل بياناتك الشخصية والدراسية</span></span>
-            <span class="chev">›</span>
-          </button>
-          <button class="acc-row" data-act="open-username">
-            <span class="ico">@</span>
-            <span class="grow"><span data-i18n="changeUsername">تغيير اسم المستخدم</span><span class="sub" id="acc-row-username">@—</span></span>
+            <span class="grow"><span data-i18n="manageAccount">إدارة الحساب</span><span class="sub" data-i18n="manageAccountSub" style="direction:inherit">تعديل بياناتك والاسم والوصف واسم المستخدم</span></span>
             <span class="chev">›</span>
           </button>
         </div>
@@ -2570,7 +2708,7 @@
           <summary><span class="ico" style="width:36px;height:36px;border-radius:12px;background:var(--a-red-soft);color:var(--a-red);display:flex;align-items:center;justify-content:center">⚠️</span><span data-i18n="advanced">خيارات الحساب المتقدمة</span><span class="chev">▾</span></summary>
           <div class="acc-adv-body">
             <button class="acc-btn ghost" data-act="ask-logout" data-i18n="logoutAccount">تسجيل الخروج من الحساب</button>
-            <div class="acc-hint" style="margin:12px 0" data-i18n="deleteHint">يُجدوَل حذف الحساب بعد كتابة الصلاة، ويُلغى تلقائياً إذا سجّلت الدخول خلال 7 أيام.</div>
+            <div class="acc-hint" style="margin:12px 0" data-i18n="deleteHint">عند الحذف تُكتب الصلاة ثم يُحذف حسابك نهائياً وفوراً ولا يمكن التراجع.</div>
             <button class="acc-btn danger" data-act="open-delete" data-i18n="deleteAccount">حذف الحساب نهائياً</button>
           </div>
         </details>
@@ -2584,6 +2722,7 @@
           <a class="acc-row" id="acc-instagram" href="#" target="_blank" rel="noopener" style="text-decoration:none"><span class="ico">📸</span><span class="grow" data-i18n="instagram">حسابنا على إنستغرام</span><span class="chev">›</span></a>
         </div>
         <div class="acc-footer"><span data-i18n="version">الإصدار</span> <b id="acc-version">1.0.0</b></div>
+        </div><!-- /#acc-settings -->
       </div>
     </div>
   </main>
@@ -2653,6 +2792,7 @@
 <div class="modal-overlay" id="acc-manage-modal" onclick="handleModalOverlayClick(event,'acc-manage-modal')">
   <div class="modal-box acc" dir="rtl">
     <div class="modal-handle"></div>
+    <button type="button" class="acc-full-close" onclick="closeModal('acc-manage-modal')" aria-label="إغلاق">✕</button>
     <div class="modal-title" data-i18n="manageAccount">إدارة الحساب</div>
     <div class="acc-grid">
       <div class="acc-field">
@@ -2660,11 +2800,21 @@
         <input class="acc-input" id="acc-f-name" maxlength="60" autocomplete="off">
         <div class="acc-err" id="acc-e-name"></div>
       </div>
-      <div class="acc-grid two">
-        <div class="acc-field"><label data-i18n="governorate">المحافظة</label><div id="acc-sel-governorate"></div></div>
-        <div class="acc-field"><label data-i18n="university">الجامعة</label><div id="acc-sel-university"></div></div>
-        <div class="acc-field"><label data-i18n="college">الكلية</label><div id="acc-sel-college"></div></div>
-        <div class="acc-field"><label data-i18n="department">القسم</label><div id="acc-sel-department"></div></div>
+      <div class="acc-field">
+        <label for="acc-mg-user" data-i18n="changeUsername">اسم المستخدم</label>
+        <div class="acc-prefix-wrap"><span class="at">@</span><input class="acc-input" id="acc-mg-user" maxlength="30" autocapitalize="none" spellcheck="false" autocomplete="off"></div>
+        <ul class="acc-rules" id="acc-mg-user-rules">
+          <li data-r="len"><span>○</span><span data-i18n="ruleLen">من 3 إلى 30 حرفاً</span></li>
+          <li data-r="chars"><span>○</span><span data-i18n="ruleChars">حروف إنجليزية وأرقام ونقطة وشرطة سفلية (_) فقط</span></li>
+          <li data-r="letter"><span>○</span><span data-i18n="ruleLetter">حرف إنجليزي واحد على الأقل (الأرقام وحدها لا تكفي)</span></li>
+          <li data-r="dots"><span>○</span><span data-i18n="ruleDots">لا تبدأ أو تنتهِ بنقطة ولا نقطتان متتاليتان</span></li>
+        </ul>
+        <div class="acc-err" id="acc-mg-user-err"></div>
+        <div class="acc-hint">يمكنك تغيير اسم المستخدم في أي وقت — لن يتغيّر معرّفك الداخلي ولا بريد دخولك، واسمك القديم يبقى محجوزاً لك.</div>
+      </div>
+      <div class="acc-field">
+        <label for="acc-f-bio" data-i18n="bioLabel">الوصف (نبذة عنك)</label>
+        <textarea class="acc-input" id="acc-f-bio" rows="2" maxlength="150" placeholder="اكتب نبذة قصيرة تظهر في ملفك الشخصي" style="resize:vertical;font-family:inherit"></textarea>
       </div>
       <div class="acc-field">
         <label data-i18n="shift">نوع الدوام</label>
@@ -2698,30 +2848,6 @@
   </div>
 </div>
 
-<!-- تغيير اسم المستخدم -->
-<div class="modal-overlay" id="acc-username-modal" onclick="handleModalOverlayClick(event,'acc-username-modal')">
-  <div class="modal-box acc" dir="rtl">
-    <div class="modal-handle"></div>
-    <div class="modal-title" data-i18n="changeUsername">تغيير اسم المستخدم</div>
-    <div class="acc-field" style="margin-bottom:14px">
-      <label for="acc-u-input" data-i18n="newUsername">اسم المستخدم الجديد</label>
-      <div class="acc-prefix-wrap"><span class="at">@</span><input class="acc-input" id="acc-u-input" maxlength="30" autocapitalize="none" spellcheck="false" autocomplete="off"></div>
-      <ul class="acc-rules" id="acc-u-rules">
-        <li data-r="len"><span>○</span><span data-i18n="ruleLen">من 3 إلى 30 حرفاً</span></li>
-        <li data-r="chars"><span>○</span><span data-i18n="ruleChars">حروف إنجليزية وأرقام ونقطة وشرطة سفلية (_) فقط</span></li>
-        <li data-r="letter"><span>○</span><span data-i18n="ruleLetter">حرف إنجليزي واحد على الأقل (الأرقام وحدها لا تكفي)</span></li>
-        <li data-r="dots"><span>○</span><span data-i18n="ruleDots">لا تبدأ أو تنتهِ بنقطة ولا نقطتان متتاليتان</span></li>
-      </ul>
-    </div>
-    <div class="acc-warn" id="acc-u-cooldown">يمكنك تغيير اسم المستخدم في أي وقت وبدون كلمة السر — لن يتغيّر معرّفك الثابت (ID) ولا بياناتك ولا بريد دخولك الداخلي.</div>
-    <div class="acc-err" id="acc-u-err"></div>
-    <div class="acc-actions">
-      <button class="acc-btn ghost" onclick="closeModal('acc-username-modal')" data-i18n="cancel">إلغاء</button>
-      <button class="acc-btn" id="acc-u-save" data-act="save-username" data-i18n="saveShort">حفظ</button>
-    </div>
-  </div>
-</div>
-
 <!-- تغيير الفترة الدراسية -->
 <div class="modal-overlay" id="acc-period-modal" onclick="handleModalOverlayClick(event,'acc-period-modal')">
   <div class="modal-box acc" dir="rtl">
@@ -2751,16 +2877,16 @@
   <div class="modal-box acc" dir="rtl">
     <div class="modal-handle"></div>
     <div class="modal-title" style="color:var(--a-red)" data-i18n="deleteTitle">⚠️ حذف الحساب نهائياً</div>
-    <div class="acc-warn red" data-i18n="deleteWarn">لطلب الحذف اكتب الصلاة على محمد وآل محمد. لن يُحذف الحساب فوراً: يُجدوَل الحذف ويُلغى تلقائياً إذا سجّلت الدخول خلال 7 أيام، وإلا يُمسح نهائياً.</div>
+    <div class="acc-warn red" data-i18n="deleteWarn">لحذف الحساب نهائياً اكتب الصلاة على محمد وآل محمد. سيُحذف حسابك فوراً ولا يمكن التراجع.</div>
     <div class="acc-field" style="margin-bottom:6px">
       <label for="acc-d-word" data-i18n="typeSalawat">اكتب: اللهم صلِّ على محمد وآل محمد</label>
       <input class="acc-input" id="acc-d-word" autocomplete="off">
-      <div class="acc-hint" data-i18n="salawatHint">اكتبها كما هي لتأكيد طلب الحذف.</div>
+      <div class="acc-hint" data-i18n="salawatHint">اكتبها كما هي لتأكيد الحذف النهائي.</div>
     </div>
     <div class="acc-err" id="acc-d-err"></div>
     <div class="acc-actions">
       <button class="acc-btn ghost" onclick="closeModal('acc-delete-modal')" data-i18n="cancel">إلغاء</button>
-      <button class="acc-btn danger" id="acc-d-confirm" data-act="confirm-delete" data-i18n="deleteConfirm">تأكيد طلب الحذف</button>
+      <button class="acc-btn danger" id="acc-d-confirm" data-act="confirm-delete" data-i18n="deleteConfirm">حذف نهائي</button>
     </div>
   </div>
 </div>
@@ -2855,7 +2981,7 @@
       <label class="form-label">إرفاق (اختياري)</label>
       <div class="att-chips">
         <button type="button" class="att-chip" id="chip-mat-images" onclick="toggleMatAttPanel('images')">📷 صور</button>
-        <button type="button" class="att-chip" id="chip-mat-files" onclick="toggleMatAttPanel('files')">📄 ملفات</button>
+        <button type="button" class="att-chip" id="chip-mat-files" onclick="toggleMatAttPanel('files')">📄 ملف واحد</button>
       </div>
     </div>
 
@@ -2873,8 +2999,8 @@
     <div class="form-group att-panel hidden" id="att-panel-mat-files">
       <div class="upload-zone" onclick="document.getElementById('mat-files-input').click()">
         <div class="upload-icon">📎</div>
-        <div>اضغط لاختيار ملفات (حتى 3 ملفات)</div>
-        <input type="file" id="mat-files-input" multiple hidden onchange="handleMatFiles(this)">
+        <div>اضغط لاختيار ملف واحد فقط</div>
+        <input type="file" id="mat-files-input" hidden onchange="handleMatFiles(this)">
       </div>
       <div class="rep-files-list" id="mat-files-list"></div>
     </div>
@@ -2891,7 +3017,6 @@
 <div class="modal-overlay" id="material-detail-modal" onclick="handleModalOverlayClick(event,'material-detail-modal')">
   <div class="modal-box" id="material-detail-box">
     <div class="modal-handle"></div>
-    <div class="material-detail-cover" id="material-detail-cover"></div>
     <div class="material-detail-badges" id="material-detail-badges"></div>
     <div class="material-detail-title" id="material-detail-title"></div>
     <!-- ── معلومات الناشر + تاريخ النشر + زر الإعجاب ── -->
@@ -2919,7 +3044,7 @@
         <span class="icon">⬇️</span><span>تحميل</span>
       </a>
       <a class="btn-mat-action" id="material-detail-view" href="#" target="_blank" rel="noopener">
-        <span class="icon">👁️</span><span>مشاهدة</span>
+        <span class="icon">👁️</span><span>فتح</span>
       </a>
       <button class="btn-mat-action" id="material-detail-share">
         <span class="icon">📤</span><span>مشاركة</span>
@@ -3041,11 +3166,19 @@
     <span class="lightbox-counter" id="lightbox-counter"></span>
     <span class="lightbox-title" id="lightbox-title"></span>
     <div class="lightbox-actions">
-      <a id="lightbox-download" href="#" download="صورة" class="lightbox-btn" title="تحميل">⬇️</a>
+      <a id="lightbox-download" href="#" download="صورة" class="lightbox-btn" title="خيارات التحميل" onclick="toggleDownloadMenu(event)">⬇️</a>
       <button onclick="closeLightbox()" class="lightbox-btn" title="إغلاق">✖</button>
     </div>
   </div>
+  <div class="lightbox-dl-menu" id="lightbox-dl-menu" hidden onclick="event.stopPropagation()">
+    <button type="button" onclick="lightboxDownloadCurrent(event)">⬇️ تحميل هذه الصورة فقط</button>
+    <button type="button" onclick="lightboxDownloadAll(event)">⬇️ تحميل كل الصور</button>
+  </div>
   <img id="lightbox-img" src="" alt="صورة مكبرة" onclick="event.stopPropagation()">
+  <div class="lightbox-footer" onclick="event.stopPropagation()">
+    <div class="lb-dots" id="lightbox-dots"></div>
+    <div class="lb-status" id="lightbox-status"></div>
+  </div>
 </div>
 
 <!-- ── LOGIN MODAL (Firebase Auth) ── -->
@@ -3488,9 +3621,14 @@ async function resolveUserDoc(key) {
 // كل مرشحات بريد الدخول بالترتيب: البريد الثابت ثم الاسم الحالي ثم كل الأسماء السابقة
 // → يتيح لصاحب الحساب تسجيل الدخول بعد تغيير يوزره حتى لو تغيّر بريده الداخلي
 async function resolveLoginCandidates(key) {
+  const k = String(key || '').trim().toLowerCase();
+  if (!k) return [];
   try {
-    const found = await resolveUserDoc(key);
-    if (!found) return [];
+    const found = await resolveUserDoc(k);
+    // إن لم يُعثر على مستند (قواعد الأمان تمنع القراءة قبل المصادقة، أو لا مستند بعد، أو مشكلة شبكة)
+    // نُبقي دائماً اسم المستخدم المكتوب كمرشّح — فالمصادقة تتم عبر Firebase Auth لا عبر Firestore،
+    // وقد ينجح الدخول حتى لو تعذّر جلب المستند مسبقاً (يُجلب بعد نجاح المصادقة).
+    if (!found) return [k];
     const d = found.data || {};
     const list = [];
     const push = v => { const s = String(v || '').trim().toLowerCase(); if (s && !list.includes(s)) list.push(s); };
@@ -3498,9 +3636,9 @@ async function resolveLoginCandidates(key) {
     push(d.username);               // الاسم الحالي
     if (Array.isArray(d.takenUsernames)) d.takenUsernames.forEach(push); // كل الأسماء السابقة
     push(d.previousUsername);       // توافق مع المستندات القديمة
-    push(key);                      // ما كتبه المستخدم
+    push(k);                        // ما كتبه المستخدم
     return list.slice(0, 6);
-  } catch (e) { console.warn('resolveLoginCandidates:', e); return []; }
+  } catch (e) { console.warn('resolveLoginCandidates:', e); return [k]; }
 }
 
 // هل الاسم محجوز من أي حساب (مستخدم حالياً أو كاسم سابق)؟
@@ -3823,7 +3961,9 @@ async function doLogin() {
   try {
     // يدعم تغيير اليوزر: جرّب البريد الداخلي الثابت ثم الاسم الحالي ثم الأسماء السابقة بالترتيب
     const candidates = await resolveLoginCandidates(username);
-    if (!candidates.length) { showAuthErr('auth-login-err', 'الحساب غير موجود — تحقق من اسم المستخدم'); return; }
+    // ضمان: لا نمنع المصادقة أبداً بسبب فشل جلب Firestore مسبقاً — اسم المستخدم المكتوب مرشّح دائماً
+    if (!candidates.includes(username)) candidates.push(username);
+    if (!candidates.length) { showAuthErr('auth-login-err', 'أدخل اسم مستخدم صحيح'); return; }
     let cred = null, lastErr = null;
     for (const prefix of candidates) {
       try {
@@ -4212,7 +4352,7 @@ function renderPostsForDay(dayId, posts) {
     const mediaHTML = buildMediaHTML(post);
     const pubExtraHTML = buildPubAttachmentsHTML(post); // مرفقات التحضير الجديدة: صوت + استفتاء
     const noteHTML = post.note ? `<div class="post-note">${formatNote(post.note)}</div>` : '';
-    const legacyIcon = post.authorIcon || (post.author === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : '');
+    const legacyIcon = post.authorPhoto || post.authorIcon || (post.author === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : '');
     const authorAvatarHTML = `<span class="avatar-slot sm" data-author-id="${sanitizeText(post.authorId || '').replace(/"/g, '&quot;')}" data-author-name="${sanitizeText(post.author || '').replace(/"/g, '&quot;')}">${sanitizeText((String(post.author || '؟').trim())[0] || '؟')}${legacyIcon ? `<img class="avatar-photo" src="${legacyIcon}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`;
     
     let actionsHtml = '';
@@ -4900,7 +5040,7 @@ window.deleteOfflinePostHandler = async function(id) {
 };
 
 async function processPublish(data, isBackgroundSync = false, onProgress = null) {
-  const { type, subject, note, dayId, editId, author, authorColor, authorIcon, authorId, createdAt } = data;
+  const { type, subject, note, dayId, editId, author, authorColor, authorIcon, authorId, authorPhoto, createdAt } = data;
 
   // نظام المرفقات الجديد (بنفس نمط البلاغ): صور + ملفات + صوت + استفتاء
   const pubImages = Array.isArray(data.pubImages) ? data.pubImages : [];
@@ -4964,6 +5104,7 @@ async function processPublish(data, isBackgroundSync = false, onProgress = null)
     voiceUrl, voiceDuration,
     author, authorColor, authorIcon,
     ...(authorId ? { authorId } : {}),
+    ...(authorPhoto ? { authorPhoto } : {}),   // صورة الملف الشخصي المحفوظة عند النشر (تظهر فوراً حتى لو مُنع جلب users)
     createdAt: new Date(createdAt),
     ...(data.clientSig ? { clientSig: data.clientSig } : {}),
     ...(poll ? { poll } : {})
@@ -5043,6 +5184,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     authorColor: currentUser.color,
     authorIcon: currentUser.icon || '',
     authorId: currentUser.userId || currentUser.code || '',
+    authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
     createdAt: Date.now(),
     clientSig: editId ? '' : `sig-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   };
@@ -6143,10 +6285,10 @@ window.handleMatFiles = function(input) {
   const files = Array.from(input.files || []);
   input.value = '';
   if (!files.length) return;
-  const room = PUB_MAX_FILES - pendingMatFiles.length;
-  if (room <= 0) { showToast('⚠️', 'تنبيه', `الحد الأقصى ${PUB_MAX_FILES} ملفات لكل ملزمة`); return; }
+  const room = 1 - pendingMatFiles.length; // ملف واحد فقط لكل ملزمة
+  if (room <= 0) { showToast('⚠️', 'تنبيه', 'يُرفق ملف واحد فقط لكل ملزمة'); return; }
   pendingMatFiles = pendingMatFiles.concat(files.slice(0, room));
-  if (files.length > room) showToast('⚠️', 'تنبيه', `تم الإبقاء على أولى الملفات فقط (الحد ${PUB_MAX_FILES})`);
+  if (files.length > room) showToast('⚠️', 'تنبيه', 'يُرفق ملف واحد فقط لكل ملزمة — تم الإبقاء على الأول');
   renderMatFilesList();
 };
 
@@ -6607,7 +6749,6 @@ function buildMaterialAttachmentsHTML(mat) {
 
 // ── تفاصيل الملزمة ──
 window.openMaterialDetail = function(mat) {
-  const coverEl  = document.getElementById('material-detail-cover');
   const attEl    = document.getElementById('material-detail-attachments');
   const badgesEl = document.getElementById('material-detail-badges');
   const titleEl  = document.getElementById('material-detail-title');
@@ -6619,19 +6760,8 @@ window.openMaterialDetail = function(mat) {
   const viewBtn  = document.getElementById('material-detail-view');
   const shareBtn = document.getElementById('material-detail-share');
 
-  // الغلاف: يفضّل أول صورة من المرفقات الجديدة، ثم يقع إلى الحقل القديم fileUrl
+  // (تم حذف الغلاف من واجهة التفاصيل — صور الملزمة تُفتح من المعرض أدناه داخل الموقع)
   const _imgs = matImageList(mat);
-  const coverSrc = (_imgs.length ? _imgs[0].url : null) || mat.fileUrl || null;
-  const isImg = coverSrc && coverSrc.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-  const isPdf = coverSrc && coverSrc.toLowerCase().endsWith('.pdf');
-  const thumbUrl = isPdf ? _getThumbnailUrl(coverSrc) : (isImg ? coverSrc : null);
-
-  coverEl.innerHTML = thumbUrl
-    ? `<img src="${thumbUrl}" alt="${sanitizeText(mat.name)}" onerror="this.parentElement.innerHTML='📄'">`
-    : (isImg ? `<img src="${coverSrc}" alt="${sanitizeText(mat.name)}">` : '📄');
-  // غلاف مؤجل إن لم يوجد رابط غلاف فوري (R2/فيديو/غيره)
-  if (coverSrc && !thumbUrl) { coverEl.setAttribute('data-cover-url', coverSrc); applyLazyCovers(coverEl); }
-  else { coverEl.removeAttribute('data-cover-url'); delete coverEl.dataset.coverFor; } // ألغِ انتظار أي غلاف سابق
 
   const matTypes = (Array.isArray(mat.types) && mat.types.length) ? mat.types : (mat.type ? [mat.type] : []);
   badgesEl.innerHTML = matTypes.map(t => {
@@ -6678,13 +6808,18 @@ window.openMaterialDetail = function(mat) {
     dlBtn.href = '#';
   }
 
-  // زر «مشاهدة»: يعرض صور الملزمة داخل المنشور (اللايت-بوكس) باسم الملزمة فوقها — لتمييزها عند كثرة الملازم المنشورة
-  if (_imgs.length) {
+  // زر «فتح»: الملف أولاً يفتح وحده (بلا الصور) — وإن لم يوجد ملف تُفتح الصور داخل الموقع بالعارض باسم الملزمة
+  const _fls = matFileList(mat);
+  if (_fls.length) {
+    const f0 = _fls[0];
+    viewBtn.href = '#';
+    viewBtn.onclick = (e) => { e.preventDefault(); openReportFile(f0.url, f0.name || mat.name || 'ملف'); };
+  } else if (_imgs.length) {
     viewBtn.href = '#';
     viewBtn.onclick = (e) => { e.preventDefault(); openLightbox(_imgs.map(im => im.url), 0, mat.name || 'ملزمة'); };
   } else if (dlSrc) {
     viewBtn.href = dlSrc;
-    viewBtn.onclick = null; // بلا صور → فتح الملف في تبويب جديد (target=_blank)
+    viewBtn.onclick = null; // لا ملف ولا صور مرفقة → فتح الرابط القديم في تبويب جديد
   } else {
     viewBtn.href = '#';
     viewBtn.onclick = (e) => e.preventDefault();
@@ -6830,9 +6965,10 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
       uploadedImages.push({ url, name: f.name, publicId: extractPublicId(url), size: f.size });
       done++;
     }
-    // رفع الملفات الجديدة
-    const uploadedFiles = keepFiles.slice();
-    for (const f of newFiles) {
+    // رفع الملف — ملف واحد فقط لكل ملزمة (الملف الجديد يحلّ محل الملفات المحفوظة عند التعديل)
+    const finalFiles = newFiles.length ? newFiles.slice(0, 1) : keepFiles.slice(0, 1);
+    const uploadedFiles = [];
+    for (const f of finalFiles) {
       const url = await uploadToCloudinary(f, (pct) => {
         if (totalCount) pubProgressReal(Math.round(((done + pct / 100) / totalCount) * 100));
       });
@@ -6912,12 +7048,8 @@ const ACC_CONFIG = {
   SUPPORT_COLLECTION: 'support_messages'         // مجموعة Firestore لرسائل الدعم الفني
 };
 
-const ACC_LISTS = {
-  governorate: ['بغداد','نينوى','البصرة','الأنبار','أربيل','السليمانية','دهوك','كركوك','ديالى','صلاح الدين','بابل','كربلاء','النجف','واسط','ذي قار','ميسان','المثنى','القادسية'],
-  university: ['جامعة بغداد','الجامعة المستنصرية','جامعة النهرين','الجامعة التكنولوجية','جامعة الموصل','جامعة البصرة','جامعة الكوفة','جامعة كربلاء','جامعة بابل','جامعة القادسية','جامعة ذي قار','جامعة ديالى','جامعة تكريت','جامعة الأنبار','جامعة واسط','جامعة ميسان','جامعة المثنى','جامعة كركوك','الجامعة التقنية الوسطى','الجامعة التقنية الجنوبية','الجامعة التقنية الشمالية','جامعة الفرات الأوسط التقنية'],
-  college: ['الكلية التقنية الإدارية','كلية الإدارة والاقتصاد','كلية العلوم','كلية الهندسة','كلية الآداب','كلية القانون','كلية التربية','كلية علوم الحاسوب','كلية الطب','كلية التمريض','كلية الصيدلة','كلية طب الأسنان'],
-  department: ['تقنيات المحاسبة','المحاسبة','العلوم المالية والمصرفية','إدارة الأعمال','الاقتصاد','تقنيات إدارة العمليات','تقنيات التسويق','تقنيات الحاسوب','القانون']
-};
+// الحقول الأكاديمية (المحافظة/الجامعة/الكلية/القسم) أُزيلت من نموذج التعديل — الكائن فارغ حالياً
+const ACC_LISTS = {};
 const ACC_STAGES  = ['المرحلة الأولى','المرحلة الثانية','المرحلة الثالثة','المرحلة الرابعة'];
 const ACC_COURSES = ['الكورس الأول','الكورس الثاني'];
 const ACC_EMOJIS  = ['👍','❤️','😂','😮','😢','🔥','👏','🎉','😍','🙏','💯','✅','😎','🤩','😅','🤝','💪','⭐','🥰','😭','👌','🤔','😡','💔'];
@@ -6933,7 +7065,7 @@ const ACC_EN = {
   secSecurity:'Security', changePassword:'Change password', changePasswordSub:'Set a new password for your account', newPassword:'New password', confirmPassword:'Confirm new password', rulePassLen:'At least 8 characters', rulePassMatch:'Passwords match', advanced:'Advanced account options', deleteHint:'Deletion is scheduled after typing the prayer, and is cancelled automatically if you sign in within 7 days.', deleteAccount:'Delete account permanently',
   deleteTitle:'⚠️ Delete account permanently', deleteWarn:'To request deletion, type the prayer upon Muhammad and his family. The account is not deleted immediately: deletion is scheduled and cancelled automatically if you sign in within 7 days, otherwise it is permanently removed.',
   typeSalawat:'Type: اللهم صلِّ على محمد وآل محمد', salawatHint:'Type it exactly to confirm the deletion request.', deleteConfirm:'Confirm deletion request',
-  secSupport:'Support & info', contact:'Contact us', contactHint:'Write your problem or suggestion and it will reach the support team.', privacy:'Privacy policy', terms:'Terms & conditions', instagram:'Our Instagram', version:'Version', logout:'Sign out', logoutAccount:'Sign out of account', logoutConfirmTitle:'Sign out', logoutConfirmMsg:'Do you want to sign out of your account?', logoutYes:'Yes, sign out'
+  secSupport:'Support & info', contact:'Contact us', contactHint:'Write your problem or suggestion and it will reach the support team.', privacy:'Privacy policy', terms:'Terms & conditions', instagram:'Our Instagram', version:'Version', logout:'Sign out', logoutAccount:'Sign out of account', logoutConfirmTitle:'Sign out', logoutConfirmMsg:'Do you want to sign out of your account?', logoutYes:'Yes, sign out', settings:'Settings', bio:'Bio', bioLabel:'Bio (about you)', bioPlaceholder:'Write a short bio that appears on your profile'
 };
 const ACC_EN_MAP = {
   'المرحلة الأولى':'First stage','المرحلة الثانية':'Second stage','المرحلة الثالثة':'Third stage','المرحلة الرابعة':'Fourth stage',
@@ -7065,10 +7197,13 @@ async function accLoadProfile() {
 function accFillForm() {
   const p = accProfile || {};
   accEl('acc-f-name').value = p.fullName || '';
+  const bio = accEl('acc-f-bio'); if (bio) bio.value = p.bio || '';
   Object.keys(ACC_LISTS).forEach(k => accSelects[k] && accSelects[k].set(p[k] || ''));
   accSegSet('acc-seg-shift', p.shift || '');
   accSegSet('acc-seg-section', p.section || '');
   accEl('acc-f-stage').value = p.stage || '';
+  const mgUser = accEl('acc-mg-user');
+  if (mgUser) { mgUser.value = p.username || p._id || ''; accSetErr('acc-mg-user-err', ''); accUpdateRules(); }
 }
 function accRoleBadge(p) {
   if (p.role === 'owner') return '👑 ' + (accLang === 'en' ? 'Site owner' : 'مالك الموقع');
@@ -7083,9 +7218,11 @@ function accRender() {
   const p = accProfile;
   const name = p.fullName || currentUser.name || '—';
   accEl('acc-name').textContent = name;
-  accEl('acc-username').textContent = '@' + (p.username || p._id) + (p.userId ? '  ·  ID ' + p.userId : '');
-  accEl('acc-row-username').textContent = '@' + (p.username || p._id);
+  accEl('acc-username').textContent = '@' + (p.username || p._id); // بلا الآيدي — يبقى في فايربيس فقط
+  const rowU = accEl('acc-row-username'); if (rowU) rowU.textContent = '@' + (p.username || p._id);
   accEl('acc-badge').textContent = accRoleBadge(p);
+  const bioEl = accEl('acc-bio');
+  if (bioEl) bioEl.textContent = (p.bio && String(p.bio).trim()) ? p.bio : 'لا يوجد وصف بعد.';
   const av = accEl('acc-avatar'), photo = p.photoURL || localStorage.getItem('accAvatar') || '';
   av.style.backgroundImage = photo ? 'url("' + photo.replace(/"/g, '%22') + '")' : '';
   accEl('acc-avatar-letter').style.display = photo ? 'none' : '';
@@ -7097,19 +7234,8 @@ function accRender() {
   accEl('acc-instagram').href = ACC_CONFIG.INSTAGRAM_URL;
   accFillInfo();
 }
-// تعبئة بيانات الملف الشخصي للعرض (قراءة فقط)
-function accFillInfo() {
-  const p = accProfile || {};
-  const set = (id, val) => { const el = accEl(id); if (el) el.textContent = val || '—'; };
-  set('acc-v-governorate', accT(p.governorate || ''));
-  set('acc-v-university',  accT(p.university  || ''));
-  set('acc-v-college',     accT(p.college     || ''));
-  set('acc-v-department',  accT(p.department  || ''));
-  set('acc-v-shift',       p.shift   || '');
-  set('acc-v-stage',       accT(p.stage || ''));
-  set('acc-v-section',     p.section || '');
-  set('acc-v-userid',      p.userId ? '#' + p.userId : ''); // معرّف ثابت لا يتغيّر
-}
+// تعبئة بيانات الملف الشخصي للعرض (قراءة فقط) — عناصر العرض أُزيلت، نُبقيها آمنة
+function accFillInfo() { /* البيانات الشخصية لم تعد معروضة في الملف الشخصي */ }
 // فتح نافذة «إدارة الحساب» لتعديل البيانات
 function accOpenManage() {
   accFillForm();
@@ -7139,6 +7265,30 @@ window.__accOnAuth = function () {
   else if (accProfile && String(accProfile.username || accProfile._id).toLowerCase() !== u) accProfile = null;
   if (accVisible()) accOpen();
 };
+// ═══════════ إعدادات البروفايل (نمط إنستغرام) ═══════════
+// إظهار/إخفاء لوحة الإعدادات بزر الهامبرغر ☰
+function accToggleSettings() {
+  const box = accEl('acc-settings');
+  if (!box) return;
+  box.hidden = !box.hidden;
+}
+// مشاركة الملف الشخصي (نسخ رابط أو استخدام واجهة المشاركة إن توفّرت)
+function accShareProfile() {
+  const p = accProfile || {};
+  const name = p.fullName || currentUser?.name || '';
+  const user = p.username || p._id || '';
+  const text = `ملف ${name} (@${user}) على ألفاكلاس`;
+  const url = window.location.href.split('#')[0];
+  try {
+    if (navigator.share) { navigator.share({ title: 'ألفاكلاس', text, url }).catch(() => {}); return; }
+    if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => showToast('📋', 'تم النسخ', 'تم نسخ رابط ملفك الشخصي')); return; }
+  } catch (e) {}
+  showToast('ℹ️', 'مشاركة', text);
+}
+// زر «إضافة بارانات» — واجهة شكلية (لا يوجد نظام قصص بعد)
+function accAddHighlight() {
+  showToast('✨', 'البارانات', 'هذه الميزة قادمة قريباً');
+}
 // ═══════════ حفظ البيانات الشخصية ═══════════
 function accProfileData() { const d = Object.assign({}, accProfile); delete d._id; return d; }
 function accApplyToSession() {
@@ -7156,6 +7306,7 @@ function accApplyToSession() {
 async function accSaveProfile() {
   if (!accProfile) return;
   ['name', 'shift', 'stage', 'section'].forEach(k => accSetErr('acc-e-' + k, ''));
+  accSetErr('acc-mg-user-err', '');
   const name = accEl('acc-f-name').value.trim().replace(/\s+/g, ' ');
   const shift = accSegGet('acc-seg-shift'), section = accSegGet('acc-seg-section'), stage = accEl('acc-f-stage').value;
   let ok = true;
@@ -7164,6 +7315,12 @@ async function accSaveProfile() {
   if (!shift)   { accSetErr('acc-e-shift', 'اختر نوع الدوام'); ok = false; }
   if (!stage)   { accSetErr('acc-e-stage', 'اختر المرحلة الدراسية'); ok = false; }
   if (!section) { accSetErr('acc-e-section', 'اختر الشعبة'); ok = false; }
+  // التحقق من اسم المستخدم الجديد (إن تغيّر)
+  const nuUser = String(accEl('acc-mg-user').value || '').trim().toLowerCase().replace(/^\.+|\.+$/g, '');
+  const userOk = accUsernameChecks(nuUser);
+  if (!userOk.len || !userOk.chars || !userOk.letter || !userOk.dots) {
+    accSetErr('acc-mg-user-err', 'اسم المستخدم لا يطابق الشروط أعلاه.'); ok = false;
+  }
   // إذا اختار "أخرى" يجب كتابة القيمة
   Object.keys(ACC_LISTS).forEach(k => {
     const sel = accEl('acc-f-' + k), v = accSelects[k].get();
@@ -7173,17 +7330,23 @@ async function accSaveProfile() {
   });
   if (!ok) { showToast('⚠️', 'تنبيه', 'راجع الحقول المحددة'); return; }
 
-  const data = { fullName: name, shift, section, stage };
+  const bioEl = accEl('acc-f-bio');
+  const bio = bioEl ? String(bioEl.value || '').trim().slice(0, 150) : '';
+  const data = { fullName: name, bio, shift, section, stage };
   Object.keys(ACC_LISTS).forEach(k => data[k] = accSelects[k].get());
   const btn = accEl('acc-save');
   accBusy(btn, true);
   try {
     await setDoc(doc(db, 'users', accProfile._id), data, { merge: true });
     Object.assign(accProfile, data);
+    // تغيير اسم المستخدم (إن تغيّر) — يستخدم نفس منطق الحجز والتحقق
+    let userChanged = false;
+    try { const r = await accChangeUsername(nuUser); userChanged = r.changed; }
+    catch (ue) { accSetErr('acc-mg-user-err', accErrMsg(ue)); accBusy(btn, false, 'حفظ التغييرات'); return; }
     accApplyToSession();
     accRender();
     closeModal('acc-manage-modal');
-    showToast('✅', 'تم الحفظ', 'تم تحديث بياناتك بنجاح');
+    showToast('✅', 'تم الحفظ', userChanged ? 'تم تحديث بياناتك واسم المستخدم بنجاح' : 'تم تحديث بياناتك بنجاح');
   } catch (e) {
     showToast('❌', 'خطأ', accErrMsg(e));
   } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.save : 'حفظ التغييرات'); }
@@ -7220,8 +7383,8 @@ function accUsernameChecks(v) {
   };
 }
 function accUpdateRules() {
-  const v = accEl('acc-u-input').value.trim().toLowerCase(), r = accUsernameChecks(v);
-  document.querySelectorAll('#acc-u-rules li').forEach(li => {
+  const v = accEl('acc-mg-user').value.trim().toLowerCase(), r = accUsernameChecks(v);
+  document.querySelectorAll('#acc-mg-user-rules li').forEach(li => {
     const good = r[li.dataset.r];
     li.classList.toggle('ok', v && good);
     li.classList.toggle('bad', v && !good);
@@ -7229,61 +7392,56 @@ function accUpdateRules() {
   });
   return r.len && r.chars && r.dots && r.letter;
 }
-function accOpenUsername() {
-  accEl('acc-u-input').value = ''; accSetErr('acc-u-err', '');
-  accUpdateRules();
-  const warn = accEl('acc-u-cooldown');
-  if (warn) {
-    warn.textContent = accLang === 'en'
-      ? 'Change your username any time without a password — your fixed ID, data, and sign-in stay unchanged. Your old username stays reserved for you; nobody else can take it.'
-      : 'يمكنك تغيير اسم المستخدم في أي وقت وبدون كلمة السر — لن يتغيّر معرّفك الثابت (ID) ولا بياناتك ولا بريد دخولك، واسمك القديم يبقى محجوزاً لك ولا يستطيع أحد أخذه.';
+// تغيير اسم المستخدم — منطق مشترك (يُستدعى من نموذج إدارة الحساب). يرمي خطأ عند الفشل.
+async function accChangeUsername(nu) {
+  if (!accProfile) throw { code: 'no-profile' };
+  const old = String(accProfile.username || accProfile._id).toLowerCase();
+  if (!accUsernameChecks(nu).len || !accUsernameChecks(nu).chars || !accUsernameChecks(nu).dots || !accUsernameChecks(nu).letter) {
+    throw { code: 'bad-username' };
   }
-  openModal('acc-username-modal');
+  if (nu === old) return { changed: false }; // لا تغيير
+  // تأكيد مسار المستند الصحيح قبل الفحص والكتابة (يمنع إنشاء مستند جديد بالخطأ)
+  try {
+    const fresh = await resolveUserDoc(old);
+    if (fresh && fresh.data) {
+      accProfile._id = fresh.id;
+      if (Array.isArray(fresh.data.takenUsernames)) accProfile.takenUsernames = fresh.data.takenUsernames;
+      if (!accProfile.emailPrefix && fresh.data.emailPrefix) accProfile.emailPrefix = fresh.data.emailPrefix;
+      if (!accProfile.userId && fresh.data.userId) accProfile.userId = fresh.data.userId;
+    }
+  } catch (e) {}
+  // الاسم لا يُتاح لأي حساب آخر حتى كاسم سابق — إلا إذا كان اسمك أنت (تستعيد أسماءك وحدك)
+  if (await isUsernameTaken(nu, accProfile)) throw { code: 'auth/email-already-in-use' };
+  // كل الأسماء التي استعملها هذا الحساب تبقى محجوزة له وحده
+  const used = [];
+  const push = v => { const s = String(v || '').trim().toLowerCase(); if (s && !used.includes(s)) used.push(s); };
+  if (Array.isArray(accProfile.takenUsernames)) accProfile.takenUsernames.forEach(push);
+  push(accProfile.emailPrefix);       // بريد الدخول الأصلي اسم قديم أيضاً
+  push(accProfile.previousUsername);
+  push(old);
+  push(nu);
+  // تغيير الحقل فقط — مسار المستند (المعرّف الرقمي) وبريد الدخول لا يتغيّران
+  const update = { username: nu, previousUsername: old, takenUsernames: used };
+  if (!accProfile.emailPrefix) update.emailPrefix = old; // تثبيت بريد الدخول قبل اختفاء الاسم القديم
+  await setDoc(doc(db, 'users', accProfile._id), update, { merge: true });
+  Object.assign(accProfile, update);
+  accApplyToSession();
+  return { changed: true, nu };
 }
+// (توافق خلفي) فتح/حفظ منفصل لليوزر — لم يعد هناك مودال منفصل
 async function accSaveUsername() {
   if (!accProfile) return;
-  accSetErr('acc-u-err', '');
-  const old = String(accProfile.username || accProfile._id).toLowerCase();
-  const nu = accEl('acc-u-input').value.trim().toLowerCase().replace(/^\.+|\.+$/g, '');
-  // بدون كلمة سر وبدون مهلة انتظار — في أي وقت
-  if (!accUpdateRules()) { accSetErr('acc-u-err', 'اسم المستخدم لا يطابق الشروط أعلاه.'); return; }
-  if (nu === old) { accSetErr('acc-u-err', 'هذا هو اسم المستخدم الحالي.'); return; }
-
-  const btn = accEl('acc-u-save');
+  accSetErr('acc-mg-user-err', '');
+  const nu = String(accEl('acc-mg-user').value || '').trim().toLowerCase().replace(/^\.+|\.+$/g, '');
+  const btn = accEl('acc-mg-save');
   accBusy(btn, true);
   try {
-    // تأكيد مسار المستند الصحيح قبل الفحص والكتابة (يمنع إنشاء مستند جديد بالخطأ)
-    try {
-      const fresh = await resolveUserDoc(old);
-      if (fresh && fresh.data) {
-        accProfile._id = fresh.id;
-        if (Array.isArray(fresh.data.takenUsernames)) accProfile.takenUsernames = fresh.data.takenUsernames;
-        if (!accProfile.emailPrefix && fresh.data.emailPrefix) accProfile.emailPrefix = fresh.data.emailPrefix;
-        if (!accProfile.userId && fresh.data.userId) accProfile.userId = fresh.data.userId;
-      }
-    } catch (e) {}
-    // الاسم لا يُتاح لأي حساب آخر حتى كاسم سابق — إلا إذا كان اسمك أنت (تستعيد أسماءك وحدك)
-    if (await isUsernameTaken(nu, accProfile)) throw { code: 'auth/email-already-in-use' };
-    // كل الأسماء التي استعملها هذا الحساب تبقى محجوزة له وحده
-    const used = [];
-    const push = v => { const s = String(v || '').trim().toLowerCase(); if (s && !used.includes(s)) used.push(s); };
-    if (Array.isArray(accProfile.takenUsernames)) accProfile.takenUsernames.forEach(push);
-    push(accProfile.emailPrefix);       // بريد الدخول الأصلي اسم قديم أيضاً
-    push(accProfile.previousUsername);
-    push(old);
-    push(nu);
-    // تغيير الحقل فقط — مسار المستند (المعرّف الرقمي) وبريد الدخول لا يتغيّران
-    const update = { username: nu, previousUsername: old, takenUsernames: used };
-    if (!accProfile.emailPrefix) update.emailPrefix = old; // تثبيت بريد الدخول قبل اختفاء الاسم القديم
-    await setDoc(doc(db, 'users', accProfile._id), update, { merge: true });
-    Object.assign(accProfile, update);
-    accApplyToSession();
+    const res = await accChangeUsername(nu);
+    if (res.changed) showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + res.nu + ' — سجّل دخولك به من الآن، واسمك القديم بقي محجوزاً لك');
     accRender();
-    closeModal('acc-username-modal');
-    showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + nu + ' — سجّل دخولك به من الآن، واسمك القديم بقي محجوزاً لك');
   } catch (e) {
-    accSetErr('acc-u-err', accErrMsg(e));
-  } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.saveShort : 'حفظ'); }
+    accSetErr('acc-mg-user-err', accErrMsg(e));
+  } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.save : 'حفظ التغييرات'); }
 }
 // تسجيل الخروج (يُستخدم من الهيدر ومن صفحة الحساب)
 async function accDoLogout() {
@@ -7421,16 +7579,13 @@ async function accConfirmDelete() {
   const btn = accEl('acc-d-confirm'), id = accProfile._id;
   accBusy(btn, true);
   try {
-    const pendingAt = new Date();
-    await setDoc(doc(db, 'users', id), { deletePendingAt: pendingAt }, { merge: true });
-    accProfile.deletePendingAt = pendingAt;
-    localStorage.setItem('deletePendingAt', pendingAt.toISOString());
     closeModal('acc-delete-modal');
-    showToast('🕓', 'تم جدولة الحذف', 'سيُحذف حسابك بعد 7 أيام إذا لم تسجّل الدخول خلال المدة.');
-    setTimeout(() => accDoLogout(), 900);
+    showToast('🗑️', 'جارٍ الحذف', 'يتم حذف حسابك نهائياً الآن...');
+    // حذف نهائي فوري: مستند فايربيس + حساب المصادقة + كل الجلسة المحلية
+    await accFinalizeDelete(id);
   } catch (e) {
     accSetErr('acc-d-err', accErrMsg(e));
-    accBusy(btn, false, accLang === 'en' ? ACC_EN.deleteConfirm : 'تأكيد طلب الحذف');
+    accBusy(btn, false, 'حذف نهائي');
   }
 }
 // معالجة طلب الحذف المجدول عند تسجيل الدخول: يُلغى خلال المهلة، ويُنفَّذ بعدها
@@ -7456,7 +7611,7 @@ async function accFinalizeDelete(username) {
   try { await firebaseSignOut(fireAuth); } catch (e) {}
   updateHeaderUI();
   try { setActiveNav('home'); } catch (e) {}
-  showToast('🕓', 'تم الحذف', 'انتهت مهلة الحذف وتم حذف حسابك نهائياً.');
+  showToast('✅', 'تم الحذف', 'تم حذف حسابك نهائياً.');
 }
 // تنظيف الحسابات التي انتهت مهلة حذفها (محاولة تلقائية، تُتجاهل أخطاء الصلاحيات)
 async function accPurgeExpiredDeletions() {
@@ -7502,7 +7657,7 @@ document.addEventListener('click', ev => {
     case 'pick-avatar':   accEl('acc-avatar-file').click(); break;
     case 'save-profile':  accSaveProfile(); break;
     case 'open-manage':   accOpenManage(); break;
-    case 'open-username': accOpenUsername(); break;
+    case 'open-username': accOpenManage(); break;
     case 'open-password': accOpenPassword(); break;
     case 'save-password': accSavePassword(); break;
     case 'logout':        accDoLogout(); break;
@@ -7518,6 +7673,9 @@ document.addEventListener('click', ev => {
     case 'send-contact':  accSendContact(); break;
     case 'open-privacy':  openModal('acc-privacy-modal'); break;
     case 'open-terms':    openModal('acc-terms-modal'); break;
+    case 'toggle-settings': accToggleSettings(); break;
+    case 'share-profile': accShareProfile(); break;
+    case 'ig-add':        accAddHighlight(); break;
   }
 });
 accEl('acc-avatar-file').addEventListener('change', e => accUploadAvatar(e.target.files[0]));
@@ -7533,7 +7691,8 @@ function markReportAsRead(reportId) {
   markItemRead('reports', reportId);
 }
 accEl('acc-lang-switch').addEventListener('change', e => accApplyLang(e.target.checked ? 'en' : 'ar'));
-accEl('acc-u-input').addEventListener('input', accUpdateRules);
+const _mgUserInput = accEl('acc-mg-user');
+if (_mgUserInput) _mgUserInput.addEventListener('input', accUpdateRules);
 accEl('acc-np-pass').addEventListener('input', accUpdatePassRules);
 accEl('acc-np-pass2').addEventListener('input', accUpdatePassRules);
 accEl('acc-f-name').addEventListener('input', () => { accEl('acc-f-name').classList.remove('invalid'); accSetErr('acc-e-name', ''); });
@@ -7762,25 +7921,34 @@ function subscribeAgentAnnouncements() {
 // تنظيف نص الرسالة قبل العرض: إزالة ترويسات/تذييلات الإيميل والروابط ونطاقات البريد
 // حتى يبقى نص الأستاذ الفعلي فقط
 function cleanAnnMessage(txt, subject) {
-  let s = String(txt || '');
-  // 1) حذف أي روابط http/https (طويلة أو مختصرة)
-  s = s.replace(/https?:\/\/\S+/gi, ' ');
-  // 2) حذف عناوين البريد الإلكتروني (مثل someone@mtu.edu.iq)
-  s = s.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/gi, ' ');
-  // 3) حذف النطاقات المتبقة (مثل mtu.edu.iq) حتى بدون @
-  s = s.replace(/\b[\w-]+(?:\.[\w-]+)*\.(?:edu|com|org|net|gov|mil|iq|info|app|io|me)\b/gi, ' ');
-  // 4) حذف كلمات/عبارات الإيميل الإنجليزية (ترويسات وتعليقات تلقائية)
-  s = s.replace(/\b(new announcement|notification settings|view announcement|announcement details|sent from|you received this (message|email)|manage (email )?notifications|unsubscribe|click (here|the link)|regards|sincerely|get outlook for (android|ios)?|outlook for mobile|powered by)\b[:\-]?/gi, ' ');
-  // 5) حذف نفس العبارات بالعربية إن وُجدت
-  s = s.replace(/(إعلان جديد|إعدادات الإشعارات|عرض الإعلان|تم الإرسال من|أُرسل إليك هذا|إلغاء الاشتراك|انقر هنا|مع التحية)\s*[:\-]?/g, ' ');
-  // 6) حذف أي سطر يطابق اسم المادة تماماً (ترويسة الإيميل تكرّرها أحياناً)
   const subj = String(subject || '').trim().toLowerCase();
-  if (subj) s = s.split('\n').filter(l => l.trim().toLowerCase() !== subj).join('\n');
-  // 7) إزالة السطور التي صارت فارغة بعد التنظيف وضغط المسافات
-  s = s.split(/\r?\n/).map(l => l.replace(/[ \t]+/g, ' ').trim()).filter(Boolean).join('\n').trim();
-  // 8) دمج أكثر من سطرين متتاليين فارغين
-  s = s.replace(/\n{2,}/g, '\n');
-  return s;
+  const lines = String(txt || '').split(/\r?\n/);
+  const kept = [];
+  for (let raw of lines) {
+    // سطر فارغ في الأصل → نبقيه كما هو (يحافظ على فراغ الفقرات والمسافات بينها)
+    if (!raw.trim()) { kept.push(''); continue; }
+    let l = raw;
+    // 1) حذف أي روابط http/https (طويلة أو مختصرة)
+    l = l.replace(/https?:\/\/\S+/gi, ' ');
+    // 2) حذف عناوين البريد الإلكتروني (مثل someone@mtu.edu.iq)
+    l = l.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/gi, ' ');
+    // 3) حذف النطاقات المتبقة (مثل mtu.edu.iq) حتى بدون @
+    l = l.replace(/\b[\w-]+(?:\.[\w-]+)*\.(?:edu|com|org|net|gov|mil|iq|info|app|io|me)\b/gi, ' ');
+    // 4) حذف كلمات/عبارات الإيميل الإنجليزية (ترويسات وتعليقات تلقائية)
+    l = l.replace(/\b(new announcement|notification settings|view announcement|announcement details|sent from|you received this (message|email)|manage (email )?notifications|unsubscribe|click (here|the link)|regards|sincerely|get outlook for (android|ios)?|outlook for mobile|powered by)\b[:\-]?/gi, ' ');
+    // 5) حذف نفس العبارات بالعربية إن وُجدت
+    l = l.replace(/(إعلان جديد|إعدادات الإشعارات|عرض الإعلان|تم الإرسال من|أُرسل إليك هذا|إلغاء الاشتراك|انقر هنا|مع التحية)\s*[:\-]?/g, ' ');
+    // 6) ترويسة الإيميل = سطر يطابق اسم المادة تماماً → نحذفه
+    if (subj && l.trim().toLowerCase() === subj) continue;
+    // 7) سطر صار فارغاً بعد التنظيف (كان رابطاً/إيميل مكرراً فقط) → نحذفه
+    if (!l.trim()) continue;
+    // نبقي السطر بكل مسافاته الداخلية والبادئة كما ورد في البلاغ — بلا ضغط ولا ت(trim)
+    kept.push(l);
+  }
+  let s = kept.join('\n');
+  // حد أقصى سطرين فارغين متتاليين (نَفَس بصري) — كل المسافات الأصلية تبقى كما هي
+  s = s.replace(/\n{4,}/g, '\n\n\n');
+  return s.trim();
 }
 
 // ── قاموس ترجمة أسماء المواد الإنكليزية إلى العربية (أضف أي مادة جديدة هنا) ──
@@ -8879,12 +9047,13 @@ window.setActiveNav = function(id) {
   const el = document.getElementById('nav-' + id);
   if (el) el.classList.add('active');
 
-  // في واجهة الملازم فقط: أُخفي الهيدر الفوق (الشعار + الإشعارات) وأُظهر شريط البحث
+  // في واجهة الملازم والحساب: أُخفي الهيدر الفوق (الشعار + الإشعارات) — صفحة الحساب لها شريطها الخاص (الهامبرغر)
   const appHeader = document.querySelector('#app > header');
   const matsSearch = document.getElementById('materials-search-bar');
   const isMaterials = (id === 'schedule');
+  const isAccount = (id === 'user');
   document.body.classList.toggle('materials-mode', isMaterials);
-  if (appHeader) appHeader.style.display = isMaterials ? 'none' : '';
+  if (appHeader) appHeader.style.display = (isMaterials || isAccount) ? 'none' : '';
   if (matsSearch) matsSearch.style.display = isMaterials ? 'flex' : 'none';
 
   // إخفاء جميع الـ views
@@ -9050,11 +9219,13 @@ document.getElementById('btn-enable-notif')?.addEventListener('click', () => {
 let lbUrls = [];
 let lbIndex = 0;
 let lbTitle = '';
+let lbDlBusy = false; // جارٍ تحميل صورة أو كل الصور — لمنع الضغط المزدوج
 
 window.openLightbox = function(urls, index, title) {
   lbUrls = Array.isArray(urls) ? urls : [urls];
   lbIndex = index || 0;
   lbTitle = title || '';
+  lbSetStatus('');
   updateLightboxUI();
   if (window.location.hash !== '#view') history.pushState(null, null, '#view');
   document.getElementById('lightbox').classList.add('open');
@@ -9072,17 +9243,12 @@ function updateLightboxUI() {
   document.getElementById('lightbox-counter').textContent = `${lbIndex + 1} / ${lbUrls.length}`;
   const lbTitleEl = document.getElementById('lightbox-title');
   if (lbTitleEl) lbTitleEl.textContent = lbTitle; // اسم الملزمة فوق الصور (يختفي في العارضات بلا عنوان)
-  
-  let dlUrl = url;
-  if (dlUrl.includes('/upload/')) {
-    dlUrl = dlUrl.replace('/upload/', '/upload/fl_attachment/'); // فرض التحميل المباشر لروابط كلاوديناري
-  }
-  const btnDl = document.getElementById('lightbox-download');
-  btnDl.href = dlUrl;
-  btnDl.onclick = function(e) {
-    e.preventDefault();
-    downloadFileWithProgress(url, 'صورة.jpg', this);
-  };
+
+  // إغلاق قائمة التحميل عند أي تغيير — التنقل بين الصور بالسحب بالإصبع أو النقاط فقط
+  const dlMenu = document.getElementById('lightbox-dl-menu');
+  if (dlMenu) dlMenu.hidden = true;
+  const dotsEl = document.getElementById('lightbox-dots');
+  if (dotsEl) dotsEl.innerHTML = lbUrls.map((_, i) => `<span class="lb-dot${i === lbIndex ? ' on' : ''}"></span>`).join('');
 
   if (typeof resetLightboxZoom === 'function') resetLightboxZoom();
 }
@@ -9105,65 +9271,223 @@ window.closeLightbox = function() {
   document.getElementById('lightbox').classList.remove('open');
   document.body.style.overflow = '';
   document.documentElement.style.overflow = '';
+  hideDlMenu();
+  lbSetStatus('');
   resetLightboxZoom();
 };
 
+// ── تحميل الصور داخل العارض (بلا نوافذ خارجية) ──
+function lbSetStatus(txt) {
+  const el = document.getElementById('lightbox-status');
+  if (el) el.textContent = txt || '';
+}
+
+// اسم ملف الصورة من رابطها (نظيف وآمن) مع بادج ترتيبي حتى لا تتكرر الأسماء
+function lbImageName(url, i) {
+  try {
+    const base = decodeURIComponent(String(url).split('?')[0].split('/').pop() || '').trim();
+    if (base && base.includes('.')) return `${i + 1}-${base.replace(/[^\w.\-\u0600-\u06FF ]/g, '_')}`;
+  } catch (err) { /* تجاهل */ }
+  return `image-${i + 1}.jpg`;
+}
+
+// جلب الصورة مع نسبة تقدّم ثم حفظها على الجهاز؛ عند الفشل: رابط تحميل مباشر كبديل
+async function lbDownloadImage(url, filename, onPct) {
+  try {
+    const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+    if (!res.ok) throw new Error('http ' + res.status);
+    const total = Number(res.headers.get('content-length')) || 0;
+    const ct = res.headers.get('content-type') || 'image/jpeg';
+    let blob;
+    if (res.body && res.body.getReader) {
+      const reader = res.body.getReader();
+      const chunks = []; let loaded = 0;
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        if (part.value) {
+          chunks.push(part.value);
+          loaded += part.value.length;
+          if (onPct) onPct(total ? Math.min(99, Math.round((loaded / total) * 100)) : null);
+        }
+      }
+      blob = new Blob(chunks, { type: ct });
+    } else {
+      blob = await res.blob();
+    }
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
+  } catch (err) {
+    // خطة بديلة: رابط مباشر (كلاوديناري: فرض التحميل بدل العرض في تبويب جديد)
+    let dlUrl = url;
+    if (dlUrl.includes('/upload/')) dlUrl = dlUrl.replace('/upload/', '/upload/fl_attachment/');
+    const a = document.createElement('a');
+    a.href = dlUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+}
+
+// قائمة خيارات التحميل: تنفتح من زر ⬇️ (صورة واحدة فقط تُحمَّل مباشرة بلا قائمة)
+function hideDlMenu() {
+  const m = document.getElementById('lightbox-dl-menu');
+  if (m) m.hidden = true;
+}
+window.toggleDownloadMenu = function(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  if (lbUrls.length <= 1) { window.lightboxDownloadCurrent(e); return; } // صورة وحدها: تحميل مباشر
+  const m = document.getElementById('lightbox-dl-menu');
+  if (m) m.hidden = !m.hidden;
+};
+// إغلاق القائمة عند النقر خارجها
+document.addEventListener('click', (e) => {
+  const m = document.getElementById('lightbox-dl-menu');
+  if (!m || m.hidden) return;
+  const inMenu = m.contains(e.target);
+  const onTrigger = !!(e.target && e.target.closest && e.target.closest('#lightbox-download'));
+  if (!inMenu && !onTrigger) hideDlMenu();
+});
+
+// ── تحميل الصور من داخل العارض: خياران (هذه الصورة فقط أو كل الصور) مع حالة تحميل ظاهرة ──
+window.lightboxDownloadCurrent = async function(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  if (lbDlBusy || !lbUrls[lbIndex]) return;
+  hideDlMenu();
+  lbDlBusy = true;
+  const btn = document.getElementById('lightbox-download');
+  if (btn) btn.classList.add('busy');
+  try {
+    await lbDownloadImage(lbUrls[lbIndex], lbImageName(lbUrls[lbIndex], lbIndex), (pct) => {
+      lbSetStatus(pct == null ? '⏳ جارٍ تحميل هذه الصورة...' : `⏳ جارٍ تحميل هذه الصورة… ${pct}%`);
+    });
+    lbSetStatus('✅ تم تحميل هذه الصورة');
+  } catch (err) {
+    lbSetStatus('⚠️ تعذّر تحميل الصورة');
+  }
+  if (btn) btn.classList.remove('busy');
+  lbDlBusy = false;
+  setTimeout(() => { if (!lbDlBusy) lbSetStatus(''); }, 2200);
+};
+
+window.lightboxDownloadAll = async function(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  if (lbDlBusy || lbUrls.length <= 1) return;
+  hideDlMenu();
+  lbDlBusy = true;
+  const btn = e && e.currentTarget && e.currentTarget.classList ? e.currentTarget : null;
+  if (btn) btn.classList.add('busy');
+  for (let i = 0; i < lbUrls.length; i++) {
+    lbSetStatus(`⏳ جارٍ تحميل الصورة ${i + 1} من ${lbUrls.length}...`);
+    try {
+      await lbDownloadImage(lbUrls[i], lbImageName(lbUrls[i], i), (pct) => {
+        lbSetStatus(pct == null
+          ? `⏳ تحميل الصورة ${i + 1} من ${lbUrls.length}...`
+          : `⏳ تحميل الصورة ${i + 1} من ${lbUrls.length}… ${pct}%`);
+      });
+    } catch (err) { /* صورة واحدة فشلت — تابع البقية */ }
+  }
+  lbSetStatus(`✅ تم تحميل كل الصور (${lbUrls.length})`);
+  if (btn) btn.classList.remove('busy');
+  lbDlBusy = false;
+  setTimeout(() => { if (!lbDlBusy) lbSetStatus(''); }, 2500);
+};
+
 // ── LIGHTBOX PINCH TO ZOOM ──
-let lbScale = 1, lbPointX = 0, lbPointY = 0, lbStartDistance = 0, lbStartScale = 1, lbStartX = 0, lbStartY = 0;
+let lbScale = 1, lbPointX = 0, lbPointY = 0;
+let lbStartDistance = 0, lbStartScale = 1, lbStartX = 0, lbStartY = 0, lbPanMode = false;
+let lbLastPinchAt = 0; // وقت آخر تقريب بإصبعين — لمنع تبديل الصورة سهواً أثناء/بعد التقريب
 const lbImgEl = document.getElementById('lightbox-img');
+const LB_MAX_SCALE = 6; // أقصى نسبة تقريب
+
+// تطبيق المقياس + الإزاحة مع تقييد السحب داخل حدود الشاشة (لا تهرب الصورة من الإطار)
+function lbApply(animate) {
+  if (!lbImgEl) return;
+  const maxX = Math.max(0, (lbImgEl.clientWidth * lbScale - window.innerWidth) / 2);
+  const maxY = Math.max(0, (lbImgEl.clientHeight * lbScale - window.innerHeight) / 2);
+  lbPointX = Math.max(-maxX, Math.min(maxX, lbPointX));
+  lbPointY = Math.max(-maxY, Math.min(maxY, lbPointY));
+  lbImgEl.style.transition = animate ? 'transform 0.25s ease' : 'none';
+  lbImgEl.style.transform = `translate(${lbPointX}px, ${lbPointY}px) scale(${lbScale})`;
+}
 
 window.resetLightboxZoom = function() {
   lbScale = 1; lbPointX = 0; lbPointY = 0;
-  if (lbImgEl) {
-    lbImgEl.style.transition = 'transform 0.2s ease';
-    lbImgEl.style.transform = `translate(0px, 0px) scale(1)`;
-  }
+  lbApply(true);
 };
 
+// تقريب حول نقطة (x,y) على الشاشة بحيث تبقى النقطة تحت الإصبع/المؤشر (سلوك القرطاسية الطبيعي)
+function lbZoomAt(x, y, newScale, animate) {
+  const ns = Math.max(1, Math.min(LB_MAX_SCALE, newScale));
+  if (ns === lbScale) return;
+  const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  const r = ns / lbScale;
+  const dx = x - cx, dy = y - cy;
+  lbPointX = dx - (dx - lbPointX) * r;
+  lbPointY = dy - (dy - lbPointY) * r;
+  lbScale = ns;
+  if (lbScale <= 1.001) { lbScale = 1; lbPointX = 0; lbPointY = 0; }
+  lbApply(!!animate);
+}
+
 lbImgEl.addEventListener('touchstart', (e) => {
-  lbImgEl.style.transition = 'none';
   if (e.touches.length === 2) {
     e.preventDefault();
-    lbStartDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+    lbLastPinchAt = Date.now();
+    lbStartDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     lbStartScale = lbScale;
+    lbPanMode = false;
   } else if (e.touches.length === 1 && lbScale > 1) {
     e.preventDefault();
-    lbStartX = e.touches[0].pageX - lbPointX;
-    lbStartY = e.touches[0].pageY - lbPointY;
+    lbPanMode = true;
+    lbStartX = e.touches[0].clientX - lbPointX;
+    lbStartY = e.touches[0].clientY - lbPointY;
+  } else {
+    lbPanMode = false;
   }
 }, { passive: false });
 
 lbImgEl.addEventListener('touchmove', (e) => {
-  if (e.touches.length === 2) {
+  if (e.touches.length === 2 && lbStartDistance > 0) {
     e.preventDefault();
-    const currentDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-    lbScale = Math.max(1, Math.min(lbStartScale * (currentDistance / lbStartDistance), 5));
-    lbImgEl.style.transform = `translate(${lbPointX}px, ${lbPointY}px) scale(${lbScale})`;
-  } else if (e.touches.length === 1 && lbScale > 1) {
+    lbLastPinchAt = Date.now();
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    lbZoomAt(midX, midY, lbStartScale * (dist / lbStartDistance), false); // التقريب حول وسط الإصبعين
+  } else if (e.touches.length === 1 && lbPanMode && lbScale > 1) {
     e.preventDefault();
-    lbPointX = e.touches[0].pageX - lbStartX;
-    lbPointY = e.touches[0].pageY - lbStartY;
-    lbImgEl.style.transform = `translate(${lbPointX}px, ${lbPointY}px) scale(${lbScale})`;
+    lbPointX = e.touches[0].clientX - lbStartX;
+    lbPointY = e.touches[0].clientY - lbStartY;
+    lbApply(false);
   }
 }, { passive: false });
 
 let lbLastTap = 0;
 lbImgEl.addEventListener('touchend', (e) => {
-  const currentTime = new Date().getTime();
-  const tapLength = currentTime - lbLastTap;
+  if (e.touches.length) return; // ما زال إصبع على الشاشة (منتصف حركة إصبعين)
+  const now = Date.now();
+  const tapLength = now - lbLastTap;
+  lbLastTap = now;
+  if (now - lbLastPinchAt < 400) return; // كانت لمسة تقريب بإصبعين — ليست نقرة
   if (tapLength < 300 && tapLength > 0) {
     e.preventDefault(); // منع المتصفح من التقريب الافتراضي المزدوج
     if (lbScale > 1) {
       resetLightboxZoom();
     } else {
-      lbScale = 2.5; // نسبة التكبير عند النقر المزدوج
-      lbImgEl.style.transition = 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)';
-      lbImgEl.style.transform = `translate(0px, 0px) scale(${lbScale})`;
+      const t = e.changedTouches[0];
+      lbZoomAt(t.clientX, t.clientY, 2.5, true); // تقريب 2.5× نحو موضع اللمس
     }
-  } else if (lbScale <= 1) {
+  } else if (lbScale <= 1 && (Math.abs(lbPointX) > 2 || Math.abs(lbPointY) > 2)) {
     resetLightboxZoom();
   }
-  lbLastTap = currentTime;
+}, { passive: false });
+
+// عجلة الماوس: تقريب سلس حول المؤشر (للويب على الحواسيب)
+lbImgEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  lbZoomAt(e.clientX, e.clientY, lbScale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), false);
 }, { passive: false });
 
 // ── HORIZONTAL SWIPE NAVIGATION ──
@@ -9176,6 +9500,7 @@ document.addEventListener('touchstart', e => {
 }, {passive:true});
 
 document.addEventListener('touchend', e => {
+  if (e.touches.length > 0) return; // ما زال إصبع آخر على الشاشة (تقريب بإصبعين أو سحب مستمر)
   const dx = e.changedTouches[0].screenX - touchStartX;
   const dy = e.changedTouches[0].screenY - touchStartY;
   
@@ -9185,9 +9510,10 @@ document.addEventListener('touchend', e => {
   // إذا كان عارض الصور مفتوحاً، استخدم السحب للتبديل بين الصور فقط
   if (document.getElementById('lightbox').classList.contains('open')) {
     if (typeof lbScale !== 'undefined' && lbScale > 1) return; // منع التبديل إذا كانت الصورة مكبرة
+    if (Date.now() - lbLastPinchAt < 400) return; // كانت لمسة تقريب بإصبعين للتو — ليست سحب تبديل
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0) prevLightboxImage(); // السحب لليمين (الصورة السابقة في العربية)
-      else nextLightboxImage(); // السحب لليسار (الصورة التالية)
+      if (dx > 0) nextLightboxImage(); // السحب من اليسار إلى اليمين ← الصورة التالية
+      else prevLightboxImage(); // السحب من اليمين إلى اليسار ← الصورة السابقة
     }
     return;
   }
