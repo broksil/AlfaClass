@@ -325,6 +325,10 @@
     body.materials-mode main { max-width: 640px; }
   }
 
+  /* ── وضع واجهة البلاغات: لا هيدر فوق — التبويبان (الممثل ↔ الأساتذه) في أعلى الشاشة مباشرة بلا خلفية ── */
+  body.reports-mode main { padding-top: 0; }
+  body.reports-mode .ann-tabs-wrap { margin: 0 0 12px; padding: calc(8px + var(--safe-top)) 0 6px; }
+
   /* ── شريط المواد (الأعلى): صف واحد فقط يمرّر بالإصبع يمين/يسار — لا ينزل للأسفل مهما صغرت الشاشة ── */
   .subject-chips {
     display: flex; flex-wrap: nowrap; gap: 8px;
@@ -1107,6 +1111,9 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .md-pub-text small { font-size: 11px; color: var(--text-muted); }
+  /* ── المتابعة (ملف عضو آخر) ── */
+  .ig-btn.following { background: rgba(255,255,255,0.08); color: var(--text-secondary); border: 1px solid var(--border); }
+  .acc-follow-row .ig-btn { flex: 1; }
   .md-like {
     display: flex; align-items: center; gap: 6px;
     padding: 8px 14px; border-radius: 999px;
@@ -1510,14 +1517,16 @@
     .confirm-backdrop, .confirm-card, .confirm-icon { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   }
 
-  /* ── زر ☰ الإدارة في شريط الجدول (للمالك فقط) + لوحة الإحصاءات المنزلقة ── */
+  /* ── زر ☰ الإدارة في الهيدر (بجوار زر الدعم الفني أقصى يمين) + لوحة الإحصاءات المنزلقة ── */
   .sh-burger {
-    width: 38px; height: 38px; border-radius: 12px;
-    background: var(--bg-card); border: 1px solid var(--border);
-    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
     cursor: pointer; flex-shrink: 0; padding: 0;
+    transition: background 0.2s, transform 0.15s;
   }
-  .sh-burger span { display: block; width: 18px; height: 2px; border-radius: 2px; background: var(--accent2); transition: 0.2s; }
+  .sh-burger:hover { background: rgba(255,255,255,0.10); }
+  .sh-burger span { display: block; width: 17px; height: 2px; border-radius: 2px; background: #fff; transition: 0.2s; }
   .sh-burger:active { transform: scale(0.92); }
   .ha-backdrop {
     position: fixed; inset: 0; z-index: 955;
@@ -1671,6 +1680,14 @@
   /* ── الدعم الفني: محادثة الطالب + واجهة الإدارة ── */
   .modal-box.support-box { max-width: 520px; display: flex; flex-direction: column; }
   .sa-hint { font-size: 11.5px; color: var(--text-muted); margin: -6px 0 10px; }
+  /* ── أزرار المتابعة داخل قوائم المتابعين/المتابَعين ── */
+  .fl-follow-btn {
+    padding: 7px 14px; border-radius: 10px; border: none; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), #4f46e5); color: #fff;
+    font-family: var(--font); font-size: 12px; font-weight: 800; cursor: pointer;
+  }
+  .fl-follow-btn.following { background: rgba(255,255,255,0.08); color: var(--text-secondary); border: 1px solid var(--border); }
+  .fl-follow-btn:active { transform: scale(0.95); }
   .sa-list { display: flex; flex-direction: column; gap: 8px; max-height: 56dvh; overflow-y: auto; padding-bottom: 4px; }
   .sa-badge {
     background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff;
@@ -2192,13 +2209,13 @@
   }
   .chat-close { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; }
   
-  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .chat-messages { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .chat-msg-wrap { display: flex; flex-direction: column; max-width: 85%; position: relative; }
   .chat-msg-wrap.mine { align-self: flex-start; align-items: flex-start; margin-left: auto; margin-right: 0; }
   .chat-msg-wrap.theirs { align-self: flex-end; align-items: flex-end; margin-right: auto; margin-left: 0; }
   
   .chat-msg-wrap.grouped {
-    margin-top: -10px;
+    margin-top: -4px;
   }
   .chat-msg-wrap.mine.grouped .chat-msg {
     border-top-right-radius: 4px;
@@ -2206,7 +2223,13 @@
   .chat-msg-wrap.theirs.grouped .chat-msg {
     border-top-left-radius: 4px;
   }
-  .chat-sender { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+  /* اسم المرسل: فوق الفقاعة بلون رمادي موحّد — يتمدد بطوله الطبيعي ولا يعتمد على عرض المربع
+     (position: absolute = صفر تأثير على قياس المربع) ويظهر بأول رسالة في المجموعة فقط */
+  .chat-sender { position: absolute; top: 0; inset-inline-start: 0; margin: 0 4px; font-size: 12px; font-weight: 700; color: #a0a0b0; display: flex; align-items: center; gap: 4px; line-height: 16px; white-space: nowrap; }
+  .chat-sender.clickable { cursor: pointer; }
+  /* العمود يقيس عرضه من الفقاعة فقط؛ ومساحة الاسم تُحجز (has-name) عند وجود اسم فقط */
+  .rc-col { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+  .rc-col.has-name { padding-top: 20px; }
   .chat-msg { padding: 10px 14px; border-radius: 18px; position: relative; font-size: 14px; line-height: 1.5; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.2s; z-index: 1; }
   .chat-text { white-space: pre-wrap; word-break: break-word; }
   .chat-swipe-icon {
@@ -2323,7 +2346,7 @@
   /* أفاتار المُرسِل بجانب كل تعليق (نمط تيليجرام) */
   .rc-inner { display: flex; flex-direction: row; gap: 8px; align-items: flex-end; max-width: 100%; }
   .chat-msg-wrap.mine .rc-inner { flex-direction: row-reverse; }
-  .rc-avatar { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, var(--accent), #4f46e5); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 15px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 2px 8px rgba(0,0,0,0.3); margin-bottom: 2px; }
+  .rc-avatar { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, var(--accent), #4f46e5); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 15px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3); margin-bottom: 2px; } /* بدون إطار حول الصورة (تعليقات + استفسار) */
   .rc-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .rc-avatar.placeholder { visibility: hidden; }
   .chat-msg-wrap .rc-inner .chat-msg { min-width: 0; }
@@ -2995,7 +3018,9 @@
 <div id="app" style="display:none">
 
   <header>
-    <!-- زر الدعم الفني — أقصى يمين الهيدر في واجهة الجدول (محادثة كاملة مع الإدارة) -->
+    <!-- زر الإدارة (الثلاث خطوط) — أقصى يمين الهيدر بجوار زر الدعم الفني — يظهر لصاحب الموقع ومن تُمنحهم صلاحية الدعم -->
+    <button type="button" class="sh-burger" id="sh-burger" aria-label="لوحة الإدارة" onclick="haToggle()" style="display:none"><span></span><span></span><span></span></button>
+    <!-- زر الدعم الفني — يجاور زر القائمة في أقصى يمين الهيدر (محادثة كاملة مع الإدارة) -->
     <button class="btn-support" id="btn-support" type="button" title="الدعم الفني" onclick="typeof supOpen==='function' && supOpen()">💬<span class="support-dot" id="support-dot"></span></button>
     <div class="header-brand">
       <div class="header-name">ألفاكلاس</div>
@@ -3037,8 +3062,6 @@
     <!-- ── قسم الجدول الدراسي ── -->
     <div id="view-home">
       <div class="section-header">
-        <!-- زر الإدارة (ثلاث خطوط) — يظهر لصاحب الموقع فقط -->
-        <button type="button" class="sh-burger" id="sh-burger" aria-label="لوحة الإدارة" onclick="haToggle()" style="display:none"><span></span><span></span><span></span></button>
         <div class="week-nav">
           <button class="btn-nav" id="btn-prev">→</button>
           <button class="btn-nav-current" id="btn-today">الحالي</button>
@@ -3146,8 +3169,8 @@
           </div>
           <div class="ig-stats">
             <div class="ig-stat acc-stat-likes" id="acc-likes-stat" data-act="open-likes" role="button" tabindex="0" aria-label="عرض الإعجابات"><b id="acc-likes-count">0</b><span>الأعجابات</span></div>
-            <div class="ig-stat"><b>0</b><span>متابعون</span></div>
-            <div class="ig-stat"><b>0</b><span>يتابع</span></div>
+            <div class="ig-stat" style="cursor:pointer" onclick="openFollowList('followers')" title="عرض المتابعين"><b id="acc-followers-count">0</b><span>متابعون</span></div>
+            <div class="ig-stat" style="cursor:pointer" onclick="openFollowList('following')" title="عرض من يتابعهم"><b id="acc-following-count">0</b><span>يتابع</span></div>
           </div>
         </div>
 
@@ -3157,13 +3180,18 @@
           <span class="acc-badge" id="acc-badge">🎓 طالب</span>
         </div>
 
-        <div class="ig-actions">
+        <!-- متابعة (ملف عضو آخر) — متابعة فقط بلا مراسلة، نمط إنستغرام -->
+        <div class="ig-actions acc-follow-row" id="acc-follow-row" style="display:none">
+          <button class="ig-btn" type="button" id="acc-follow-btn" onclick="accToggleFollow()">متابعة</button>
+          <button class="ig-btn ghost" type="button" onclick="accViewOwnProfile()">رجوع إلى ملفي</button>
+        </div>
+        <div class="ig-actions" id="acc-own-actions">
           <button class="ig-btn" type="button" data-act="open-manage">تعديل الملف الشخصي</button>
           <button class="ig-btn ghost" type="button" data-act="share-profile">مشاركة الملف الشخصي</button>
         </div>
-        <button class="ig-highlight" type="button" data-act="ig-add">+ إضافة بارانات</button>
+        <button class="ig-highlight" type="button" id="acc-highlight-btn" data-act="ig-add">+ إضافة بارانات</button>
         <!-- منشوراتي: ملازمي المنشورة معروضة بشكل مرتب داخل الملف الشخصي -->
-        <div class="acc-section-title" data-i18n="myPosts">منشوراتي</div>
+        <div class="acc-section-title" id="acc-posts-title" data-i18n="myPosts">منشوراتي</div>
         <div class="acc-posts-grid" id="acc-posts-grid"></div>
         <!-- لوحة الإعجابات: الملازم التي أعجبت بها — تُفتح بالنقر على عدّاد «الأعجابات» وتتحدّث لحظياً -->
         <div id="acc-likes-panel" class="ig-settings" hidden>
@@ -3563,7 +3591,7 @@
     <div class="material-detail-title" id="material-detail-title"></div>
     <!-- ── معلومات الناشر + تاريخ النشر + زر الإعجاب ── -->
     <div class="material-detail-meta">
-      <div class="md-pub">
+      <div class="md-pub" style="cursor:pointer" onclick="openPubProfile()" title="عرض الملف الشخصي للناشر">
         <span class="md-avatar" id="material-detail-avatar"></span>
         <span class="md-pub-text">
           <b id="material-detail-publisher"></b>
@@ -3857,6 +3885,19 @@
         <div class="am-danger-hint">حذف فوري لبياناته وكل صلاحياته، ويُنفَّذ الحذف الكامل (البيانات + حساب الدخول) في أول تسجيل دخول له</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ── قوائم المتابعين / من يتابعهم (دخول ورؤية الحسابات ومتابعتها) ── -->
+<div class="modal-overlay" id="follow-list-modal" onclick="handleModalOverlayClick(event,'follow-list-modal')">
+  <div class="modal-box support-box" dir="rtl">
+    <div class="modal-handle"></div>
+    <div class="am-list-head">
+      <div class="modal-title" style="margin:0" id="fl-title">المتابعون</div>
+      <button type="button" class="ha-x" onclick="closeModal('follow-list-modal')" aria-label="إغلاق">✕</button>
+    </div>
+    <div class="sa-hint" id="fl-hint"></div>
+    <div class="sa-list" id="fl-list"></div>
   </div>
 </div>
 
@@ -4528,6 +4569,9 @@ function loadSession() {
       userId: localStorage.getItem('userId') || '',
       code: localStorage.getItem('username') || ''
     };
+    // تحميل الملف في الخلفية: يضمن أن تكون الهوية (الأيدي + الأسماء السابقة) جاهزة
+    // لكل مطابقات الهوية (التصويت/الإعجاب/القراءات) فور استعادة الجلسة
+    setTimeout(() => { try { accLoadProfile().catch(() => {}); } catch (e) {} }, 1200);
   }
   updateHeaderUI(true); // تحديث واجهة المستخدم في كل الحالات لتطبيق قيود الزوار
 }
@@ -4651,6 +4695,8 @@ function applyUserProfile(profile, fallbackName, uid) {
       if (accVisible()) accRender();
     }
   }).catch(() => {});
+  // تحميل الملف بالخلفية بعد الدخول: الهوية (الأيدي) تصبح جاهزة لكل مطابقات الهوية
+  try { accLoadProfile().catch(() => {}); } catch (e) {}
 }
 
 async function loadProfileAndApply(name, uid) {
@@ -5105,7 +5151,7 @@ function renderPostsForDay(dayId, posts) {
       ${noteHTML}
       ${mediaHTML}
       ${pubExtraHTML}
-      <div class="post-author">${authorAvatarHTML}<span style="color:#ffffff">${sanitizeText(post.author || '')}${verifiedBadgeHTML(post.authorId, post.author)}</span></div>
+      <div class="post-author" style="cursor:pointer" onclick="accOpenProfile('${encodeURIComponent(String(post.authorId || ''))}')">${authorAvatarHTML}<span class="post-author-name" style="color:#ffffff">${sanitizeText(post.author || '')}${verifiedBadgeHTML(post.authorId, post.author)}</span></div>
       ${actionsHtml}
     `;
     fragment.appendChild(item);
@@ -5113,6 +5159,7 @@ function renderPostsForDay(dayId, posts) {
   container.appendChild(fragment);
   applyLazyCovers(container); // أغلفة ملفات PDF/فيديو المؤجلة
   enhanceAvatars(container);  // صور الملفات الشخصية (تتجدد عند تغييرها)
+  enhanceAuthorNames(container); // أسماء المؤلفين الحية بالأيدي (تتحدّث عند تغيير الاسم)
 
   // تحميل عدد الاستفسارات لكل منشور بشكل غير متزامن
   if (currentUser) {
@@ -5478,29 +5525,31 @@ window.toggleDay = function(dayId) {
 };
 
 async function incrementView(dayId) {
-  let viewerName;
-  if (currentUser && currentUser.name !== 'زائر') {
-    viewerName = currentUser.name;
+  const ref = doc(db, 'views', dayId);
+  const snap = await getDoc(ref);
+  const now = Date.now();
+  const viewers = (snap.exists() && snap.data() && snap.data().viewers) ? Object.assign({}, snap.data().viewers) : {};
+  let key;
+  const memberKey = (currentUser && currentUser.name !== 'زائر') ? getMyVoterKey() : '';
+  if (memberKey) {
+    // الأيدي هو مفتاح المشاهدة — تغيير الاسم/اليوزر لا ينشئ مشاهدًا جديدًا
+    key = String(memberKey);
+    const guestKey = 'زائر (' + (localStorage.getItem('guestId') || '') + ')';
+    // إزالة المفاتيح القديمة بنفس الهوية (الاسم/اليوزر القديم + مفتاح الزائر على نفس الجهاز) لدمج المشاهدة
+    myIdentityKeys().concat([guestKey]).forEach(legacy => {
+      if (legacy && legacy !== key && Object.prototype.hasOwnProperty.call(viewers, legacy)) delete viewers[legacy];
+    });
   } else {
     let guestId = localStorage.getItem('guestId');
     if (!guestId) {
       guestId = Math.floor(1000 + Math.random() * 9000).toString();
       localStorage.setItem('guestId', guestId);
     }
-    viewerName = `زائر (${guestId})`;
+    key = `زائر (${guestId})`;
   }
-
-  const ref = doc(db, 'views', dayId);
-  const snap = await getDoc(ref);
-  const now = Date.now();
-  if (snap.exists()) {
-    const data = snap.data();
-    const viewers = data.viewers || {};
-    viewers[viewerName] = now; // إضافة أو تحديث توقيت المشاهدة
-    await updateDoc(ref, { viewers });
-  } else {
-    await setDoc(ref, { viewers: { [viewerName]: now }, dayId });
-  }
+  viewers[key] = now; // إضافة أو تحديث توقيت المشاهدة
+  if (snap.exists()) await updateDoc(ref, { viewers });
+  else await setDoc(ref, { viewers, dayId });
 }
 
 window.openViewersModal = function(e, dayId) {
@@ -5523,14 +5572,33 @@ window.openViewersModal = function(e, dayId) {
     listEl.innerHTML = '<div class="day-empty">لا توجد مشاهدات مسجلة بالأسماء</div>';
   } else {
     entries.sort((a, b) => b[1] - a[1]); // ترتيب من الأحدث للأقدم
-    entries.forEach(([name, time]) => {
+    entries.forEach(([vKey, time]) => {
       const date = new Date(time);
       const timeStr = date.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute:'2-digit' }) + ' - ' + date.toLocaleDateString('ar-IQ', { month:'short', day:'numeric' });
       const item = document.createElement('div');
       item.className = 'notif-item';
       item.style.display = 'flex'; item.style.justifyContent = 'space-between'; item.style.alignItems = 'center';
-      item.innerHTML = `<span style="font-weight:bold">${sanitizeText(name)}</span><span style="color:var(--text-secondary);font-size:11px">${timeStr}</span>`;
+      // تسمية أولية للمفتاح (أيدي/زائر/اسم قديم) ثم تُستبدل بالاسم الحيّ إن أمكن
+      const isIdKey = /^\d{3,6}$/.test(vKey);
+      const isGuestLabel = /^زائر\s*\(/.test(String(vKey));
+      const nameEl = document.createElement('span');
+      nameEl.style.fontWeight = 'bold';
+      nameEl.textContent = isIdKey ? identityLabel(vKey) : sanitizeText(vKey);
+      const timeEl = document.createElement('span');
+      timeEl.style.cssText = 'color:var(--text-secondary);font-size:11px';
+      timeEl.textContent = timeStr;
+      item.appendChild(nameEl);
+      item.appendChild(timeEl);
       listEl.appendChild(item);
+      // الاسم الحيّ بالأيدي: مفتاح عضو ← الملف الشخصي، واسم قديم ← حُلّه إلى أدي ثم اعرض اسمه الحالي
+      const applyLive = (p) => {
+        if (p && p.fullName && nameEl.isConnected) nameEl.textContent = p.fullName + (p.username ? ` (@${p.username})` : '');
+      };
+      if (isIdKey) {
+        loadAuthorProfile(vKey).then(applyLive).catch(() => {});
+      } else if (!isGuestLabel) {
+        resolveAuthorIdByName(vKey).then(id => (id ? loadAuthorProfile(id) : null)).then(applyLive).catch(() => {});
+      }
     });
   }
   openModal('viewers-modal');
@@ -5549,7 +5617,7 @@ window.showReadByModal = function(e, readByJson) {
     readBy.forEach(name => {
       const item = document.createElement('div');
       item.className = 'notif-item'; // إعادة استخدام نفس التنسيق
-      item.innerHTML = `<span style="font-weight:bold">${sanitizeText(name)}</span>`;
+      item.innerHTML = `<span style="font-weight:bold">${sanitizeText(identityLabel(name))}</span>`; // يوزر/أيدي/اسم قديم
       listEl.appendChild(item);
     });
   }
@@ -7269,8 +7337,7 @@ function updateMaterialsFavBtn() {
   btn.classList.toggle('active', materialsFavOnly);
   const badge = document.getElementById('materials-fav-badge');
   if (badge) {
-    const key = getMyVoterKey();
-    const n = allMaterials.filter(m => Array.isArray(m.likesBy) && m.likesBy.includes(key)).length;
+    const n = allMaterials.filter(m => hasMyKey(m.likesBy)).length;
     badge.textContent = n > 99 ? '99+' : String(n);
     badge.classList.toggle('show', n > 0);
   }
@@ -7294,13 +7361,13 @@ window.toggleMaterialsFavorites = function() {
 window.toggleMaterialLike = function(matId) {
   const mat = allMaterials.find(m => String(m.id) === String(matId));
   if (!mat || mat.uploading || !mat.id) return;
-  const key  = getMyVoterKey();
+  const key  = getMyVoterKey(); // مفتاح الكتابة: الأيدي الثابت
   const prev = Array.isArray(mat.likesBy) ? mat.likesBy.slice() : [];
-  const liked = prev.includes(key);
-  mat.likesBy = liked ? prev.filter(k => k !== key) : prev.concat(key);
+  const liked = hasMyKey(prev); // مطابقة بالأيدي + كل أسمائي السابقة
+  mat.likesBy = liked ? stripMyKeys(prev) : prev.concat(key);
   renderMaterialsGrid(); // إعادة الرسم فوراً لعرض العدّاد الجديد
   refreshMaterialDetailLike(mat); // وحدّث زر القلوب داخل مودال التفاصيل إن كان مفتوحاً
-  updateDoc(doc(db, 'materials', String(mat.id)), liked ? { likesBy: arrayRemove(key) } : { likesBy: arrayUnion(key) })
+  updateDoc(doc(db, 'materials', String(mat.id)), liked ? { likesBy: stripMyKeys(prev) } : { likesBy: arrayUnion(key) })
     .catch(() => {
       mat.likesBy = prev; // تراجع عند الفشل
       renderMaterialsGrid();
@@ -7332,7 +7399,7 @@ function refreshMaterialDetailLike(mat) {
   const btn = document.getElementById('material-detail-like');
   if (!btn) return;
   const likesBy = Array.isArray(mat.likesBy) ? mat.likesBy : [];
-  const likedMe = likesBy.includes(getMyVoterKey());
+  const likedMe = hasMyKey(likesBy);
   btn.classList.toggle('liked', likedMe);
   const ico = btn.querySelector('.md-like-ico');
   const cnt = btn.querySelector('.md-like-count');
@@ -7380,8 +7447,7 @@ function renderMaterialsGrid() {
   // كل الملازم المنشورة — تُفلتر أولاً بوضع القلوب (إن كان مفعّلاً) ثم بالمادة ثم بالنوع ثم بالبحث
   let filtered = allMaterials.slice();
   if (materialsFavOnly) {
-    const key = getMyVoterKey();
-    filtered = filtered.filter(m => Array.isArray(m.likesBy) && m.likesBy.includes(key));
+    filtered = filtered.filter(m => hasMyKey(m.likesBy));
   }
   if (materialsCurrentSubject)        filtered = filtered.filter(m => m.subject === materialsCurrentSubject);
   if (materialsTypeFilter !== 'الكل')     filtered = filtered.filter(m => {
@@ -7406,7 +7472,7 @@ function renderMaterialsGrid() {
     paginated.forEach(mat => {
       const color  = MATERIAL_TYPE_COLORS[mat.type] || '#6b7280';
       const likesBy   = Array.isArray(mat.likesBy) ? mat.likesBy : [];
-      const likedMe   = likesBy.includes(getMyVoterKey());
+      const likedMe   = hasMyKey(likesBy);
       const imgs   = matImageList(mat);       // الصور (تُطبَّع + التوافق الخلفي)
       const coverUrl = imgs[0]?.url || mat.previewUrl || null; // غلاف من أول صورة
       const isPdf  = mat.fileUrl && mat.fileUrl.toLowerCase().endsWith('.pdf') && !coverUrl;
@@ -7829,6 +7895,34 @@ const ACC_EN_MAP = {
 };
 
 let accProfile = null;                 // نسخة من مستند المستخدم الحالي (+ _id = اسم المستخدم)
+let accViewUser = null;                // ملف عضو آخر معروض (null = ملفي)
+let accPendingView = null;             // طلب فتح ملف عضو — يُستهلك في accOpen القادمة
+let accViewLoading = false;            // أثناء جلب ملف عضو آخر (يمنع المتابعة قبل اكتمال التحميل)
+// كاش الملفات الأخرى: يُظهر الملف فوراً عند النقر ثم يصل التحديث من السيرفر
+const accOtherCacheMem = {};
+function accOtherCacheGet(id) {
+  try {
+    const raw = localStorage.getItem('accOtherCache');
+    const m = raw ? JSON.parse(raw) : null;
+    return (m && m[id]) || accOtherCacheMem[id] || null;
+  } catch (e) { return accOtherCacheMem[id] || null; }
+}
+function accOtherCacheSet(id, data) {
+  try {
+    accOtherCacheMem[id] = data;
+    const raw = localStorage.getItem('accOtherCache');
+    const m = raw ? JSON.parse(raw) : {};
+    m[id] = {
+      _id: data._id, fullName: data.fullName, username: data.username,
+      bio: data.bio || '', photoURL: data.photoURL || '', userId: data.userId,
+      role: data.role, followers: Array.isArray(data.followers) ? data.followers : [],
+      following: Array.isArray(data.following) ? data.following : []
+    };
+    const keys = Object.keys(m);
+    keys.slice(0, Math.max(0, keys.length - 30)).forEach(k => delete m[k]); // حد أقصى 30 ملفاً
+    localStorage.setItem('accOtherCache', JSON.stringify(m));
+  } catch (e) {}
+}
 const accSelects = {};                 // القوائم المنسدلة ذات خيار "أخرى"
 let accLang  = localStorage.getItem('alfa_lang')  || 'ar';
 let accTheme = localStorage.getItem('alfa_theme') || 'dark';
@@ -7942,20 +8036,31 @@ function accProfileCacheSet(uname, profile) {
 }
 async function accLoadProfile() {
   if (!currentUser) { accProfile = null; return; }
-  const key = String(currentUser.code || '').toLowerCase();
+  const unameKey = String(currentUser.code || '').toLowerCase();
+  const idKey = String(currentUser.userId || '').trim();
   let resolved = null, data = null;
-  try { resolved = await resolveUserDoc(key); } catch (e) { resolved = null; }
+  // الهوية الحقيقية = المعرّف الرقمي: نجلب المستند به أولاً (لا يتأثر بتغيير الاسم أو اليوزر)
+  if (/^\d+$/.test(idKey)) {
+    try {
+      const s = await getDoc(doc(db, 'users', idKey));
+      if (s.exists()) resolved = { id: s.id, data: s.data() };
+    } catch (e) {}
+  }
+  // تكميلي: بالمسار/اليوزر/الأسماء السابقة (يغطي الجلسات القديمة والمستندات غير المرحّلة)
+  if (!resolved && unameKey) {
+    try { resolved = await resolveUserDoc(unameKey); } catch (e) { resolved = null; }
+  }
   if (resolved) {
     data = resolved.data;
   } else {
     // لا مستند أو فشلت القراءة: نكمل من الكاش المحلي حتى لا تضيع الاسم/الصورة عند ضعف الشبكة
-    const cached = accProfileCacheGet(key);
+    const cached = accProfileCacheGet(unameKey);
     if (cached && (cached.fullName || cached.photoURL)) {
-      data = Object.assign({}, cached, { username: key, fullName: cached.fullName || currentUser.name });
-      resolved = { id: String(cached._id || key), data };
+      data = Object.assign({}, cached, { username: unameKey, fullName: cached.fullName || currentUser.name });
+      resolved = { id: String(cached._id || unameKey), data };
     } else {
-      data = { username: key, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
-      resolved = { id: key, data };
+      data = { username: unameKey, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
+      resolved = { id: unameKey, data };
     }
   }
   // الترحيل إلى مسار المعرّف الرقمي (Firestore يعتمد على الأيدي لا اليوزرات)
@@ -7967,11 +8072,33 @@ async function accLoadProfile() {
   }
   if (!data.userId) {
     try {
-      const id = await ensureUserId(key);
+      const id = await ensureUserId(unameKey || idKey);
       if (id) data.userId = id;
     } catch (e) { /* تعذّر توليد المعرّف الآن — لا يمنع عرض الملف */ }
   }
   accProfile = Object.assign({}, data, { _id: resolved.id }); // _id = مسار المستند (رقمي بعد الترحيل)
+  // مزامنة الجلسة من المستند نفسه: الأيدي هو المرجع — إن تغيّر الاسم/اليوزر في جهاز آخر
+  // يتحدّث فوراً هنا بدل أن يبقى المستخدم «شخصاً آخر»
+  try {
+    let syncChanged = false;
+    if (data.userId && String(currentUser.userId || '') !== String(data.userId)) {
+      currentUser.userId = String(data.userId);
+      localStorage.setItem('userId', currentUser.userId);
+      syncChanged = true;
+    }
+    if (data.username && String(currentUser.code || '') !== String(data.username)) {
+      currentUser.code = String(data.username);
+      localStorage.setItem('username', currentUser.code);
+      syncChanged = true;
+    }
+    if (data.fullName && String(currentUser.name || '') !== String(data.fullName)) {
+      currentUser.name = String(data.fullName);
+      localStorage.setItem('name', currentUser.name);
+      syncChanged = true;
+    }
+    if (syncChanged) { saveSession(currentUser); updateHeaderUI(true); }
+    if (data.userId && data.username) rememberIdName(data.userId, data.username, data.fullName || '');
+  } catch (e) {}
 }
 function accFillForm() {
   const p = accProfile || {};
@@ -7993,9 +8120,20 @@ function accRender() {
   const guest = !currentUser;
   accEl('acc-guest').style.display = guest ? 'block' : 'none';
   accEl('acc-main').style.display  = guest ? 'none'  : 'block';
+  if (accViewUser && !guest) { accRenderOther(); return; } // ملف عضو آخر (متابعة فقط)
   if (guest || !accProfile) return;
   accProfileCacheSet(String(currentUser.code || '').toLowerCase(), accProfile); // حفظ فوري: ظهور سريع في المرة القادمة
   const p = accProfile;
+  // إعادة الواجهة لوضع «ملفي» إن كانت معروضة لحساب آخر
+  const avBtn = accEl('acc-avatar'); if (avBtn) avBtn.setAttribute('data-act', 'open-manage');
+  const likeStat = accEl('acc-likes-stat'); if (likeStat) likeStat.setAttribute('data-act', 'open-likes');
+  const ownAct = accEl('acc-own-actions'); if (ownAct) ownAct.style.display = '';
+  const hlBtn = accEl('acc-highlight-btn'); if (hlBtn) hlBtn.style.display = '';
+  const frRow = accEl('acc-follow-row'); if (frRow) frRow.style.display = 'none';
+  const bkBtn = document.querySelector('.ig-topbar [data-act="toggle-settings"]'); if (bkBtn) bkBtn.style.display = '';
+  const addBtn = document.querySelector('.ig-topbar [data-act="ig-add"]'); if (addBtn) addBtn.style.display = '';
+  const pt = accEl('acc-posts-title'); if (pt) pt.textContent = 'منشوراتي';
+  accUpdateFollowStats();
   const name = p.fullName || currentUser.name || '—';
   accEl('acc-name').textContent = name;
   // علامة التوثيق للمالك فقط (معرّف 666) — نُضيف/نحذف الكلاس حسب صاحب هذا الملف
@@ -8033,11 +8171,12 @@ function accRender() {
   accFillInfo();
 }
 // ── مطابقة «هذه ملزمتي؟» — بالمعرّف الداخلي أو اسم المستخدم، أو بالاسم للملازم القديمة بلا authorId ──
-function accIsMyMaterial(m) {
-  if (!m || m.uploading || !accProfile) return false;
-  const uid  = accProfile.userId ? String(accProfile.userId) : '';
-  const user = String(accProfile.username || accProfile._id || '');
-  const nm   = String(accProfile.fullName || (currentUser && currentUser.name) || '');
+function accIsMyMaterial(m, p) {
+  p = p || accViewUser || accProfile;
+  if (!m || m.uploading || !p) return false;
+  const uid  = p.userId ? String(p.userId) : '';
+  const user = String(p.username || p._id || '');
+  const nm   = String(p.fullName || (p === accProfile && currentUser && currentUser.name) || '');
   const a = String(m.authorId || '');
   return !!((uid && a === uid) || (user && a === user) || (!a && nm && String(m.createdBy || '') === nm));
 }
@@ -8053,7 +8192,7 @@ function accMyLikesTotal() {
 function accUpdateLikesStat() {
   const el = accEl('acc-likes-count');
   if (!el) return;
-  const n = accProfile ? accMyLikesTotal() : 0;
+  const n = (accProfile || accViewUser) ? accMyLikesTotal() : 0;
   el.textContent = n > 999 ? '999+' : String(n);
 }
 // ── وقت نشر الملزمة (لترتيب «منشوراتي»: الأحدث أولاً) — يقبل Firestore Timestamp أو Date أو رقم ──
@@ -8095,13 +8234,277 @@ function accBuildPostCard(m) {
   card.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
   return card;
 }
+// ═══════════ ملفات الأعضاء الآخرين + المتابعة (نمط إنستغرام — بلا مراسلة) ═══════════
+window.accOpenProfile = function (userId, nameFallback) {
+  if (!currentUser) { showToast('⚠️', 'تنبيه', 'سجّل الدخول لعرض الملف الشخصي'); return; }
+  const id = String(userId || '').trim();
+  if (!id) { showToast('ℹ️', 'الملف الشخصي', 'لا يوجد معرّف لهذا المؤلف'); return; }
+  // فحص «حسابي» بكل مفاتيح هويتي (الأيدي + اليوزرات السابقة) — الأيدي هو الحقيقة
+  if (myIdentityKeys().includes(id)) { accViewUser = null; setActiveNav('user'); return; } // حسابي
+  accPendingView = { id, name: nameFallback || '' };
+  setActiveNav('user'); // يستدعي accOpen ← يفتح accOpenOther
+};
+window.accViewOwnProfile = function () { accViewUser = null; accOpen(); };
+// النقر على صورة/اسم المُرسِل في تعليقات البلاغ → إغلاق نافذة التعليقات ثم فتح ملفه الشخصي
+window.openCommentProfile = function (senderId, senderName) {
+  try { closeReportComments(); } catch (e) {}
+  try { const w = document.getElementById('alfachat-window'); if (w && w.classList.contains('open')) closePostChat(); } catch (e) {}
+  accOpenProfile(senderId, senderName);
+};
+window.openPubProfile = function () {
+  const mat = (Array.isArray(allMaterials) ? allMaterials : [])
+    .find(m => String(m.id) === String(typeof detailMatId !== 'undefined' ? detailMatId : ''));
+  if (!mat) return;
+  const aid = String(mat.authorId || '');
+  if (!aid) { showToast('ℹ️', 'الملف الشخصي', 'لا يوجد معرّف لهذا الناشر'); return; }
+  try { closeModal('material-detail-modal'); } catch (e) {} // إغلاق التفاصيل أولاً حتى يظهر الملف فوراً
+  accOpenProfile(aid, mat.createdBy || '');
+};
+async function accOpenOther(userId, nameFallback) {
+  const id = String(userId || '').trim();
+  if (!id || (currentUser && myIdentityKeys().includes(id))) { accViewUser = null; accOpen(); return; }
+  // رسم فوري: من الكاش المحلي أو بديل مؤقت — بلا انتظار الشبكة (الملف يظهر مجراً ثم يتحدّث)
+  const cached = accOtherCacheGet(id);
+  accViewUser = cached
+    ? Object.assign({}, cached, { _id: cached._id || id })
+    : { _id: id, fullName: nameFallback || '…', username: '', bio: '', photoURL: '', role: 'student',
+        followers: [], following: [], userId: /^\d+$/.test(id) ? id : '' };
+  accViewLoading = true;
+  accRenderOther();
+  // جلب البيانات الحية للفحص والتحديث
+  let data = null, docId = '';
+  try {
+    const snap = await getDoc(doc(db, 'users', id));
+    if (snap.exists()) { data = snap.data(); docId = snap.id; }
+  } catch (e) {}
+  if (!data) { // معرّف قديم: بالحقل userId أو باسم المستخدم
+    try {
+      const asNum = Number(id);
+      let snap = await getDocs(query(collection(db, 'users'), where('userId', '==', isNaN(asNum) ? id : asNum), limit(1)));
+      if (snap.empty) snap = await getDocs(query(collection(db, 'users'), where('username', '==', id.toLowerCase()), limit(1)));
+      if (!snap.empty) { data = snap.docs[0].data(); docId = snap.docs[0].id; }
+    } catch (e) {}
+  }
+  if (!data) { // مفتاح قديم (يوزر سابق/بريد دخول): نفس مسار حلّ الهوية — يبقى نفس الشخص
+    try {
+      const found = await resolveUserDoc(id);
+      if (found) { data = found.data; docId = found.id; }
+    } catch (e) {}
+  }
+  accViewLoading = false;
+  if (!data) {
+    if (cached) return; // الكاش يكفي عند تعذّر الشبكة — لا نرجع لملفي بالخطأ
+    showToast('⚠️', 'الملف الشخصي', 'تعذّر العثور على هذا الحساب');
+    accViewUser = null; accOpen(); return;
+  }
+  if (nameFallback && !data.fullName) data = Object.assign({}, data, { fullName: nameFallback });
+  accViewUser = Object.assign({}, data, { _id: docId });
+  accOtherCacheSet(id, accViewUser);
+  accRenderOther();
+}
+
+// عرض ملف عضو آخر: بلا تعديل ولا إضافة ولا مراسلة — متابعة فقط
+function accRenderOther() {
+  const u = accViewUser;
+  if (!u || !currentUser) return;
+  // إظهار جسم الملف فوراً — مسار فتح ملف عضو يعود قبل accRender فقد يبقى acc-main مخفياً (شاشة فارغة)
+  accEl('acc-guest').style.display = 'none';
+  accEl('acc-main').style.display = 'block';
+  const name = u.fullName || u.username || '—';
+  // الترويسة: إخفاء الإعدادات والإضافة وإظهار اسم العضو
+  const bk = document.querySelector('.ig-topbar [data-act="toggle-settings"]'); if (bk) bk.style.display = 'none';
+  const ad = document.querySelector('.ig-topbar [data-act="ig-add"]'); if (ad) ad.style.display = 'none';
+  const topU = accEl('acc-topbar-user'); if (topU) topU.textContent = '@' + (u.username || u._id);
+  // الهوية: الاسم + التوثيق (حسب صلاحية «التوثيق») + الشارة
+  accEl('acc-name').textContent = name;
+  const nameEl = accEl('acc-name');
+  if (nameEl) nameEl.classList.toggle('is-owner', !!verifiedBadgeHTML(String(u.userId != null ? u.userId : u._id), name));
+  const badgeEl = accEl('acc-badge');
+  if (badgeEl) { const bt = accRoleBadge(u); badgeEl.textContent = bt; badgeEl.style.display = bt ? '' : 'none'; }
+  const bioEl = accEl('acc-bio');
+  if (bioEl) bioEl.textContent = (u.bio && String(u.bio).trim()) ? u.bio : 'لا يوجد وصف بعد.';
+  // الصورة (بلا فتح نافذة التعديل)
+  const av = accEl('acc-avatar'), photo = u.photoURL || '';
+  if (av) { av.style.backgroundImage = photo ? 'url("' + photo.replace(/"/g, '%22') + '")' : ''; av.removeAttribute('data-act'); }
+  const lt = accEl('acc-avatar-letter');
+  if (lt) { lt.style.display = photo ? 'none' : ''; lt.textContent = (name.trim()[0] || '؟'); }
+  // الأعجابات: بلا فتح «إعجاباتي»
+  const likeStat = accEl('acc-likes-stat'); if (likeStat) likeStat.removeAttribute('data-act');
+  // إخفاء أزراري وإظهار المتابعة
+  const ownAct = accEl('acc-own-actions'); if (ownAct) ownAct.style.display = 'none';
+  const hl = accEl('acc-highlight-btn'); if (hl) hl.style.display = 'none';
+  const frRow = accEl('acc-follow-row'); if (frRow) frRow.style.display = '';
+  const pt = accEl('acc-posts-title'); if (pt) pt.textContent = 'منشورات ' + name;
+  try { if (typeof subscribeMaterials === 'function' && !unsubMaterials) subscribeMaterials(); } catch (e) {}
+  accUpdateLikesStat();
+  accUpdateFollowStats();
+  accUpdateFollowBtn();
+  accRenderMyPosts();
+  window.scrollTo(0, 0);
+}
+// ── قوائم «المتابعون / يتابع» — دخول ورؤية الحسابات ومتابعتها ──
+let flProfiles = []; // الحسابات المعروضة في القائمة الحالية
+window.openFollowList = function (mode) {
+  const owner = accViewUser || accProfile;
+  if (!currentUser) { showToast('⚠️', 'تنبيه', 'سجّل الدخول لعرض القوائم'); return; }
+  if (!owner) return;
+  flProfiles = [];
+  const keys = Array.isArray(owner[mode]) ? owner[mode].slice() : [];
+  const who = owner.fullName || owner.username || '';
+  const title = accEl('fl-title');
+  if (title) title.textContent = (mode === 'followers' ? 'المتابعون — ' : 'يتابع — ') + who;
+  const hint = accEl('fl-hint');
+  if (hint) hint.textContent = keys.length ? (keys.length + ' حساب — اضغط للدخول للملف أو للمتابعة') : '';
+  const list = accEl('fl-list');
+  if (list) list.innerHTML = '<div class="am-empty">جارٍ التحميل…</div>';
+  openModal('follow-list-modal');
+  if (!keys.length) { if (list) list.innerHTML = '<div class="am-empty">لا توجد حسابات بعد</div>'; return; }
+  followLoadProfiles(keys).then(profiles => {
+    flProfiles = profiles;
+    flRenderList(keys.length - profiles.length);
+  }).catch(() => { if (list) list.innerHTML = '<div class="am-empty">تعذّر تحميل الحسابات</div>'; });
+};
+// تحميل بيانات مجموعة حسابات من معرّفاتها (مسار مباشر ثم بحث احتياطي)
+async function followLoadProfiles(keys) {
+  const out = [];
+  await Promise.all(keys.map(async k => {
+    const key = String(k);
+    try {
+      const snap = await getDoc(doc(db, 'users', key));
+      if (snap.exists()) { out.push(Object.assign({}, snap.data(), { _id: snap.id })); return; }
+    } catch (e) {}
+    try {
+      const asNum = Number(key);
+      let s = await getDocs(query(collection(db, 'users'), where('userId', '==', isNaN(asNum) ? key : asNum), limit(1)));
+      if (s.empty) s = await getDocs(query(collection(db, 'users'), where('username', '==', key.toLowerCase()), limit(1)));
+      if (!s.empty) { out.push(Object.assign({}, s.docs[0].data(), { _id: s.docs[0].id })); return; }
+    } catch (e) {}
+    // مفتاح قديم (يوزر سابق/بريد دخول/مسار غير مرحّل): نفس مسار حلّ الهوية
+    try {
+      const found = await resolveUserDoc(key);
+      if (found) out.push(Object.assign({}, found.data, { _id: found.id }));
+    } catch (e) {}
+  }));
+  return out;
+}
+function flRenderList(missingCount) {
+  const list = accEl('fl-list');
+  if (!list) return;
+  if (!flProfiles.length) {
+    list.innerHTML = '<div class="am-empty">لا توجد حسابات' + (missingCount > 0 ? ' (بعض الحسابات محذوفة)' : ' بعد') + '</div>';
+    return;
+  }
+  const myKeys = myIdentityKeys(); // الأيدي + مفاتيحي السابقة (لا يتغيّر مع اسمي)
+  list.innerHTML = flProfiles.map((u, i) => {
+    const letter = amEsc(String(u.fullName || u.username || '؟').trim().charAt(0) || '؟');
+    const photo = u.photoURL ? '<img src="' + amEsc(u.photoURL) + '" alt="" loading="lazy" onerror="this.remove()">' : '';
+    const uKey = (u.userId != null && u.userId !== '') ? String(u.userId) : String(u.username || u._id);
+    const isSelf = myKeys.includes(uKey) || myKeys.includes(String(u._id));
+    const isFollowing = hasMyKey(u.followers);
+    const btn = isSelf ? '' : '<button type="button" class="fl-follow-btn' + (isFollowing ? ' following' : '') + '" onclick="event.stopPropagation(); flToggleFollow(' + i + ')">' + (isFollowing ? '✓ متابَع' : 'متابعة') + '</button>';
+    return '<div class="am-row" onclick="flOpenProfile(' + i + ')">' +
+      '<span class="am-avatar"><i>' + letter + '</i>' + photo + '</span>' +
+      '<div class="am-info"><b>' + amEsc(u.fullName || 'بدون اسم') + '</b>' +
+      '<small dir="ltr">@' + amEsc(u.username || u._id) + '</small></div>' +
+      btn + '</div>';
+  }).join('');
+}
+window.flOpenProfile = function (i) {
+  const u = flProfiles[i];
+  if (!u) return;
+  try { closeModal('follow-list-modal'); } catch (e) {}
+  const key = (u.userId != null && u.userId !== '') ? String(u.userId) : String(u._id);
+  accOpenProfile(key, u.fullName || '');
+};
+window.flToggleFollow = async function (i) {
+  const u = flProfiles[i];
+  if (!u || !currentUser || !accProfile) return;
+  const myKeys = myIdentityKeys();
+  const uKey = (u.userId != null && u.userId !== '') ? String(u.userId) : String(u.username || u._id);
+  if (myKeys.includes(uKey) || myKeys.includes(String(u._id))) { showToast('ℹ️', 'المتابعة', 'لا يمكنك متابعة نفسك'); return; }
+  const p = followToggleCore(u); // متفائل لحظياً
+  flRenderList();
+  const res = await p;
+  if (!res.ok) {
+    flRenderList(); // النواة تراجعت
+    showToast('❌', 'خطأ', (res.err && res.err.code === 'permission-denied') ? 'قواعد Firestore تمنع المتابعة' : 'تعذّر تنفيذ المتابعة');
+    return;
+  }
+  // مزامنة الملف المفتوح خلف القائمة (إن كان هو صاحب القائمة)
+  if (accViewUser && String(accViewUser._id) === String(u._id)) {
+    accViewUser.followers = Array.isArray(u.followers) ? u.followers.slice() : [];
+    accUpdateFollowBtn();
+  }
+  accUpdateFollowStats();
+  showToast('✅', res.was ? 'ألغيت المتابعة' : 'تمت المتابعة', res.was ? '' : 'يتابعك الآن: ' + (u.fullName || ''));
+};
+function accUpdateFollowStats() {
+  const p = accViewUser || accProfile;
+  const f = accEl('acc-followers-count'), g = accEl('acc-following-count');
+  if (f) f.textContent = p && Array.isArray(p.followers) ? p.followers.length : 0;
+  if (g) g.textContent = p && Array.isArray(p.following) ? p.following.length : 0;
+}
+function accUpdateFollowBtn() {
+  const btn = accEl('acc-follow-btn');
+  if (!btn || !accViewUser || !currentUser) return;
+  const following = hasMyKey(accViewUser.followers); // بالأيدي + أسمائي السابقة
+  btn.textContent = following ? '✓ متابَع' : 'متابعة';
+  btn.classList.toggle('following', !!following);
+}
+// نواة المتابعة المشتركة (ملف الشخصي + قوائم المتابعين) — تُحدّث t فوراً وتعيد {was, ok, err}
+async function followToggleCore(t) {
+  const myKey = getMyVoterKey();   // مفتاح الكتابة: المعرّف الرقمي الثابت
+  const myKeys = myIdentityKeys(); // كل مفاتيحي لإزالة/المطابقة مع المتابعة القديمة
+  const tDoc = String(t._id);
+  const arr = Array.isArray(t.followers) ? t.followers.slice() : [];
+  const was = arr.some(v => myKeys.includes(String(v)));
+  t.followers = was ? arr.filter(v => !myKeys.includes(String(v))) : arr.concat(myKey); // تحديث متفائل لحظي
+  try {
+    const upd = was
+      ? { followers: arrayRemove.apply(null, arr.filter(v => myKeys.includes(String(v)))) }
+      : { followers: arrayUnion(myKey) };
+    await updateDoc(doc(db, 'users', tDoc), upd);
+    const mine = Array.isArray(accProfile.following) ? accProfile.following.slice() : [];
+    const hasT = mine.includes(tDoc);
+    if (!was && !hasT) {
+      await updateDoc(doc(db, 'users', String(accProfile._id)), { following: arrayUnion(tDoc) });
+      accProfile.following = mine.concat(tDoc);
+    } else if (was && hasT) {
+      await updateDoc(doc(db, 'users', String(accProfile._id)), { following: arrayRemove(tDoc) });
+      accProfile.following = mine.filter(x => x !== tDoc);
+    }
+    accOtherCacheSet(tDoc, t); // كاش الملف يبقى مطابقاً
+    return { was, ok: true };
+  } catch (e) {
+    t.followers = arr; // تراجع عند الفشل
+    return { was, ok: false, err: e };
+  }
+}
+window.accToggleFollow = async function () {
+  const t = accViewUser;
+  if (!t || !currentUser || !accProfile) return;
+  if (accViewLoading) { showToast('ℹ️', 'الملف الشخصي', 'جارٍ تحميل بيانات الحساب…'); return; }
+  const p = followToggleCore(t); // يستهل فوراً: يحدّث t.followers لحظياً
+  accUpdateFollowBtn();
+  accUpdateFollowStats();
+  const res = await p;
+  if (!res.ok) {
+    accUpdateFollowBtn(); // النواة تراجعت بالفعل
+    accUpdateFollowStats();
+    showToast('❌', 'خطأ', (res.err && res.err.code === 'permission-denied') ? 'قواعد Firestore تمنع المتابعة' : 'تعذّر تنفيذ المتابعة');
+    return;
+  }
+  showToast('✅', res.was ? 'ألغيت المتابعة' : 'تمت المتابعة', res.was ? '' : 'يتابعك الآن: ' + (t.fullName || ''));
+};
+
 // ── «منشوراتي»: شبكة مرتبة لملازمي المنشورة داخل الملف الشخصي ──
 function accRenderMyPosts() {
   const grid = accEl('acc-posts-grid');
   if (!grid) return;
-  if (!accProfile) { grid.innerHTML = ''; return; }
+  const ownerP = accViewUser || accProfile;
+  if (!ownerP) { grid.innerHTML = ''; return; }
   const mine = (Array.isArray(allMaterials) ? allMaterials : [])
-    .filter(m => m && m.id && !m.uploading && accIsMyMaterial(m))
+    .filter(m => m && m.id && !m.uploading && accIsMyMaterial(m, ownerP))
     .sort((a, b) => accPostTime(b) - accPostTime(a));
   if (!mine.length) {
     grid.innerHTML = materialsLoadedOnce
@@ -8118,9 +8521,8 @@ function accRenderLikedPosts() {
   const grid = accEl('acc-likes-grid');
   if (!grid) return;
   if (!accProfile) { grid.innerHTML = ''; return; }
-  const key = getMyVoterKey();
   const liked = (Array.isArray(allMaterials) ? allMaterials : [])
-    .filter(m => m && m.id && !m.uploading && Array.isArray(m.likesBy) && m.likesBy.includes(key))
+    .filter(m => m && m.id && !m.uploading && hasMyKey(m.likesBy))
     .sort((a, b) => accPostTime(b) - accPostTime(a));
   if (!liked.length) {
     grid.innerHTML = materialsLoadedOnce
@@ -8180,6 +8582,12 @@ function accOpenManage() {
 }
 async function accOpen(autoLogin = false) {
   window.scrollTo(0, 0);
+  // فتح ملف عضو آخر (نقر على اسم مؤلف) — يُستهلك مرة واحدة، وإلا فتح عادي = ملفي
+  if (!currentUser) { accPendingView = null; accViewUser = null; }
+  else if (accPendingView) {
+    const v = accPendingView; accPendingView = null;
+    return accOpenOther(v.id, v.name);
+  } else if (accViewUser) { accViewUser = null; }
   accRender();                                  // يعرض حالة الزائر فوراً إن لم يكن مسجلاً
   if (!currentUser) {
     // الزائر غير المسجّل: أظهر واجهة تسجيل الدخول مباشرةً عند دخوله للملف الشخصي
@@ -8198,6 +8606,11 @@ async function accOpen(autoLogin = false) {
     await accLoadProfile();
     accFillForm();
     accRender();
+  } else {
+    // تحديث عدّادَي المتابعين لحظياً في الخلفية (ملفي يظهر فوراً من الكاش ثم يتحدّث)
+    accLoadProfile().then(() => {
+      if (accVisible() && !accViewUser && accProfile) { accFillForm(); accRender(); }
+    }).catch(() => {});
   }
 }
 // تُستدعى من updateHeaderUI عند أي تغيير في حالة الدخول
@@ -8276,12 +8689,21 @@ async function accSaveProfile() {
   const bioEl = accEl('acc-f-bio');
   const bio = bioEl ? String(bioEl.value || '').trim().slice(0, 150) : '';
   const data = { fullName: name, bio, shift, section, stage };
+  // حفظ الاسم الكامل السابق: يبقي رسائل/قراءات ما قبل التغيير تابعة لنفس الشخص (الهوية = الأيدي)
+  if (accProfile.fullName && accProfile.fullName !== name) {
+    const pf = Array.isArray(accProfile.previousFullNames) ? accProfile.previousFullNames.slice() : [];
+    if (!pf.includes(accProfile.fullName)) pf.push(accProfile.fullName);
+    data.previousFullNames = pf;
+  }
   Object.keys(ACC_LISTS).forEach(k => data[k] = accSelects[k].get());
   const btn = accEl('acc-save');
   accBusy(btn, true);
   try {
     await setDoc(doc(db, 'users', accProfile._id), data, { merge: true });
     Object.assign(accProfile, data);
+    if (accProfile.userId && accProfile.username) rememberIdName(accProfile.userId, accProfile.username, accProfile.fullName || '');
+    invalidateAuthorProfiles(); // الاسم/البيانات تغيّرت — أعد جلب الأسماء الحية
+    setTimeout(() => { try { enhanceAuthorNames(document); } catch (e) {} }, 400);
     // تغيير اسم المستخدم (إن تغيّر) — يستخدم نفس منطق الحجز والتحقق
     let userChanged = false;
     try { const r = await accChangeUsername(nuUser); userChanged = r.changed; }
@@ -8372,6 +8794,9 @@ async function accChangeUsername(nu) {
   if (!accProfile.emailPrefix) update.emailPrefix = old; // تثبيت بريد الدخول قبل اختفاء الاسم القديم
   await setDoc(doc(db, 'users', accProfile._id), update, { merge: true });
   Object.assign(accProfile, update);
+  if (accProfile.userId) rememberIdName(accProfile.userId, nu, accProfile.fullName || ''); // ربط الأيدي بالاسم الجديد
+  invalidateAuthorProfiles(); // أبطأ كاش الأسماء القديمة بعد تغيير اليوزر
+  setTimeout(() => { try { enhanceAuthorNames(document); } catch (e) {} }, 400);
   accApplyToSession();
   return { changed: true, nu };
 }
@@ -8384,7 +8809,7 @@ async function accSaveUsername() {
   accBusy(btn, true);
   try {
     const res = await accChangeUsername(nu);
-    if (res.changed) showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + res.nu + ' — سجّل دخولك به من الآن، واسمك القديم بقي محجوزاً لك');
+    if (res.changed) showToast('✅', 'تم التغيير', 'اسم المستخدم الجديد: @' + res.nu + ' — حسابك هو نفسه والأيدي يبقى هويتك، واسمك القديم بقي محجوزاً لك');
     accRender();
   } catch (e) {
     accSetErr('acc-mg-user-err', accErrMsg(e));
@@ -8779,6 +9204,7 @@ function renderReports() {
     list.querySelectorAll('.poll-bar .fill[data-w]').forEach(f => { f.style.width = f.dataset.w + '%'; });
   });
   enhanceAvatars(list); // صور الملفات الشخصية (تتجدد عند تغييرها في الملف الشخصي)
+  try { enhanceAuthorNames(list); } catch (e) {} // أسماء المُنشئين الحية بالأيدي
 
   // شارة عدد التعليقات لكل بلاغ (عدّ سريع من الخادم — لا يؤثّر على العرض إن فشل)
   list.querySelectorAll('.rc-count-chip[data-rc-id]').forEach(chip => {
@@ -9612,22 +10038,96 @@ function verifiedBadgeHTML(authorId, authorName) {
   if (id && (id === String(OWNER_USER_ID) || _verifiedIds.has(id))) {
     return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
   }
+  // توافق مع منشورات/رسائل قديمة كُتبت قبل وجود الأيدي (المالك باليوزر baqer)
+  if (id === AUTH_OWNER || String(authorName == null ? '' : authorName) === AUTH_OWNER) {
+    return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+  }
   return '';
 }
 
-// ── خدمة صور الملفات الشخصية (مصدر واحد + كاش يتجدد عند تغيير الصورة) ──
-const _authorPhotoCache = new Map();   // username → Promise<url|null>
+// ── خدمة صور/بيانات الملفات الشخصية (مصدر واحد + كاش يتجدد عند التغيير) ──
+const _authorPhotoCache = new Map();   // key → Promise<url|null>
+const _authorProfileCache = new Map(); // key → { t, p: Promise<profile|null> } — كاش حيّ بالهوية
 let _usersPhotoMap = null;             // الاسم الكامل → رابط الصورة (قراءة دفعة واحدة)
 
-async function _fetchAuthorPhoto(key) {
+// جلب ملف حيّ بأي مفتاح هوية (أيدي/يوزر/يوزر سابق) — يبقى نفس الشخص مهما تغيّر اسمه
+async function _fetchAuthorProfile(key) {
   try {
-    const snap = await getDoc(doc(db, 'users', key));
-    if (snap.exists()) return snap.data().photoURL || null;
-    // مرجع قديم بصيغة يوزر (بعد ترحيل المستند إلى مسار المعرّف الرقمي)
-    const q = await getDocs(query(collection(db, 'users'), where('username', '==', key), limit(1)));
-    if (!q.empty) return q.docs[0].data().photoURL || null;
-    return null;
+    const k = String(key == null ? '' : key);
+    if (!k) return null;
+    let data = null, id = '';
+    try {
+      const snap = await getDoc(doc(db, 'users', k));
+      if (snap.exists()) { data = snap.data(); id = snap.id; }
+    } catch (e) {}
+    if (!data) {
+      // مرجع قديم بصيغة يوزر (بعد ترحيل المستند إلى مسار المعرّف الرقمي)
+      const q = await getDocs(query(collection(db, 'users'), where('username', '==', k.toLowerCase()), limit(1)));
+      if (!q.empty) { data = q.docs[0].data(); id = q.docs[0].id; }
+    }
+    if (!data) return null;
+    const p = Object.assign({}, data, { _id: id });
+    if (p.userId && p.username) rememberIdName(p.userId, p.username, p.fullName || '');
+    return p;
   } catch (e) { return null; }
+}
+// كاش بهمة 5 دقائق حتى لا تبقى أسماء الآخرين قديمة بعد تغييرها
+function loadAuthorProfile(key) {
+  if (!key) return Promise.resolve(null);
+  const k = String(key);
+  const hit = _authorProfileCache.get(k);
+  if (hit && (Date.now() - hit.t) < 5 * 60 * 1000) return hit.p;
+  const p = _fetchAuthorProfile(k);
+  _authorProfileCache.set(k, { t: Date.now(), p });
+  return p;
+}
+// إبطاء كاش الملفات بعد تغيير الاسم/البيانات (ケー نفس حساب أو تعديل من الإدارة)
+function invalidateAuthorProfiles() {
+  try { _authorProfileCache.clear(); } catch (e) {}
+}
+// ── ترقية العناصر القديمة: تحويل اسم ظاهر (قديم) إلى الأيدي ──
+// الرسائل/المنشورات التي سُجّلت قبل تشغيل الهوية بالـ ID تحمل الاسم النصّي فقط؛
+// نحلّه إلى أدي فريد حتى يتبع صاحبه اسمه الحيّ مهما تغيّر الاسم أو اليوزر لاحقاً.
+const _authorIdByNameCache = new Map(); // الاسم → { p: Promise<id|null>, t, pos } (النتيجتان تُخزّنان)
+function resolveAuthorIdByName(name) {
+  const n = String(name == null ? '' : name).trim();
+  if (!n) return Promise.resolve(null);
+  const hit = _authorIdByNameCache.get(n);
+  if (hit && (hit.pos || (Date.now() - hit.t) < 10 * 60 * 1000)) return hit.p; // الإيجابية دائمة، السلبية تنتهي (قد كان دون اتصال)
+  const pr = (async () => {
+    try { // يوزر (استعلام موجود أصلًا في الكود)
+      const s1 = await getDocs(query(collection(db, 'users'), where('username', '==', n.toLowerCase()), limit(1)));
+      if (!s1.empty) { const d = s1.docs[0].data(); return String(d.userId || s1.docs[0].id); }
+    } catch (e) {}
+    try { // اسم كامل فريد (يغطي الرسائل/المشاهدات القديمة)
+      const s2 = await getDocs(query(collection(db, 'users'), where('fullName', '==', n), limit(5)));
+      if (s2 && s2.size === 1) {
+        const d = s2.docs[0].data();
+        const rid = String(d.userId || s2.docs[0].id);
+        if (d.username && d.fullName) rememberIdName(rid, d.username, d.fullName);
+        return rid;
+      }
+      if (s2 && s2.size > 1) return null; // الاسم مكرّر لدى عدة أعضاء → لا نخمّن
+    } catch (e) {}
+    try { // اسم محفوظ سابقًا (previousFullNames) بعد تغيير الاسم مجدداً
+      const s3 = await getDocs(query(collection(db, 'users'), where('previousFullNames', 'array-contains', n), limit(5)));
+      if (s3 && s3.size === 1) {
+        const d = s3.docs[0].data();
+        const rid = String(d.userId || s3.docs[0].id);
+        if (d.username && d.fullName) rememberIdName(rid, d.username, d.fullName);
+        return rid;
+      }
+    } catch (e) {}
+    return null;
+  })();
+  const entry = { p: pr, t: Date.now(), pos: false };
+  pr.then(id => { if (id) entry.pos = true; }).catch(() => {});
+  _authorIdByNameCache.set(n, entry);
+  return pr;
+}
+async function _fetchAuthorPhoto(key) {
+  const p = await _fetchAuthorProfile(key);
+  return p ? (p.photoURL || null) : null;
 }
 function loadAuthorPhoto(authorId) {
   if (!authorId) return Promise.resolve(null);
@@ -9657,6 +10157,65 @@ function invalidateAuthorPhotos(authorId) {
 function refreshAllAuthorAvatars() {
   try { renderReports(); } catch (e) {}          // البلاغات (إن كانت محمّلة)
   try { refreshOfflinePosts(); } catch (e) {}     // منشورات الجدول المرئية
+  try { enhanceAuthorNames(document); } catch (e) {} // أسماء حية بالأيدي بعد أي تغيير
+}
+// إثراء عام: يحدّث كل عنصر معروض باسمه الحيّ من المستند (الأيدي ثابت والاسم يتغيّر)
+// يشمل العناصر القديمة التي لا تحمل أدي: يُحلّ اسمها النصّي إلى أدي ثم تُحدَّث باسمها الحالي
+function enhanceAuthorNames(root = document) {
+  try {
+    if (!root || !root.querySelectorAll) return;
+    // تطبيق الاسم الحيّ على عنصر: بالـ id المكتوب أو بعد حلّ اسمه القديم إلى أدي
+    const applyLive = (el, nameHint, setTo) => {
+      if (!el || !el.isConnected) return;
+      const doLoad = (id) => {
+        loadAuthorProfile(id).then(p => {
+          if (!p || !p.fullName || !el.isConnected) return;
+          rememberIdName(String(p.userId || p._id || id), p.username || '', p.fullName);
+          setTo(p, el);
+        }).catch(() => {});
+      };
+      const existing = (el.dataset.authorId || '').trim();
+      if (existing) { doLoad(existing); return; }
+      const nm = String(nameHint || '').trim();
+      if (!nm) return;
+      resolveAuthorIdByName(nm).then(nid => {
+        if (!nid || !el.isConnected) return;
+        el.dataset.authorId = nid; // ترقية العنصر القديم: من الآن فـله أدي
+        doLoad(nid);
+      }).catch(() => {});
+    };
+    // 1) المنشورات والبلاغات: العنوان بجانب .avatar-slot (نفس الحاوية الأب)
+    root.querySelectorAll('.avatar-slot').forEach(slot => {
+      applyLive(slot, slot.dataset.authorName, (p, el) => {
+        const pid = String(p.userId || p._id || el.dataset.authorId || '');
+        const holder = el.parentElement;
+        if (!holder) return;
+        const rn = holder.querySelector('.report-author-text');
+        if (rn && rn.textContent !== p.fullName) rn.textContent = p.fullName;
+        const pn = holder.querySelector('.post-author-name');
+        if (pn) {
+          const badge = verifiedBadgeHTML(pid, p.fullName);
+          if (pn.textContent !== p.fullName || (!!pn.querySelector('.verified-badge') !== !!badge)) {
+            pn.innerHTML = sanitizeText(p.fullName) + badge;
+          }
+        }
+      });
+    });
+    // 2) مرسلو الرسائل في الدردشات (عنصر .chat-sender)
+    root.querySelectorAll('.chat-sender').forEach(el => {
+      const nmEl = el.querySelector('.cs-name');
+      applyLive(el, nmEl ? nmEl.textContent : '', (p, elx) => {
+        const nm = elx.querySelector('.cs-name');
+        if (nm && nm.textContent !== p.fullName) nm.textContent = p.fullName;
+      });
+    });
+    // 3) أسماء الردود المقتبسة داخل الرسائل (.rs-name)
+    root.querySelectorAll('.rs-name').forEach(el => {
+      applyLive(el, el.textContent, (p, elx) => {
+        if (elx.textContent !== p.fullName) elx.textContent = p.fullName;
+      });
+    });
+  } catch (e) {}
 }
 // إثراء عام: يملأ كل عنصر .avatar-slot بصورة حية من الملف الشخصي
 function enhanceAvatars(root = document) {
@@ -9757,10 +10316,119 @@ window.openReportFile = async function(url, filename) {
 };
 function getMyVoterKey() {
   try {
+    // الهوية الحقيقية = المعرّف الرقمي (userId) — لا يتغيّر بتغيير الاسم أو اليوزر
+    if (currentUser && currentUser.userId) return String(currentUser.userId);
+    if (currentUser && currentUser.code) return currentUser.code;
     let g = localStorage.getItem('guestId');
     if (!g) { g = Math.floor(1000 + Math.random() * 9000).toString(); localStorage.setItem('guestId', g); }
-    return (currentUser && currentUser.code) || g;
+    return g;
   } catch (e) { return 'guest'; }
+}
+// ── طبقة الهوية: كل مفاتيح الحساب (الأيدي ثابت + اليوزرات/الأسماء السابقة للتوافق) ──
+// تُستخدم في المطابقات حتى تبقى بيانات الشخص واحدة متى غيّر اسمه أو يوزره
+function myIdentityKeys() {
+  const keys = [];
+  const add = v => { const s = String(v == null ? '' : v).trim(); if (s && !keys.includes(s)) keys.push(s); };
+  try {
+    if (currentUser) {
+      add(currentUser.userId);   // الهوية الحقيقية (تُكتب دائماً)
+      add(currentUser.code);     // اليوزر الحالي/القديم (بيانات مكتوبة قبل الإصلاح)
+      add(currentUser.name);     // الاسم الكامل (قراءات قديمة مبنية على الاسم)
+      if (typeof accProfile !== 'undefined' && accProfile) {
+        add(accProfile.userId); add(accProfile._id);
+        add(accProfile.username); add(accProfile.previousUsername); add(accProfile.emailPrefix);
+        if (Array.isArray(accProfile.takenUsernames)) accProfile.takenUsernames.forEach(add);
+        add(accProfile.fullName);
+        if (Array.isArray(accProfile.previousFullNames)) accProfile.previousFullNames.forEach(add); // أسمائي الكاملة السابقة
+      }
+    } else {
+      // زائر: هويته الوحيدة معرّف المتصفح (كما كان سلوكه سابقاً)
+      let g = localStorage.getItem('guestId');
+      if (!g) { g = Math.floor(1000 + Math.random() * 9000).toString(); localStorage.setItem('guestId', g); }
+      keys.push(g);
+    }
+  } catch (e) {}
+  return keys;
+}
+// هل يحتوي المصفوفة على أي مفتاح من مفاتيحي؟ (مطابقة مرنة مع البيانات القديمة)
+function hasMyKey(arr) {
+  if (!Array.isArray(arr)) return false;
+  const keys = myIdentityKeys();
+  return arr.some(v => keys.includes(String(v)));
+}
+// إزالة كل مفاتيحي من مصفوفة (عند إلغاء إعجاب/تصويت/متابعة بأي اسم قديم)
+function stripMyKeys(arr) {
+  const keys = myIdentityKeys();
+  return Array.isArray(arr) ? arr.filter(v => !keys.includes(String(v))) : [];
+}
+// هل هذه الرسالة مرسلها أنا؟ — بالأيدي أولاً، والاسم للتوافق مع الرسائل القديمة
+function isMsgMine(msg) {
+  if (!msg || !currentUser) return false;
+  const sid = (msg.senderId != null && msg.senderId !== '') ? String(msg.senderId) : '';
+  if (sid) return myIdentityKeys().includes(sid);
+  return myIdentityKeys().includes(String(msg.senderName || ''));
+}
+// هل ينتميان لنفس المرسل؟ — بالأيدي إن وُجدت وإلا بالاسم (تجميع الرسائل)
+function sameSender(a, b) {
+  if (!a || !b) return false;
+  const aid = (a.senderId != null && a.senderId !== '') ? String(a.senderId) : '';
+  const bid = (b.senderId != null && b.senderId !== '') ? String(b.senderId) : '';
+  if (aid && bid) return aid === bid;
+  return String(a.senderName || '') === String(b.senderName || '');
+}
+// مفتاح «قرأتُ الرسالة» للكتابة: المعرّف الرقمي دائماً (والاسم إن لم يوجد أدي)
+function myReadKey() {
+  try {
+    if (currentUser && currentUser.userId) return String(currentUser.userId);
+    if (typeof accProfile !== 'undefined' && accProfile && /^\d+$/.test(String(accProfile._id || ''))) return String(accProfile._id);
+    return String((currentUser && currentUser.name) || '');
+  } catch (e) { return ''; }
+}
+// هل قرأتُ هذه الرسالة؟ — بالمعرّف أو بأي اسمي السابق المخزّن قديماً
+function readByHasMe(readBy) {
+  if (!Array.isArray(readBy)) return false;
+  const keys = myIdentityKeys();
+  return readBy.some(v => keys.includes(String(v)));
+}
+// مفتاح ثابت لمستند مؤشر الكتابة (الأيدي أولاً حتى لا يتغيّر مع اليوزر)
+function typingIdentityKey() {
+  try {
+    if (currentUser && currentUser.userId) return String(currentUser.userId);
+    if (currentUser && currentUser.code) return currentUser.code;
+    return localStorage.getItem('guestId') || (currentUser && currentUser.name) || 'guest';
+  } catch (e) { return 'guest'; }
+}
+// اسم قابل للعرض لمفتاح هوية: معرّف الزائر/العضو أو اليوزر أو الاسم القديم
+function identityLabel(key) {
+  const k = String(key == null ? '' : key);
+  if (!k) return '';
+  if (/^\d{4}$/.test(k)) return 'زائر ' + k;
+  if (/^\d{3,6}$/.test(k)) { // معرّف عضو ثابت (يشمل معرّف المالك 666)
+    let m = {};
+    try { m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}'); } catch (e) { m = {}; }
+    const entry = m[k];
+    if (entry && entry.u) return '@' + entry.u;
+    return 'عضو #' + k;
+  }
+  return k; // يوزر أو اسم كامل (بيانات قديمة) — يُعرض كما هو
+}
+// حفظ ربط (أيدي ← يوزر + اسم كامل) لعرض الأسماء/اليوزرات القديمة بصيغة مفهومة
+function rememberIdName(id, username, fullName) {
+  try {
+    const i = String(id == null ? '' : id).trim();
+    if (!/^\d{3,6}$/.test(i)) return;
+    const u = String(username == null ? '' : username).trim();
+    const n = String(fullName == null ? '' : fullName).trim();
+    if (!u && !n) return;
+    const m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}');
+    const cur = m[i] || {};
+    if (cur.u === u && cur.n === n) return;
+    m[i] = { u: u || cur.u || '', n: n || cur.n || '' };
+    // حجم معقول: نحتفظ بآخر 300 حساب فقط
+    const ks = Object.keys(m);
+    if (ks.length > 300) ks.slice(0, ks.length - 300).forEach(k => { if (k !== i) delete m[k]; });
+    localStorage.setItem('alfa_id_names', JSON.stringify(m));
+  } catch (e) {}
 }
 // حماية: أي خطأ في المرفقات لا يُسقط عرض قائمة البلاغات
 function safeReportAttachments(r) {
@@ -9822,7 +10490,10 @@ function reportAttachmentsHtml(r) {
 }
 function pollVoterLabel(key) {
   const k = String(key || '');
-  return /^\d{3,6}$/.test(k) ? `زائر ${sanitizeText(k)}` : `@${sanitizeText(k)}`;
+  if (/^\d{4}$/.test(k)) return `زائر ${sanitizeText(k)}`;                 // معرّف زائر (4 أرقام)
+  if (/^\d{3,6}$/.test(k)) return sanitizeText(identityLabel(k));          // معرّف عضو ثابت (الأيدي)
+  if (/^[a-z0-9._\-]{3,30}$/.test(k)) return `@${sanitizeText(k)}`;       // يوزر (بيانات قديمة)
+  return sanitizeText(k);                                                  // اسم كامل (بيانات قديمة)
 }
 function reportPollHtml(r, coll = 'reports') {
   // دفاعي: إذا لم يُعثر على هياكل البيانات الصحيحة للاستفتاء (خيارات على الأقل 2) - لا نُسقط العرض بالكامل
@@ -9831,8 +10502,7 @@ function reportPollHtml(r, coll = 'reports') {
   }
   const p = r.poll;
   const total = p.options.reduce((s, o) => s + (Number(o.votes) || 0), 0);
-  const myKey = getMyVoterKey();
-  const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(myKey));
+  const votedIdx = p.options.findIndex(o => hasMyKey(o.voters)); // بالأيدي + كل أسمائي السابقة
   const hidePct = !!p.hidePercent;    // خيار المنشئ: إخفاء النسبة (تظهر الأصوات فقط)
   const hideVoters = !!p.hideVoters;  // خيار المنشئ: إخفاء المصوتين (من صوّت)
   const lock = p.lockVote === true || p.locked === true; // يقفل إعادة التصويت إذا فعّله المنشئ
@@ -9874,7 +10544,8 @@ window.votePoll = async function(reportId, idx, coll = 'reports') {
   }
   try {
     const ref = doc(db, coll, reportId);
-    const key = getMyVoterKey();
+    const key = getMyVoterKey();   // مفتاح الكتابة: المعرّف الرقمي الثابت
+    const myKeys = myIdentityKeys(); // كل مفاتيحي للمطابقة مع الأصوات القديمة (يوزر/اسم سابق)
     const lock = await runTransaction(db, async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists()) throw new Error('not-found');
@@ -9882,8 +10553,8 @@ window.votePoll = async function(reportId, idx, coll = 'reports') {
       if (!p || !Array.isArray(p.options)) throw new Error('bad-poll');
       if (!p.options[idx]) throw new Error('bad-option');
       const isLock = p.lockVote === true || p.locked === true;
-      // نُحدّد الخيار الحالي للمستخدم داخل المعاملة (قراءة متسقة)
-      const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.includes(key));
+      // نُحدّد الخيار الحالي للمستخدم داخل المعاملة (قراءة متسقة) — بالأيدي وليست باليوزر
+      const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.some(k => myKeys.includes(String(k))));
       if (votedIdx === idx) throw new Error('same');
       if (votedIdx >= 0 && isLock) throw new Error('locked');
       // نعمل على نسخة مطابقة من الخيارات ونكتب المصفوفة كاملة
@@ -9894,11 +10565,11 @@ window.votePoll = async function(reportId, idx, coll = 'reports') {
         voters: Array.isArray(o.voters) ? o.voters.slice() : []
       }));
       if (votedIdx >= 0) {
-        // تغيير الصوت: يُنقل من الخيار القديم إلى الجديد
-        options[votedIdx].voters = options[votedIdx].voters.filter(k => k !== key);
+        // تغيير الصوت: يُنقل من الخيار القديم إلى الجديد (مع إزالة أي مفتاح قديم لي)
+        options[votedIdx].voters = options[votedIdx].voters.filter(k => !myKeys.includes(String(k)));
         options[votedIdx].votes = Math.max(0, options[votedIdx].votes - 1);
       }
-      options[idx].voters = options[idx].voters.filter(k => k !== key).concat(key);
+      options[idx].voters = options[idx].voters.filter(k => !myKeys.includes(String(k))).concat(key);
       options[idx].votes = options[idx].votes + 1;
       tx.update(ref, { 'poll.options': options });
       return { votedIdx, isLock };
@@ -10164,9 +10835,11 @@ window.setActiveNav = function(id) {
   const matsSearch = document.getElementById('materials-search-bar');
   const isMaterials = (id === 'schedule');
   const isAccount = (id === 'user');
+  const isReports = (id === 'reports'); // وضع البلاغات: بلا هيدر — التبويبان (الممثل ↔ الأساتذه) في أعلى الشاشة بدلاً منه
   document.body.classList.toggle('materials-mode', isMaterials);
   document.body.classList.toggle('account-mode', isAccount);   // الملف الشخصي على كامل الشاشة (أنماط CSS)
-  if (appHeader) appHeader.style.display = (isMaterials || isAccount) ? 'none' : '';
+  document.body.classList.toggle('reports-mode', isReports);
+  if (appHeader) appHeader.style.display = (isMaterials || isAccount || isReports) ? 'none' : '';
   if (matsSearch) matsSearch.style.display = isMaterials ? 'flex' : 'none';
 
   // إخفاء جميع الـ views
@@ -10210,6 +10883,8 @@ window.setActiveNav = function(id) {
 
 // ── TOAST ──
 window.showToast = function(icon, title, desc, onclick) {
+  // كل رسائل الحظر («مقيّد») تُختم تلقائياً بطلب مراجعة الدعم — مهما كان الإجراء المحظور
+  if (title === 'مقيّد' && desc && !String(desc).includes('راسل الدعم')) desc = desc + ' — راسل الدعم لمعرفة السبب';
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = 'toast';
@@ -11196,6 +11871,12 @@ window.amSaveUser = async function () {
   const stage = String((document.getElementById('am-f-stage') || {}).value || '');
   const bio = String((document.getElementById('am-f-bio') || {}).value || '').trim().slice(0, 200);
   const updates = { fullName: name, username: user, shift, section, stage, bio, perms };
+  // حفظ الاسم الكامل السابق للعضو حتى تبقى بياناته القديمة تابعة له (الهوية = الأيدي)
+  if (u.fullName && u.fullName !== name) {
+    const pf = Array.isArray(u.previousFullNames) ? u.previousFullNames.slice() : [];
+    if (!pf.includes(u.fullName)) pf.push(u.fullName);
+    updates.previousFullNames = pf;
+  }
   if (amPhotoChanged) updates.photoURL = amPhotoURL; // صورة جديدة، أو حذفها بقيمتك الفارغة
   const btn = document.getElementById('am-save-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'جارٍ الحفظ…'; }
@@ -11205,7 +11886,9 @@ window.amSaveUser = async function () {
       updates.takenUsernames = arrayUnion.apply(null, hist);
     }
     await setDoc(doc(db, 'users', String(u._id)), updates, { merge: true });
+    invalidateAuthorProfiles(); // أي تعديل (اسم/يوزر) يُبطل كاش الأسماء الحية
     if (amPhotoChanged) { invalidateAuthorPhotos(u._id); setTimeout(refreshAllAuthorAvatars, 400); } // تحديث فوري لكل الصور المعروضة
+    else { setTimeout(() => { try { enhanceAuthorNames(document); } catch (e) {} }, 400); }
     amPhotoChanged = false;
     showToast('✅', 'تم الحفظ', 'تم تحديث بيانات ' + name);
     // إن كان العضو المعدَّل هو حسابك أنت: حدّث الجلسة والملف الشخصي فوراً
@@ -11775,7 +12458,7 @@ window.closePostChat = function() {
   // إيقاف الكتابة
   if (isChatTyping && currentUser) {
     isChatTyping = false;
-    const myDocId = currentUser.code || localStorage.getItem('guestId') || currentUser.name;
+    const myDocId = typingIdentityKey(); // مفتاح ثابت = الأيدي
     setDoc(doc(db, 'enquiry_typing', `${myDocId}__${currentChatPostId}`),
       { postId: currentChatPostId, name: currentUser.name, isTyping: false, timestamp: Date.now() }).catch(()=>{});
   }
@@ -11816,8 +12499,7 @@ function subscribeToPostChat(postId, chatMessagesEl) {
       if (change.type === 'added') {
         needsFullRender = true;
         const msg = change.doc.data();
-        const myName = currentUser ? currentUser.name : null;
-        if (msg.senderName !== myName && (Date.now() - msg.createdAt < 10000)) {
+        if (!isMsgMine(msg) && (Date.now() - msg.createdAt < 10000)) {
           hasNewIncomingMessage = true;
           latestNewMsg = msg;
         }
@@ -11834,10 +12516,11 @@ function subscribeToPostChat(postId, chatMessagesEl) {
       msg.id = docSnap.id;
       messages.push(msg);
 
-      if (currentUser && msg.senderName !== currentUser.name) {
-        let readerName = currentUser.name;
-        if (!msg.readBy || !msg.readBy.includes(readerName)) {
-          unreadMsgIds.push({ id: msg.id, readerName });
+      if (currentUser && !isMsgMine(msg)) {
+        // مفتاح القراءة = المعرّف الرقمي (الهوية الحقيقية) — الاسم القديم يبقى مطابقاً للتوافق
+        const readerKey = myReadKey();
+        if (!readByHasMe(msg.readBy)) {
+          unreadMsgIds.push({ id: msg.id, readerName: readerKey });
         }
       }
     });
@@ -11863,11 +12546,11 @@ function subscribeToPostChat(postId, chatMessagesEl) {
           const isSameDayAsPrev = prevMsg && new Date(prevMsg.createdAt).toDateString() === msgDateString;
           const isSameDayAsNext = nextMsg && new Date(nextMsg.createdAt).toDateString() === msgDateString;
           const isContinuation = prevMsg &&
-            prevMsg.senderName === msg.senderName &&
+            sameSender(prevMsg, msg) &&
             (msg.createdAt - prevMsg.createdAt < 5 * 60 * 1000) &&
             isSameDayAsPrev;
           const isLastInGroup = !nextMsg ||
-            nextMsg.senderName !== msg.senderName ||
+            !sameSender(nextMsg, msg) ||
             (nextMsg.createdAt - msg.createdAt >= 5 * 60 * 1000) ||
             !isSameDayAsNext;
 
@@ -11881,6 +12564,7 @@ function subscribeToPostChat(postId, chatMessagesEl) {
           renderChatMessage(msg, fragment, isContinuation, isLastInGroup);
         });
         chatMessagesEl.appendChild(fragment);
+        try { enhanceAuthorNames(chatMessagesEl); } catch (e) {} // أسماء المُرسِلين الحية بالأيدي
       }
     } else {
       snap.docChanges().forEach(change => {
@@ -11926,7 +12610,7 @@ function subscribeToPostChat(postId, chatMessagesEl) {
       const data = docSnap.data();
       // فلترة client-side: فقط من يكتب فعلاً في آخر 10 ثوانٍ
       if (!data.isTyping) return;
-      const myDocId = currentUser?.code || localStorage.getItem('guestId') || currentUser?.name;
+      const myDocId = typingIdentityKey(); // مفتاح ثابت = الأيدي (لا يتغيّر مع اليوزر)
       const myKey = `${myDocId}__${postId}`;
       if (docSnap.id !== myKey && (now - data.timestamp < 10000)) {
         if (!typingUsers.includes(data.name)) typingUsers.push(data.name);
@@ -11974,7 +12658,7 @@ window.updateMessageInDOM = function(id, data) {
      }
   }
   
-  const isMine = data.senderName === currentUser?.name;
+  const isMine = isMsgMine(data); // الهوية بالأيدي (الاسم للتوفيق مع الرسائل القديمة)
   if (isMine) {
     const readers = data.readBy || [];
     const statusEl = msgEl.querySelector('.chat-msg-status');
@@ -11996,7 +12680,7 @@ window.updateMessageInDOM = function(id, data) {
 };
 
 function renderChatMessage(msg, container, isContinuation = false, isLastInGroup = true) {
-  const isMine = msg.senderName === currentUser?.name;
+  const isMine = isMsgMine(msg); // الهوية بالأيدي — الاسم للتوفيق مع الرسائل القديمة
   
   const wrap = document.createElement('div');
   wrap.className = `chat-msg-wrap ${isMine ? 'mine' : 'theirs'}`;
@@ -12007,6 +12691,7 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
   // إضافة البيانات اللازمة لعملية السحب للرد (Swipe to reply)
   wrap.dataset.id = msg.id;
   wrap.dataset.sender = encodeURIComponent(msg.senderName || '');
+  wrap.dataset.senderId = String(msg.senderId || ''); // أدي المرسل للرد السريع (يُحلّ للرسائل القديمة)
   wrap.dataset.text = encodeURIComponent(msg.text || 'صورة 🖼️');
 
   // إظهار وإخفاء خيارات الرسالة عند النقر عليها (مهم للموبايل) مع إغلاق القوائم الأخرى
@@ -12019,8 +12704,9 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
 
   let replyHtml = '';
   if (msg.replyTo) {
+    const rtId = (msg.replyTo && msg.replyTo.senderId) ? sanitizeText(String(msg.replyTo.senderId)).replace(/"/g, '&quot;') : '';
     replyHtml = `<div class="chat-reply-ref" onclick="scrollToChatMsg('${msg.replyTo.id}'); event.stopPropagation();">
-      <div style="font-weight:bold; color:${isMine ? '#fff' : 'var(--accent2)'}; font-size:11px;">${sanitizeText(msg.replyTo.senderName)}</div>
+      <div style="font-weight:bold; color:${isMine ? '#fff' : 'var(--accent2)'}; font-size:11px;"><span class="rs-name" data-author-id="${rtId}">${sanitizeText(msg.replyTo.senderName)}</span></div>
       <div style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${sanitizeText(msg.replyTo.text || 'صورة 🖼️')}</div>
     </div>`;
   }
@@ -12085,7 +12771,7 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
 
   let actionsHtml = `<div class="chat-actions-menu">`;
   if (currentUser) {
-    actionsHtml += `<button class="chat-action-btn" onclick="setChatReply('${msg.id}', decodeURIComponent('${safeSenderName}'), decodeURIComponent('${safeReplyText}')); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">↩️ رد</button>`;
+    actionsHtml += `<button class="chat-action-btn" onclick="setChatReply('${msg.id}', decodeURIComponent('${safeSenderName}'), decodeURIComponent('${safeReplyText}'), decodeURIComponent('${encodeURIComponent(String(msg.senderId || ''))}')); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">↩️ رد</button>`;
   }
   if (isMine || currentUser?.isAdmin) {
      actionsHtml += `<button class="chat-action-btn" style="color:#ef4444;" onclick="deleteChatMessage('${msg.id}'); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">🗑️ حذف</button>`;
@@ -12100,24 +12786,51 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
   if (iconSrc) {
     senderIconHtml = `<img src="${iconSrc}" class="author-badge" alt="شعار">`;
   }
-  const senderHtml = (!isMine && !isContinuation) ? `<div class="chat-sender" style="color:#ffffff; display:flex; align-items:center; gap:4px;">${sanitizeText(msg.senderName)}${senderIconHtml}${verifiedBadgeHTML(msg.senderId, msg.senderName)}</div>` : '';
+  // معرّفات آمنة: فتح الملف الشخصي بالنقر على الصورة/الاسم (مثل التعليقات)
+  const avSid = msg.senderId ? encodeURIComponent(String(msg.senderId)) : '';
+  const avSnm = encodeURIComponent(msg.senderName || '');
+  const profileClick = avSid ? ` onclick="openCommentProfile(decodeURIComponent('${avSid}'), decodeURIComponent('${avSnm}')); event.stopPropagation();"` : '';
+  const senderHtml = isContinuation ? '' : `<div class="chat-sender${avSid ? ' clickable' : ''}" data-author-id="${sanitizeText(String(msg.senderId || '')).replace(/"/g, '&quot;')}"${profileClick}><span class="cs-name">${sanitizeText(msg.senderName)}</span>${senderIconHtml}${verifiedBadgeHTML(msg.senderId, msg.senderName)}</div>`;
   
   // Add a class to the message bubble if it's not the last one in a group
   const msgBubbleClass = isLastInGroup ? '' : 'not-last-in-group';
 
+  // أفاتار المُرسِل بجانب كل رسالة (نمط التعليقات) مع فتح الملف الشخصي بالنقر
+  const avClick = (avSid && !isContinuation) ? ` style="cursor:pointer"${profileClick}` : '';
   wrap.innerHTML = `
     <div class="chat-swipe-icon">↩️</div>
-    <div class="chat-msg ${msgBubbleClass}" id="chat-msg-${msg.id}">
-      ${senderHtml}
-      ${replyHtml}
-      ${postRefHtml}
-      ${msg.text ? `<div class="chat-text">${formatChatText(msg.text)}</div>` : ''}
-      ${imgHtml}
-      <span class="chat-time">${statusHtml} ${timeStr}${editedStr}</span>
+    <div class="rc-inner">
+      <div class="rc-col${isContinuation ? '' : ' has-name'}">
+        ${senderHtml}
+        <div class="chat-msg ${msgBubbleClass}" id="chat-msg-${msg.id}">
+          ${replyHtml}
+          ${postRefHtml}
+          ${msg.text ? `<div class="chat-text">${formatChatText(msg.text)}</div>` : ''}
+          ${imgHtml}
+          <span class="chat-time">${statusHtml} ${timeStr}${editedStr}</span>
+        </div>
+      </div>
+      <div class="rc-avatar${isContinuation ? ' placeholder' : ''}"${avClick}>${(msg.senderName || '؟').trim().charAt(0) || '؟'}</div>
     </div>
     ${actionsHtml}
   `;
   container.appendChild(wrap);
+  // تحميل صورة المُرسِل الحقيقية من Firestore (نفس نمط التعليقات — تُخفي الحرف عند توفّر الصورة)
+  if (!isContinuation && msg.senderId) {
+    const av = wrap.querySelector('.rc-avatar');
+    if (av) {
+      loadAuthorPhoto(msg.senderId).then(url => {
+        if (url && av.isConnected) {
+          av.textContent = '';
+          const im = document.createElement('img');
+          im.src = url; im.alt = ''; im.loading = 'lazy';
+          im.referrerPolicy = 'no-referrer';
+          im.onerror = () => { av.textContent = (msg.senderName || '؟').trim().charAt(0) || '؟'; };
+          av.appendChild(im);
+        }
+      }).catch(() => {});
+    }
+  }
 }
 
 window.scrollToChatMsg = function(id) {
@@ -12143,6 +12856,8 @@ window.autoResizeChatInput = function(el) {
 
 window.sendChatMessage = async function() {
   if (!currentUser) return;
+  // حارس الصلاحيات: بلا صلاحية «الاستفسار» لا إرسال — حتى لو كانت نافذة الدردشة مفتوحة من قبل
+  if (!userHasPerm(currentUser, 'enquiry')) { showToast('⛔', 'مقيّد', 'إرسال رسائل الاستفسار غير مفعّل لحسابك'); return; }
   const inputEl = document.getElementById('chat-input');
   const text = inputEl.value.trim();
   
@@ -12161,8 +12876,9 @@ window.sendChatMessage = async function() {
   clearTimeout(chatTypingTimeout);
   if (isChatTyping && currentUser && currentChatPostId) {
     isChatTyping = false;
-    const myDocId = currentUser.code || localStorage.getItem('guestId') || currentUser.name;
-    setDoc(doc(db, 'enquiry_typing', `${myDocId}__${currentChatPostId}`), { postId: currentChatPostId, name: currentUser.name, isTyping: false, timestamp: Date.now() }).catch(()=>{});
+    const myDocId = typingIdentityKey(); // مفتاح ثابت = الأيدي
+    setDoc(doc(db, 'enquiry_typing', `${myDocId}__${currentChatPostId}`),
+      { postId: currentChatPostId, name: currentUser.name, isTyping: false, timestamp: Date.now() }).catch(()=>{});
   }
 
   // مسح الحقل وإلغاء السياق فوراً بمجرد بدء الإرسال (لتحسين سرعة الاستجابة)
@@ -12245,7 +12961,7 @@ window.handleChatImageUpload = function(input) {
 
 window.handleChatTyping = function() {
   if (!currentUser || !currentChatPostId) return;
-  const myDocId = currentUser.code || localStorage.getItem('guestId') || currentUser.name;
+  const myDocId = typingIdentityKey(); // مفتاح ثابت = الأيدي (يتطابق مع فلترة المؤشر)
   const typingKey = `${myDocId}__${currentChatPostId}`;
 
   if (!isChatTyping) {
@@ -12326,7 +13042,15 @@ window.openReportComments = function(reportId) {
   const loginP = document.getElementById('rc-login-prompt');
   const canPost = currentUser && currentUser.name !== 'زائر' && userHasPerm(currentUser, 'comment');
   if (inputC) inputC.style.display = canPost ? 'flex' : 'none';
-  if (loginP) loginP.style.display = canPost ? 'none' : 'block';
+  if (loginP) {
+    loginP.style.display = canPost ? 'none' : 'block';
+    // الضيف يُطلب منه تسجيل الدخول — ومن يملك حساباً بلا صلاحية تعليق تُعرض له رسالة الحظر بدل رابط الدخول
+    if (currentUser && currentUser.name !== 'زائر' && !userHasPerm(currentUser, 'comment')) {
+      loginP.innerHTML = '⛔ التعليق على البلاغات مقيّد لحسابك — راسل الدعم لمعرفة السبب.';
+    } else {
+      loginP.innerHTML = 'للمشاركة في التعليقات، يرجى <a href="#" onclick="openModal(\'login-modal\'); return false;" style="color:var(--accent2); text-decoration:underline;">تسجيل الدخول</a>.';
+    }
+  }
 
   list.innerHTML = '<div class="text-center" style="color:var(--text-muted);font-size:12px;margin-top:20px;">⏳ جارٍ تحميل التعليقات...</div>';
   win.classList.add('open');
@@ -12392,10 +13116,11 @@ function subscribeReportComments(reportId, list) {
         frag.appendChild(sep);
         lastDate = dStr;
       }
-      const cont = prev && prev.senderName === msg.senderName && ((msg.createdAt || 0) - (prev.createdAt || 0) < 5 * 60 * 1000);
+      const cont = prev && sameSender(prev, msg) && ((msg.createdAt || 0) - (prev.createdAt || 0) < 5 * 60 * 1000);
       renderReportComment(msg, frag, cont);
     });
     list.appendChild(frag);
+    try { enhanceAuthorNames(list); } catch (e) {} // أسماء المعلّقين الحية بالأيدي
     setTimeout(() => { list.scrollTop = list.scrollHeight; }, 40);
   }, (err) => {
     console.error('خطأ تحميل تعليقات البلاغ:', err);
@@ -12404,7 +13129,7 @@ function subscribeReportComments(reportId, list) {
 }
 
 function renderReportComment(msg, container, isContinuation = false) {
-  const isMine = currentUser && msg.senderName === currentUser.name;
+  const isMine = isMsgMine(msg); // الهوية بالأيدي (الاسم للتوفيق مع التعليقات القديمة)
   const wrap = document.createElement('div');
   wrap.className = `chat-msg-wrap ${isMine ? 'mine' : 'theirs'}${isContinuation ? ' grouped' : ''}`;
   wrap.dataset.id = msg.id;
@@ -12420,8 +13145,9 @@ function renderReportComment(msg, container, isContinuation = false) {
   // الردّ المقتبس (replyTo)
   let replyHtml = '';
   if (msg.replyTo && msg.replyTo.id) {
+    const rtId = msg.replyTo.senderId ? sanitizeText(String(msg.replyTo.senderId)).replace(/"/g, '&quot;') : '';
     replyHtml = `<div class="chat-reply-ref" onclick="scrollToReportComment('${msg.replyTo.id}'); event.stopPropagation();">
-      <div style="font-weight:bold; color:${isMine ? '#fff' : 'var(--accent2)'}; font-size:11px;">${sanitizeText(msg.replyTo.senderName || '')}</div>
+      <div style="font-weight:bold; color:${isMine ? '#fff' : 'var(--accent2)'}; font-size:11px;"><span class="rs-name" data-author-id="${rtId}">${sanitizeText(msg.replyTo.senderName || '')}</span></div>
       <div style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${sanitizeText(msg.replyTo.text || 'صورة 🖼️')}</div>
     </div>`;
   }
@@ -12455,9 +13181,14 @@ function renderReportComment(msg, container, isContinuation = false) {
   const editedTag = msg.edited ? '<span class="rc-edited-tag">(معدّلة)</span>' : '';
   let iconHtml = '';
   if (msg.senderIcon) iconHtml = `<img src="${msg.senderIcon}" class="author-badge" alt="" style="width:16px;height:16px;border-radius:50%;">`;
-  const senderHtml = (!isMine && !isContinuation)
-    ? `<div class="chat-sender" style="color:${msg.senderColor || 'var(--accent2)'};">${sanitizeText(msg.senderName || 'مستخدم')}${iconHtml}${verifiedBadgeHTML(msg.senderId, msg.senderName)}</div>`
+  const sid = msg.senderId ? encodeURIComponent(String(msg.senderId)) : '';
+  const snm = encodeURIComponent(msg.senderName || '');
+  const senderClick = sid
+    ? ` onclick="openCommentProfile(decodeURIComponent('${sid}'), decodeURIComponent('${snm}')); event.stopPropagation();"`
     : '';
+  const senderHtml = isContinuation
+    ? ''
+    : `<div class="chat-sender${sid ? ' clickable' : ''}" data-author-id="${sanitizeText(String(msg.senderId || '')).replace(/"/g, '&quot;')}"${senderClick}><span class="cs-name">${sanitizeText(msg.senderName || 'مستخدم')}</span>${iconHtml}${verifiedBadgeHTML(msg.senderId, msg.senderName)}</div>`;
 
   // نصوص آمنة للأزرار
   const safeSenderName = encodeURIComponent(msg.senderName || '').replace(/'/g, "%27");
@@ -12468,7 +13199,7 @@ function renderReportComment(msg, container, isContinuation = false) {
   const canDel = isMine || currentUser?.isAdmin;
   let actionsHtml = `<div class="chat-actions-menu">`;
   if (currentUser && currentUser.name !== 'زائر') {
-    actionsHtml += `<button class="chat-action-btn" onclick="setRcReply('${msg.id}', decodeURIComponent('${safeSenderName}'), decodeURIComponent('${safeReplyText}')); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">↩️ رد</button>`;
+    actionsHtml += `<button class="chat-action-btn" onclick="setRcReply('${msg.id}', decodeURIComponent('${safeSenderName}'), decodeURIComponent('${safeReplyText}'), decodeURIComponent('${sid}')); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">↩️ رد</button>`;
   }
   if (canDel) {
     actionsHtml += `<button class="chat-action-btn" style="color:#ef4444;" onclick="deleteReportComment('${msg.id}'); this.closest('.chat-msg-wrap').classList.remove('show-actions'); event.stopPropagation();">🗑️ حذف</button>`;
@@ -12481,14 +13212,16 @@ function renderReportComment(msg, container, isContinuation = false) {
   wrap.innerHTML = `
     ${actionsHtml}
     <div class="rc-inner">
-      <div class="chat-msg" id="rc-msg-${msg.id}">
+      <div class="rc-col${isContinuation ? '' : ' has-name'}">
         ${senderHtml}
-        ${replyHtml}
-        ${msg.text ? `<div class="chat-text">${formatChatText(msg.text)}</div>` : ''}
-        ${imgHtml}
-        <div class="chat-meta"><span class="chat-time">${timeStr} ${editedTag}</span></div>
+        <div class="chat-msg" id="rc-msg-${msg.id}">
+          ${replyHtml}
+          ${msg.text ? `<div class="chat-text">${formatChatText(msg.text)}</div>` : ''}
+          ${imgHtml}
+          <div class="chat-meta"><span class="chat-time">${timeStr} ${editedTag}</span></div>
+        </div>
       </div>
-      <div class="rc-avatar${isContinuation ? ' placeholder' : ''}">${(msg.senderName || '؟').trim().charAt(0) || '؟'}</div>
+      <div class="rc-avatar${isContinuation ? ' placeholder' : ''}"${(!isContinuation && msg.senderId) ? ` style="cursor:pointer" onclick="openCommentProfile(decodeURIComponent('${encodeURIComponent(String(msg.senderId))}'), decodeURIComponent('${encodeURIComponent(msg.senderName || '')}')); event.stopPropagation();"` : ''}>${(msg.senderName || '؟').trim().charAt(0) || '؟'}</div>
     </div>`;
   container.appendChild(wrap);
 
@@ -12587,8 +13320,8 @@ window.sendReportComment = async function() {
 };
 
 // ── سياق الرد/التعديل للتعليقات ──
-window.setRcReply = function(id, senderName, text) {
-  rcReplyContext = { id, senderName, text };
+window.setRcReply = function(id, senderName, text, senderId) {
+  rcReplyContext = { id, senderName, text, senderId: senderId ? String(senderId) : '' };
   rcEditContext = null;
   showRcContext('reply', senderName, text);
   const inp = document.getElementById('rc-input');
@@ -12725,8 +13458,8 @@ function renderReportCommentPreview() {
   });
 }
 
-window.setChatReply = function(id, senderName, text) {
-  chatReplyContext = { id, senderName, text };
+window.setChatReply = function(id, senderName, text, senderId) {
+  chatReplyContext = { id, senderName, text, senderId: senderId ? String(senderId) : '' };
   chatEditContext = null;
   setChatContext('reply', senderName, text);
   document.getElementById('chat-input').focus();
@@ -12873,7 +13606,7 @@ function initChatSwipeToReply() {
       const id = chatSwipedElement.dataset.id;
       const sender = decodeURIComponent(chatSwipedElement.dataset.sender);
       const text = decodeURIComponent(chatSwipedElement.dataset.text);
-      if (currentUser) setChatReply(id, sender, text);
+      if (currentUser) setChatReply(id, sender, text, chatSwipedElement.dataset.senderId || '');
       else showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول للرد على الرسائل');
     }
     chatSwipedElement = null;
