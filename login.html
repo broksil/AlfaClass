@@ -281,6 +281,7 @@ $('#signBtn').onclick=async()=>{
       role:name===OWNER?'owner':'student',
       uid:cred.user.uid,createdAt:serverTimestamp(),
       userId:newUserId,emailPrefix:name, // بريد الدخول الثابت
+      perms:name===OWNER?null:{prep:false,report:false,material:false,comment:false,enquiry:false,support:false,verify:false,profile:true,vote:false}, // جديد: تعديل الملف فقط
       takenUsernames:[name]              // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
     });
     window.__signing=false;
