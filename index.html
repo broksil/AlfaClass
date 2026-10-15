@@ -9,21 +9,22 @@
 <meta name="google-site-verification" content="JhgaPzeHK7LxgNwh_sOUL9eyO087c2Em0I0LD0UteKk" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0a0a1a">
-<meta name="description" content="الفاكلاس — منصة تعليمية شاملة: ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد، مع ملفك الشخصي ومنشوراتك في مكان واحد.">
+<meta name="description" content="ألفاكلاس — منصة تعليمية شاملة للطلاب: ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد، منشورات يومية، إعلانات الأساتذات وتليغات الممثل، بلاغات وتعليقات، ملف شخصي واستفسارات ودعم فني.">
 <!-- ═══ معاينة غنية عند مشاركة الرابط (Open Graph + Twitter Cards) — تليكرام/واتساب/X ═══ -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="الفاكلاس">
-<meta property="og:title" content="الفاكلاس | منصة تعليمية للملازم والملخصات">
-<meta property="og:description" content="كل ما يحتاجه الطالب في مكان واحد: ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد — منصة الفاكلاس التعليمية.">
+<meta property="og:site_name" content="ألفاكلاس">
+<meta property="og:title" content="ألفاكلاس | منصة تعليمية للملازم والملخصات وحلول الواجبات">
+<meta property="og:description" content="كل ما يحتاجه الطالب في مكان واحد: ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد، منشورات يومية بملفاتها، إعلانات الأساتذات وتليغات الممثل والبلاغات مع التعليقات، ملفك الشخصي، استفسارات ودعم فني مباشر.">
 <meta property="og:url" content="https://broksil.github.io/AlfaClass/">
 <meta property="og:image" content="https://broksil.github.io/AlfaClass/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="شعار منصة الفاكلاس التعليمية">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="شعار منصة ألفاكلاس التعليمية">
 <meta property="og:locale" content="ar_AR">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="الفاكلاس | منصة تعليمية للملازم والملخصات">
-<meta name="twitter:description" content="ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد — منصة الفاكلاس التعليمية.">
+<meta name="twitter:title" content="ألفاكلاس | منصة تعليمية للملازم والملخصات وحلول الواجبات">
+<meta name="twitter:description" content="ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد، منشورات وإعلانات وبلاغات مع تعليقات، ملف شخصي ودعم فني — منصة ألفاكلاس.">
 <meta name="twitter:image" content="https://broksil.github.io/AlfaClass/og-image.png">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -685,6 +686,7 @@
   html[data-theme="light"] .ann-message { color: var(--text-secondary); }
   /* الجزء السفلي: flex — التاريخ يميناً (باهت وصغير) والزر يساراً في RTL */
   .ann-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; }
+  .ann-foot-start { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .ann-date { font-size: 10.5px; color: rgba(255,255,255,0.35); white-space: nowrap; }
   html[data-theme="light"] .ann-date { color: var(--text-muted); }
   /* زر «انقر على التفاصيل»: تصميم عصري بخلفية ملونة وحواف دائرية وتأثير لمس */
@@ -702,6 +704,7 @@
   @media (max-width: 430px) {
     .ann-card { padding: 16px; }
     .ann-foot { flex-direction: column; align-items: stretch; }
+    .ann-foot-start { justify-content: center; }
     .ann-date { text-align: center; }
     .ann-link-btn { justify-content: center; }
   }
@@ -8120,7 +8123,7 @@ function accRender() {
   const guest = !currentUser;
   accEl('acc-guest').style.display = guest ? 'block' : 'none';
   accEl('acc-main').style.display  = guest ? 'none'  : 'block';
-  if (accViewUser && !guest) { accRenderOther(); return; } // ملف عضو آخر (متابعة فقط)
+  if (accViewUser) { accRenderOther(); return; } // ملف عضو آخر (متابعة فقط) — يُعرض حتى للزائر عبر رابط المشاركة
   if (guest || !accProfile) return;
   accProfileCacheSet(String(currentUser.code || '').toLowerCase(), accProfile); // حفظ فوري: ظهور سريع في المرة القادمة
   const p = accProfile;
@@ -8306,7 +8309,7 @@ async function accOpenOther(userId, nameFallback) {
 // عرض ملف عضو آخر: بلا تعديل ولا إضافة ولا مراسلة — متابعة فقط
 function accRenderOther() {
   const u = accViewUser;
-  if (!u || !currentUser) return;
+  if (!u) return; // يُعرض حتى للزائر غير المسجّل (رابط مشاركة) — بلا متابعة ولا تعديل
   // إظهار جسم الملف فوراً — مسار فتح ملف عضو يعود قبل accRender فقد يبقى acc-main مخفياً (شاشة فارغة)
   accEl('acc-guest').style.display = 'none';
   accEl('acc-main').style.display = 'block';
@@ -8482,7 +8485,9 @@ async function followToggleCore(t) {
 }
 window.accToggleFollow = async function () {
   const t = accViewUser;
-  if (!t || !currentUser || !accProfile) return;
+  if (!t) return;
+  if (!currentUser) { showToast('⚠️', 'تنبيه', 'سجّل الدخول للاشتراك في المتابعة'); return; }
+  if (!accProfile) return;
   if (accViewLoading) { showToast('ℹ️', 'الملف الشخصي', 'جارٍ تحميل بيانات الحساب…'); return; }
   const p = followToggleCore(t); // يستهل فوراً: يحدّث t.followers لحظياً
   accUpdateFollowBtn();
@@ -8582,12 +8587,13 @@ function accOpenManage() {
 }
 async function accOpen(autoLogin = false) {
   window.scrollTo(0, 0);
-  // فتح ملف عضو آخر (نقر على اسم مؤلف) — يُستهلك مرة واحدة، وإلا فتح عادي = ملفي
-  if (!currentUser) { accPendingView = null; accViewUser = null; }
-  else if (accPendingView) {
+  // فتح ملف عضو آخر (نقر على اسم مؤلف أو فتح رابط مشاركة ?u=) — يُستهلك مرة واحدة، وإلا فتح عادي = ملفي
+  if (accPendingView) {
     const v = accPendingView; accPendingView = null;
-    return accOpenOther(v.id, v.name);
-  } else if (accViewUser) { accViewUser = null; }
+    return accOpenOther(v.id, v.name); // يفتح الملف حتى للزائر غير المسجّل
+  }
+  if (!currentUser) { accViewUser = null; }
+  else if (accViewUser) { accViewUser = null; }
   accRender();                                  // يعرض حالة الزائر فوراً إن لم يكن مسجلاً
   if (!currentUser) {
     // الزائر غير المسجّل: أظهر واجهة تسجيل الدخول مباشرةً عند دخوله للملف الشخصي
@@ -8618,7 +8624,8 @@ window.__accOnAuth = function () {
   const u = currentUser ? String(currentUser.code || '').toLowerCase() : null;
   if (!u) accProfile = null;
   else if (accProfile && String(accProfile.username || accProfile._id).toLowerCase() !== u) accProfile = null;
-  if (accVisible()) accOpen();
+  // ملف عضو آخر مفتوح (رابط مشاركة/نقرة): لا نُسقطه بإعادة فتح الحساب عند تغيّر الجلسة
+  if (accVisible()) { if (accViewUser) { try { accRenderOther(); } catch (e) {} } else accOpen(); }
 };
 // ═══════════ إعدادات البروفايل (نمط إنستغرام) ═══════════
 // إظهار/إخفاء لوحة الإعدادات بزر الهامبرغر ☰
@@ -8627,18 +8634,25 @@ function accToggleSettings() {
   if (!box) return;
   box.hidden = !box.hidden;
 }
-// مشاركة الملف الشخصي (نسخ رابط أو استخدام واجهة المشاركة إن توفّرت)
+// مشاركة الملف الشخصي — رابط يفتح ملفك مباشرة عند الضغط عليه (?u=)
 function accShareProfile() {
   const p = accProfile || {};
   const name = p.fullName || currentUser?.name || '';
   const user = p.username || p._id || '';
+  const uid = String(p.userId || currentUser?.userId || user || '').trim();
+  if (!uid) { showToast('ℹ️', 'مشاركة', 'تعذّر تحديد معرّف حسابك — أعد المحاولة بعد تحميل الملف'); return; }
+  const url = window.location.origin + window.location.pathname + '?u=' + encodeURIComponent(uid);
   const text = `ملف ${name} (@${user}) على ألفاكلاس`;
-  const url = window.location.href.split('#')[0];
   try {
     if (navigator.share) { navigator.share({ title: 'ألفاكلاس', text, url }).catch(() => {}); return; }
-    if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => showToast('📋', 'تم النسخ', 'تم نسخ رابط ملفك الشخصي')); return; }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url)
+        .then(() => showToast('📋', 'تم النسخ', 'تم نسخ رابط ملفك الشخصي — أرسله ليفتح ملفك مباشرة'))
+        .catch(() => showToast('🔗', 'رابط ملفك الشخصي', url));
+      return;
+    }
   } catch (e) {}
-  showToast('ℹ️', 'مشاركة', text);
+  showToast('🔗', 'رابط ملفك الشخصي', url);
 }
 // زر «إضافة بارانات» — واجهة شكلية (لا يوجد نظام قصص بعد)
 function accAddHighlight() {
@@ -9189,7 +9203,7 @@ function renderReports() {
           <div class="report-foot">
             <span class="report-author">${reportAuthorHtml(r)}</span>
             <span class="report-foot-actions">
-              <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" style="display:none">0</span></button>
+              <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" data-rc-coll="reports" style="display:none">0</span></button>
               ${currentUser?.isAdmin ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
             </span>
           </div>
@@ -9209,8 +9223,9 @@ function renderReports() {
   // شارة عدد التعليقات لكل بلاغ (عدّ سريع من الخادم — لا يؤثّر على العرض إن فشل)
   list.querySelectorAll('.rc-count-chip[data-rc-id]').forEach(chip => {
     const rid = chip.getAttribute('data-rc-id');
+    const rcColl = chip.getAttribute('data-rc-coll') || 'reports';
     if (!rid) return;
-    getCountFromServer(collection(db, 'reports', rid, 'comments')).then(s => {
+    getCountFromServer(collection(db, rcColl, rid, 'comments')).then(s => {
       const n = Number(s.data().count) || 0;
       chip.textContent = n > 99 ? '99+' : String(n);
       if (n > 0) chip.style.display = 'inline-flex';
@@ -9481,8 +9496,11 @@ function annBuildCard(a, isAgent) {
         ${msg ? `<div class="ann-message" dir="auto">${sanitizeText(msg)}</div>` : ''}
         ${a.teacherName ? `<div class="ann-teacher">${t.img ? `<img class="ann-teacher-avatar" src="${sanitizeText(t.img)}" alt="" loading="lazy" onerror="this.outerHTML='👨‍🏫'">` : '👨‍🏫'}<span class="ann-teacher-name" dir="auto">${sanitizeText(t.ar)}</span></div>` : ''}
         <div class="ann-foot">
+          <span class="ann-foot-start">
           ${!isAgent && !isAnnRead(a.id) ? `<span class="new-badge" data-badge-key="announcements:${sanitizeText(a.id)}">جديد</span>` : ''}
           <span class="ann-date">${ms ? `🕒 ${dateStr} — ${timeStr}` : ''}</span>
+          ${!isAgent && a.id ? `<button type="button" class="report-cm-toggle ann-cm-toggle" onclick="openReportComments('${sanitizeText(a.id)}', 'class_announcements')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(a.id)}" data-rc-coll="class_announcements" style="display:none">0</span></button>` : ''}
+          </span>
           ${safeLink ? `<a class="ann-link-btn" href="${sanitizeText(safeLink)}" target="_blank" rel="noopener noreferrer">🔗 انقر على التفاصيل</a>` : ''}
         </div>
       </div>`;
@@ -9497,6 +9515,17 @@ function renderAnnList(listId, data, isAgent) {
   const list = document.getElementById(listId);
   if (!list) return;
   list.innerHTML = data.length ? data.map(a => annBuildCard(a, isAgent)).join('') : '';
+  // شارة عدد التعليقات لكل إعلان (عدّ سريع من الخادم — لا يؤثّر على العرض إن فشل)
+  list.querySelectorAll('.rc-count-chip[data-rc-id]').forEach(chip => {
+    const rid = chip.getAttribute('data-rc-id');
+    const rcColl = chip.getAttribute('data-rc-coll') || 'reports';
+    if (!rid) return;
+    getCountFromServer(collection(db, rcColl, rid, 'comments')).then(s => {
+      const n = Number(s.data().count) || 0;
+      chip.textContent = n > 99 ? '99+' : String(n);
+      if (n > 0) chip.style.display = 'inline-flex';
+    }).catch(() => {});
+  });
 }
 
 function renderClassAnnouncements() { renderAnnList('class-ann-list', classAnnData, false); }
@@ -9576,6 +9605,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   const card = e.target.closest && e.target.closest('#class-ann-list .ann-card[data-ann-id]');
   if (!card) return;
+  if (e.target.closest('.report-cm-toggle')) return; // زر التعليقات لا يُعدّ قراءة (نفس منطق البلاغات)
   const aid = card.dataset.annId;
   if (aid && !isItemRead('announcements', aid)) markItemRead('announcements', aid);
 });
@@ -13007,15 +13037,16 @@ window.removeChatImage = function(idx) {
   renderChatAttachmentPreview();
 };
 
-// ══════════════════════ تعليقات البلاغات (reports/{id}/comments) ══════════════════════
+// ══════════════════════ تعليقات البلاغات وإعلانات الأساتذ (reports/{id}/comments و class_announcements/{id}/comments) ══════════════════════
 // تتفاعل لحظياً عبر onSnapshot وتدعم إرفاق الصور عبر Cloudinary — بنفس منطق دردشة الملازم.
 let currentReportCommentId = null;
+let currentReportCommentColl = 'reports'; // مجموعة التعليقات الحالية: reports (البلاغات) أو class_announcements (إعلانات الأساتذ)
 let reportCommentsUnsub = null;
 let pendingReportFiles = [];
 let rcReplyContext = null;
 let rcEditContext = null;
 
-window.openReportComments = function(reportId) {
+window.openReportComments = function(reportId, coll) {
   if (!reportId) return;
   const win = document.getElementById('report-comments-window');
   const list = document.getElementById('report-comments-list');
@@ -13025,15 +13056,25 @@ window.openReportComments = function(reportId) {
   if (reportCommentsUnsub) { reportCommentsUnsub(); reportCommentsUnsub = null; }
 
   currentReportCommentId = String(reportId);
+  currentReportCommentColl = coll === 'class_announcements' ? 'class_announcements' : 'reports';
   pendingReportFiles = [];
   renderReportCommentPreview();
   rcReplyContext = null;
   rcEditContext = null;
   hideRcContext();
 
-  // العنوان من البلاغ المحمّل مسبقاً (reportsData)
-  const rep = reportsData.find(x => String(x.id) === String(reportId));
-  const title = rep ? (rep.title || 'البلاغ') : 'البلاغ';
+  // العنوان حسب المجموعة: من البلاغ (reportsData) أو من إعلان الأستاذ (classAnnData)
+  let title = currentReportCommentColl === 'class_announcements' ? 'إعلان' : 'البلاغ';
+  if (currentReportCommentColl === 'class_announcements') {
+    const ann = classAnnData.find(x => String(x.id) === String(reportId));
+    if (ann) {
+      try { title = splitAnnSubject(ann.subjectName || ann.title).main || ann.subjectName || title; }
+      catch (e2) { title = ann.subjectName || title; }
+    }
+  } else {
+    const rep = reportsData.find(x => String(x.id) === String(reportId));
+    if (rep) title = rep.title || 'البلاغ';
+  }
   const tEl = document.getElementById('rc-header-title');
   if (tEl) tEl.textContent = '💬 ' + title;
 
@@ -13046,7 +13087,7 @@ window.openReportComments = function(reportId) {
     loginP.style.display = canPost ? 'none' : 'block';
     // الضيف يُطلب منه تسجيل الدخول — ومن يملك حساباً بلا صلاحية تعليق تُعرض له رسالة الحظر بدل رابط الدخول
     if (currentUser && currentUser.name !== 'زائر' && !userHasPerm(currentUser, 'comment')) {
-      loginP.innerHTML = '⛔ التعليق على البلاغات مقيّد لحسابك — راسل الدعم لمعرفة السبب.';
+      loginP.innerHTML = '⛔ التعليق مقيّد لحسابك — راسل الدعم لمعرفة السبب.';
     } else {
       loginP.innerHTML = 'للمشاركة في التعليقات، يرجى <a href="#" onclick="openModal(\'login-modal\'); return false;" style="color:var(--accent2); text-decoration:underline;">تسجيل الدخول</a>.';
     }
@@ -13068,6 +13109,7 @@ window.closeReportComments = function() {
   document.documentElement.style.overflow = '';
   if (reportCommentsUnsub) { reportCommentsUnsub(); reportCommentsUnsub = null; }
   currentReportCommentId = null;
+  currentReportCommentColl = 'reports';
   pendingReportFiles = [];
   rcReplyContext = null;
   rcEditContext = null;
@@ -13077,8 +13119,9 @@ window.closeReportComments = function() {
 };
 
 function subscribeReportComments(reportId, list) {
+  const coll = currentReportCommentColl; // المجموعة الحالية: بلاغ أو إعلان أستاذ
   // استعلام بسيط بدون orderBy لتجنّب الحاجة لـ Composite Index — نرتّب من جهة العميل
-  const q = query(collection(db, 'reports', reportId, 'comments'), limit(300));
+  const q = query(collection(db, coll, reportId, 'comments'), limit(300));
 
   // إغلاق قائمة الأزرار عند النقر في مساحة فارغة (نفس منطق الاستفسار)
   list.onclick = () => {
@@ -13086,14 +13129,14 @@ function subscribeReportComments(reportId, list) {
   };
 
   reportCommentsUnsub = onSnapshot(q, (snap) => {
-    if (currentReportCommentId !== reportId) return;
+    if (currentReportCommentId !== reportId || currentReportCommentColl !== coll) return;
 
     const msgs = [];
     snap.forEach(d => { const m = d.data(); m.id = d.id; msgs.push(m); });
     msgs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
     // حدّث شارة العدد في بطاقة البلاغ إن كانت ظاهرة
-    const chip = document.querySelector(`.rc-count-chip[data-rc-id="${reportId}"]`);
+    const chip = document.querySelector(`.rc-count-chip[data-rc-id="${reportId}"][data-rc-coll="${coll}"]`);
     if (chip) {
       chip.textContent = msgs.length > 99 ? '99+' : String(msgs.length);
       chip.style.display = msgs.length > 0 ? 'inline-flex' : 'none';
@@ -13123,7 +13166,7 @@ function subscribeReportComments(reportId, list) {
     try { enhanceAuthorNames(list); } catch (e) {} // أسماء المعلّقين الحية بالأيدي
     setTimeout(() => { list.scrollTop = list.scrollHeight; }, 40);
   }, (err) => {
-    console.error('خطأ تحميل تعليقات البلاغ:', err);
+    console.error('خطأ تحميل التعليقات:', err);
     list.innerHTML = '<div class="text-center" style="color:#ef4444;font-size:12px;margin-top:20px;padding:16px;">تعذّر تحميل التعليقات</div>';
   });
 }
@@ -13252,7 +13295,7 @@ window.scrollToReportComment = function(id) {
 
 window.sendReportComment = async function() {
   if (currentUser && !userHasPerm(currentUser, 'comment')) {
-    showToast('⛔', 'مقيّد', 'لا تملك صلاحية التعليق على البلاغات');
+    showToast('⛔', 'مقيّد', 'لا تملك صلاحية التعليق');
     return;
   }
   if (!currentUser || currentUser.name === 'زائر') {
@@ -13284,7 +13327,7 @@ window.sendReportComment = async function() {
       // تعديل رسالة موجودة — لا نغيّر الصور إن لم يُرفق جديد (نُبقي القديمة إن أُرسل نص فقط)
       const upd = { text: text, edited: true };
       if (uploadedUrls.length) { upd.imageUrls = uploadedUrls; upd.imageUrl = uploadedUrls[0]; }
-      await updateDoc(doc(db, 'reports', currentReportCommentId, 'comments', editCtx.id), upd);
+      await updateDoc(doc(db, currentReportCommentColl, currentReportCommentId, 'comments', editCtx.id), upd);
     } else {
       // تعليق جديد — نُرفق الردّ إن وُجد
       const data = {
@@ -13298,7 +13341,7 @@ window.sendReportComment = async function() {
         createdAt: Date.now()
       };
       if (replyCtx) data.replyTo = replyCtx;
-      await addDoc(collection(db, 'reports', currentReportCommentId, 'comments'), data);
+      await addDoc(collection(db, currentReportCommentColl, currentReportCommentId, 'comments'), data);
     }
     if (inputEl) { inputEl.value = ''; inputEl.style.height = 'auto'; }
     pendingReportFiles = [];
@@ -13373,7 +13416,7 @@ window.deleteReportComment = async function(commentId) {
   });
   if (!ok) return;
   try {
-    await deleteDoc(doc(db, 'reports', currentReportCommentId, 'comments', commentId));
+    await deleteDoc(doc(db, currentReportCommentColl, currentReportCommentId, 'comments', commentId));
     showToast('🗑️', 'حذف', 'تم حذف التعليق');
   } catch (e) {
     console.error('فشل حذف التعليق:', e);
@@ -13688,6 +13731,15 @@ function init() {
     const dayId = hash.replace('#day-', '');
     setTimeout(() => jumpToDay(dayId), 2500); // الانتظار حتى تنتهي شاشة التحميل
   }
+
+  // رابط مشاركة ملف شخصي (?u=معرّف) — يفتح ملف العضو مباشرة عند الضغط على الرابط
+  try {
+    const shareUid = new URLSearchParams(window.location.search).get('u');
+    if (shareUid && shareUid.trim()) {
+      accPendingView = { id: shareUid.trim(), name: '' };
+      setActiveNav('user'); // يستدعي accOpen ← accOpenOther ويفتح الملف فوراً (حتى للزائر)
+    }
+  } catch (e) {}
 }
 
 init();
