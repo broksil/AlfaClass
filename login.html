@@ -157,8 +157,9 @@ onAuthStateChanged(auth,u=>{
         localStorage.setItem('section',d.section||'');
         localStorage.setItem('userId',d.userId?String(d.userId):'');
         localStorage.setItem('firebaseUid',u.uid);
-        window.location.href='index.html';
       }
+      // بلا مستند أيضاً نحوّل إلى index.html — وسيُصلح حسابه تلقائياً هناك (مستند كامل باليوزر)
+      window.location.href='index.html';
     });
   }
 });
