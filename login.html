@@ -107,7 +107,7 @@ input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,deleteUser} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,query,where,limit} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const app=initializeApp({apiKey:"AIzaSyDrT10AouY-MAtS4Brt-1fPpPt4YoT8spc",authDomain:"alfaclass-120e3.firebaseapp.com",projectId:"alfaclass-120e3",messagingSenderId:"548886375389",appId:"1:548886375389:web:a49c2a446981cd2836e434"});
@@ -192,6 +192,7 @@ const authMsg=c=>({
   'auth/too-many-requests':'محاولات كثيرة، حاول لاحقاً.',
   'auth/network-request-failed':'تعذّر الاتصال بالإنترنت.',
   'auth/operation-not-allowed':'Email/Password Auth غير مفعّل في Firebase Console.',
+  'auth/half-account':'اسم المستخدم موجود في المصادقة لكن بكلمة سر مختلفة — تواصل مع صاحب الموقع لإصلاح الحساب.',
   'permission-denied':'ليس لديك صلاحية (راجع قواعد Firestore).'
 }[c]||'حدث خطأ غير متوقع، حاول مرة أخرى.');
 
@@ -272,31 +273,54 @@ $('#signBtn').onclick=async()=>{
       return;
     }
     window.__signing=true;
-    const cred=await createUserWithEmailAndPassword(auth,email(name),p.value);
-    const newUserId=name===OWNER?666:Math.floor(100000+Math.random()*900000);
-    // المعرّف الرقمي هو مفتاح المستند في Firestore (لا اليوزر)
-    await setDoc(doc(db,'users',String(newUserId)),{
-      username:name,fullName:$('#lfa-f3').value.trim(),
-      shift:radio('shift'),section:radio('section'),
-      role:name===OWNER?'owner':'student',
-      uid:cred.user.uid,createdAt:serverTimestamp(),
-      userId:newUserId,emailPrefix:name, // بريد الدخول الثابت
-      perms:name===OWNER?null:{prep:false,report:false,material:false,comment:false,enquiry:false,support:false,verify:false,profile:true,vote:false}, // جديد: تعديل الملف فقط
-      takenUsernames:[name]              // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
-    });
+    // إنشاء حساب المصادقة — وإن كان موجوداً فعلاً لكن بلا مستند (فشل حفظ سابق) نُصلحه بنفس كلمة السر
+    let cred=null,healed=null;
+    try{
+      cred=await createUserWithEmailAndPassword(auth,email(name),p.value);
+    }catch(err){
+      if(err&&err.code==='auth/email-already-in-use'){
+        const existing=await findUser(name);
+        if(existing)throw err; // حساب حقيقي قائم — الاسم مأخوذ فعلاً
+        try{cred=await signInWithEmailAndPassword(auth,email(name),p.value);}
+        catch(e2){const x=new Error('half');x.code='auth/half-account';throw x;} // موجود في المصادقة بكلمة سر أخرى
+        // بعد المصادقة أعد الفحص: إن كان المستند موجوداً فعلاً (تعذّر قراءته قبل المصادقة) فلا نُنشئ مستنداً مكرراً
+        healed=await findUser(name);
+      }else throw err;
+    }
+    let newUserId=healed?(healed.d.userId!=null?String(healed.d.userId):''):null;
+    if(!healed){
+      newUserId=name===OWNER?666:Math.floor(100000+Math.random()*900000);
+      // المعرّف الرقمي هو مفتاح المستند في Firestore (لا اليوزر)
+      try{
+        await setDoc(doc(db,'users',String(newUserId)),{
+          username:name,fullName:$('#lfa-f3').value.trim(),
+          shift:radio('shift'),section:radio('section'),
+          role:name===OWNER?'owner':'student',
+          uid:cred.user.uid,createdAt:serverTimestamp(),
+          userId:newUserId,emailPrefix:name, // بريد الدخول الثابت
+          perms:name===OWNER?null:{prep:false,report:false,material:false,comment:false,enquiry:false,support:false,verify:false,profile:true,vote:false}, // جديد: تعديل الملف فقط
+          takenUsernames:[name]              // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
+        });
+      }catch(err){
+        // فشل حفظ المستند: نحذف حساب المصادقة المولَّد حتى لا يبقى اسم محجوز بلا حساب يظهر في إدارة الأعضاء
+        try{await deleteUser(cred.user);}catch(_){}
+        throw err;
+      }
+    }
     window.__signing=false;
-    // حفظ البيانات في localStorage
+    // حفظ البيانات في localStorage (تُؤخذ من المستند القائم عند شفاء حساب ناقص)
     const isOwner=name===OWNER;
+    const hd=healed?healed.d:{};
     localStorage.setItem('isLoggedIn','true');
-    localStorage.setItem('name',$('#lfa-f3').value.trim());
-    localStorage.setItem('username',name);
-    localStorage.setItem('role',isOwner?'':radio('shift'));
+    localStorage.setItem('name',hd.fullName||$('#lfa-f3').value.trim());
+    localStorage.setItem('username',hd.username||name);
+    localStorage.setItem('role',isOwner?'':(hd.shift||radio('shift')));
     localStorage.setItem('color',isOwner?'#fbbf24':'#a78bfa');
     localStorage.setItem('isAdmin',isOwner?'true':'false');
     localStorage.setItem('isSuperAdmin',isOwner?'true':'false');
-    localStorage.setItem('shift',radio('shift'));
-    localStorage.setItem('section',radio('section'));
-    localStorage.setItem('userId',String(newUserId));
+    localStorage.setItem('shift',hd.shift||radio('shift'));
+    localStorage.setItem('section',hd.section||radio('section'));
+    localStorage.setItem('userId',String(newUserId||''));
     localStorage.setItem('firebaseUid',cred.user.uid);
     window.location.href='index.html';
   }catch(e){window.__signing=false;showForm('#signErr',authMsg(e.code))}

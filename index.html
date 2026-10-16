@@ -2865,11 +2865,6 @@
   .acc-switch input:checked + span { background: var(--a-gold-soft); border-color: var(--a-gold); }
   .acc-switch input:checked + span::after { background: var(--a-gold); transform: translateX(-22px); }
   .acc[dir="ltr"] .acc-switch input:checked + span::after { transform: translateX(22px); }
-  /* الفترة الدراسية */
-  .acc-period { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .acc-period-val { font-size: 16px; font-weight: 800; color: var(--a-gold); }
-  .acc-period-sub { font-size: 12px; color: var(--a-muted); margin-top: 3px; }
-
   /* الخيارات المتقدمة (منطوية) */
   .acc-adv summary {
     list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px;
@@ -2904,13 +2899,6 @@
     color: var(--a-gold); border-radius: 14px; padding: 11px 14px; font-size: 12.5px; line-height: 1.7; margin-bottom: 14px;
   }
   .acc-warn.red { background: var(--a-red-soft); border-color: rgba(239,68,68,0.4); color: var(--a-red); }
-  .acc-emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-  .acc-emoji-grid button {
-    aspect-ratio: 1; font-size: 26px; border-radius: 14px; cursor: pointer;
-    background: var(--a-field); border: 1px solid var(--a-line); transition: transform .15s;
-  }
-  .acc-emoji-grid button:active { transform: scale(0.9); }
-  .acc-emoji-grid button.on { background: var(--a-gold-soft); border-color: var(--a-gold); }
   .acc-legal { font-size: 13.5px; line-height: 1.95; color: var(--a-text); }
   .acc-legal h4 { margin: 16px 0 4px; font-size: 14.5px; color: var(--a-gold); }
   .acc-legal p, .acc-legal li { color: var(--a-muted); }
@@ -3268,41 +3256,6 @@
             <span class="chev">›</span>
           </button>
         </div>
-    <!-- الفترة الدراسية -->
-        <div class="acc-section-title" data-i18n="secPeriod">الفترة الدراسية</div>
-        <div class="acc-card">
-          <div class="acc-period">
-            <div>
-              <div class="acc-period-val" id="acc-period-val">—</div>
-              <div class="acc-period-sub" data-i18n="periodSub">الكورس والمرحلة المعروضان حالياً</div>
-            </div>
-            <button class="acc-btn acc-btn-sm ghost" data-act="open-period" data-i18n="change">تغيير</button>
-          </div>
-        </div>
-
-        <!-- المظهر واللغة والتفاعل -->
-        <div class="acc-section-title" data-i18n="secPrefs">التفضيلات</div>
-        <div class="acc-card">
-          <div class="acc-field" style="margin-bottom:6px">
-            <label data-i18n="appearance">مظهر التطبيق</label>
-            <div class="acc-seg" id="acc-seg-theme">
-              <button type="button" data-val="dark">🌙 <span data-i18n="dark">داكن</span></button>
-              <button type="button" data-val="light">☀️ <span data-i18n="light">فاتح</span></button>
-              <button type="button" data-val="auto">🌗 <span data-i18n="auto">تلقائي</span></button>
-            </div>
-          </div>
-          <div class="acc-row" style="margin-top:8px">
-            <span class="ico">🌐</span>
-            <span class="grow"><span data-i18n="langEnglish">اللغة الإنجليزية</span><span class="sub" data-i18n="langSub" style="direction:inherit">بدّل الواجهة بين العربية والإنجليزية</span></span>
-            <label class="acc-switch"><input type="checkbox" id="acc-lang-switch" aria-label="English"><span></span></label>
-          </div>
-          <button class="acc-row" data-act="open-emoji">
-            <span class="ico">😍</span>
-            <span class="grow"><span data-i18n="quickReaction">وجه التفاعل السريع</span><span class="sub" data-i18n="quickReactionSub" style="direction:inherit">التفاعل الافتراضي داخل المنصة</span></span>
-            <span class="val" id="acc-emoji-val" style="font-size:24px">👍</span>
-          </button>
-        </div>
-
         <!-- خيارات متقدمة -->
         <div class="acc-section-title" data-i18n="secSecurity">الحماية</div>
         <div class="acc-card" style="padding-top:6px;padding-bottom:6px;margin-bottom:12px">
@@ -3466,30 +3419,6 @@
   </div>
 </div>
 
-<!-- تغيير الفترة الدراسية -->
-<div class="modal-overlay" id="acc-period-modal" onclick="handleModalOverlayClick(event,'acc-period-modal')">
-  <div class="modal-box acc" dir="rtl">
-    <div class="modal-handle"></div>
-    <div class="modal-title" data-i18n="secPeriod">الفترة الدراسية</div>
-    <div class="acc-grid" style="margin-bottom:6px">
-      <div class="acc-field"><label for="acc-p-stage" data-i18n="stage">المرحلة الدراسية</label><select class="acc-select" id="acc-p-stage"></select></div>
-      <div class="acc-field"><label for="acc-p-course" data-i18n="course">الكورس</label><select class="acc-select" id="acc-p-course"></select></div>
-    </div>
-    <div class="acc-actions">
-      <button class="acc-btn ghost" onclick="closeModal('acc-period-modal')" data-i18n="cancel">إلغاء</button>
-      <button class="acc-btn" id="acc-p-save" data-act="save-period" data-i18n="saveShort">حفظ</button>
-    </div>
-  </div>
-</div>
-
-<!-- منتقي وجه التفاعل -->
-<div class="modal-overlay" id="acc-emoji-modal" onclick="handleModalOverlayClick(event,'acc-emoji-modal')">
-  <div class="modal-box acc" dir="rtl">
-    <div class="modal-handle"></div>
-    <div class="modal-title" data-i18n="quickReaction">وجه التفاعل السريع</div>
-    <div class="acc-emoji-grid" id="acc-emoji-grid"></div>
-  </div>
-</div>
 <!-- تأكيد حذف الحساب -->
 <div class="modal-overlay" id="acc-delete-modal" onclick="handleModalOverlayClick(event,'acc-delete-modal')">
   <div class="modal-box acc" dir="rtl">
@@ -4677,7 +4606,8 @@ function updateHeaderUI(skipRender = false) {
   if (currentUser) {
     loginBtn.style.display = 'none';
     userInfoEl.classList.add('show');
-    const iconHtml = currentUser.icon ? `<img src="${currentUser.icon}" class="author-badge" alt="شعار">` : '';
+    const myIconSrc = haiderIconSrc(currentUser.userId || currentUser.code) || currentUser.icon || ''; // شارة حيدر تُعرض آخر الاسم لصاحب الأيدي 873802
+    const iconHtml = myIconSrc ? `<img src="${myIconSrc}" class="author-badge" alt="شعار">` : '';
     userNameEl.innerHTML = sanitizeText(currentUser.name) + iconHtml;
     userNameEl.style.color = '#ffffff'; // اسم المستخدم دائماً أبيض في الهيدر
     userRoleEl.textContent = currentUser.role ? `(${currentUser.role})` : '';
@@ -4717,6 +4647,7 @@ function authMsg(code) {
     'auth/too-many-requests':'محاولات كثيرة، حاول لاحقاً.',
     'auth/network-request-failed':'تعذّر الاتصال بالإنترنت.',
     'auth/operation-not-allowed':'Email/Password غير مفعّل في Firebase Console.',
+    'auth/half-account':'اسم المستخدم موجود في المصادقة لكن بكلمة سر مختلفة — تواصل مع صاحب الموقع لإصلاح الحساب.',
     'auth/weak-password':'كلمة السر يجب ألا تقل عن 8 أحرف.',
     'permission-denied':'ليس لديك صلاحية (راجع قواعد Firestore).'
   }[code] || 'حدث خطأ غير متوقع، حاول مرة أخرى.';
@@ -4769,7 +4700,11 @@ async function loadProfileAndApply(name, uid) {
   try {
     const found = await resolveUserDoc(name); // بالمسار أو بحقل username + ترحيل تلقائي
     if (found) { applyUserProfile(found.data, name, uid); touchActiveMember(found.id); supportFeedInit(String(found.id)); loadVerifiedIds(); }
-    else applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
+    else {
+      // مصادقة ناجحة لكن بلا مستند: حساب ناقص (فشل حفظ عند الإنشاء) أو مشكلة قواعد/شبكة
+      applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
+      showToast('⚠️', 'تنبيه', 'تعذّر العثور على بيانات حسابك — إن كنت أنشأت حساباً فقد تعذّر حفظه؛ أعد إنشاءه بنفس الاسم وكلمة السر ليُصلَح تلقائياً');
+    }
   } catch (e) {
     applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
   }
@@ -4868,23 +4803,53 @@ window.doAuthSignup = async function() {
     // الاسم محجوز إن استعمله أي حساب حالياً أو سابقاً — الأسماء القديمة لا تعود متاحة للآخرين
     if (await isUsernameTaken(username)) { showAuthErr('auth-sign-err','اسم المستخدم مأخوذ، اختر اسماً آخر.'); return; }
     window.__signing = true;
-    const cred = await createUserWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password);
-    const newUserId = username === AUTH_OWNER ? OWNER_USER_ID : await _generateUniqueId();
-    // المعرّف الرقمي هو مفتاح المستند في Firestore (لا يعتمد على اليوزر)
-    await setDoc(doc(db, 'users', String(newUserId)), {
-      username, fullName, shift, section,
-      role: username === AUTH_OWNER ? 'owner' : 'student',
-      uid: cred.user.uid, createdAt: new Date(),
-      userId: newUserId, emailPrefix: username, // بريد الدخول الثابت (لا يتغيّر بتغيير اليوزر)
-      perms: username === AUTH_OWNER ? null : NEW_USER_PERMS, // حساب جديد: تعديل الملف الشخصي فقط
-      takenUsernames: [username]                 // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
-    });
+    // إنشاء حساب المصادقة — وإن كان موجوداً فعلاً لكن بلا مستند (فشل حفظ سابق) نُصلحه بنفس كلمة السر
+    let cred = null, healedDoc = null;
+    try {
+      cred = await createUserWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password);
+    } catch (e) {
+      if (e && e.code === 'auth/email-already-in-use') {
+        const existing = await resolveUserDoc(username).catch(() => null);
+        if (existing) throw e; // حساب حقيقي قائم — الاسم مأخوذ فعلاً
+        try { cred = await signInWithEmailAndPassword(fireAuth, username + AUTH_DOMAIN, password); }
+        catch (e2) { const x = new Error('half'); x.code = 'auth/half-account'; throw x; } // موجود في المصادقة بكلمة سر أخرى
+        // بعد المصادقة أعد الفحص: إن كان المستند موجوداً فعلاً (تعذّر قراءته قبل المصادقة) فلا نُنشئ مستنداً مكرراً
+        healedDoc = await resolveUserDoc(username).catch(() => null);
+      } else throw e;
+    }
+    let newUserId = null;
+    if (healedDoc) {
+      newUserId = healedDoc.data && healedDoc.data.userId != null ? healedDoc.data.userId : null;
+    } else {
+      newUserId = username === AUTH_OWNER ? OWNER_USER_ID : await _generateUniqueId();
+      // المعرّف الرقمي هو مفتاح المستند في Firestore (لا يعتمد على اليوزر)
+      try {
+        await setDoc(doc(db, 'users', String(newUserId)), {
+          username, fullName, shift, section,
+          role: username === AUTH_OWNER ? 'owner' : 'student',
+          uid: cred.user.uid, createdAt: new Date(),
+          userId: newUserId, emailPrefix: username, // بريد الدخول الثابت (لا يتغيّر بتغيير اليوزر)
+          perms: username === AUTH_OWNER ? null : NEW_USER_PERMS, // حساب جديد: تعديل الملف الشخصي فقط
+          takenUsernames: [username]                 // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
+        });
+      } catch (e2) {
+        // فشل حفظ المستند: نحذف حساب المصادقة المولَّد حتى لا يبقى اسم محجوز بلا حساب يظهر في إدارة الأعضاء
+        try { await deleteUser(cred.user); } catch (_) {}
+        throw e2;
+      }
+    }
     window.__signing = false;
-    applyUserProfile({ fullName, username, role: username === AUTH_OWNER ? 'owner' : 'student', shift, section, userId: newUserId }, username, cred.user.uid);
-    touchActiveMember(String(newUserId));
-    supportFeedInit(String(newUserId));
+    if (healedDoc) {
+      applyUserProfile(healedDoc.data || { fullName, username, role: 'student' }, username, cred.user.uid);
+      touchActiveMember(String(healedDoc.id));
+      supportFeedInit(String(healedDoc.id));
+    } else {
+      applyUserProfile({ fullName, username, role: username === AUTH_OWNER ? 'owner' : 'student', shift, section, userId: newUserId }, username, cred.user.uid);
+      touchActiveMember(String(newUserId));
+      supportFeedInit(String(newUserId));
+    }
     closeModal('login-modal');
-    showToast('✅','مرحباً', `${fullName} — تم إنشاء الحساب بنجاح`);
+    showToast('✅','مرحباً', `${fullName} — ${healedDoc ? 'تم استكمال حسابك القديم' : 'تم إنشاء الحساب بنجاح'}`);
     requestNotifPermission();
   } catch (e) {
     window.__signing = false;
@@ -5196,7 +5161,7 @@ function renderPostsForDay(dayId, posts) {
     const mediaHTML = buildMediaHTML(post);
     const pubExtraHTML = buildPubAttachmentsHTML(post); // مرفقات التحضير الجديدة: صوت + استفتاء
     const noteHTML = post.note ? `<div class="post-note">${formatNote(post.note)}</div>` : '';
-    const legacyIcon = post.authorPhoto || post.authorIcon || (post.author === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : '');
+    const legacyIcon = post.authorPhoto || post.authorIcon || '';
     const authorAvatarHTML = `<span class="avatar-slot sm" data-author-id="${sanitizeText(post.authorId || '').replace(/"/g, '&quot;')}" data-author-name="${sanitizeText(post.author || '').replace(/"/g, '&quot;')}">${sanitizeText((String(post.author || '؟').trim())[0] || '؟')}${legacyIcon ? `<img class="avatar-photo" src="${legacyIcon}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span>`;
     
     let actionsHtml = '';
@@ -5219,7 +5184,7 @@ function renderPostsForDay(dayId, posts) {
       ${noteHTML}
       ${mediaHTML}
       ${pubExtraHTML}
-      <div class="post-author" style="cursor:pointer" onclick="accOpenProfile('${encodeURIComponent(String(post.authorId || ''))}')">${authorAvatarHTML}<span class="post-author-name" style="color:#ffffff">${sanitizeText(post.author || '')}${verifiedBadgeHTML(post.authorId, post.author)}</span></div>
+      <div class="post-author" style="cursor:pointer" onclick="accOpenProfile('${encodeURIComponent(String(post.authorId || ''))}')">${authorAvatarHTML}<span class="post-author-name" style="color:#ffffff">${sanitizeText(post.author || '')}${haiderBadgeHTML(post.authorId)}${verifiedBadgeHTML(post.authorId, post.author)}</span></div>
       ${actionsHtml}
     `;
     fragment.appendChild(item);
@@ -7759,6 +7724,21 @@ window.openMaterialDetail = function(mat) {
 
   openModal('material-detail-modal');
   refreshMaterialDetailLike(mat); // بعد فتح المودال: تعبئة القلب + العدّاد
+  // اسم الناشر الحيّ فور الفتح — يُزيل أثر اللقطة القديمة (createdBy) لو تغيّر اسمه منذ آخر رسم
+  try { enhanceAuthorNames(document); } catch (e) {}
+  // الملازم القديمة بلا authorId: نحلّ اسم الناشر النصّي إلى أدي ثم نثبته في المستند
+  // فيعمل بعدها: الاسم الحيّ بعد أي تغيير + «منشوراتي» + الملكية (تعديل/حذف) + التوثيق + فتح الملف الشخصي
+  if (!mat.authorId && mat.id && !mat.uploading && (mat.createdBy || '').trim()) {
+    resolveAuthorIdByName(String(mat.createdBy).trim()).then(nid => {
+      if (!nid) return; // اسم مكرّر أو غير موجود → نبقى على العرض بالنصّ
+      mat.authorId = nid; // الكاش المحلي: يسري فوراً
+      try { updateDoc(doc(db, 'materials', String(mat.id)), { authorId: nid }).catch(() => {}); } catch (e) {} // ترقية دائمة للمستند (تُتجاهل بسلاسة لو منعتها القواعد)
+      try {
+        if (pubEl && pubEl.isConnected) pubEl.dataset.authorId = nid;
+        enhanceAuthorNames(document);
+      } catch (e) {}
+    }).catch(() => {});
+  }
 };
 
 // ── فتح modal إضافة/تعديل ملزمة ──
@@ -7964,7 +7944,7 @@ async function deleteMaterial(id) {
 
 // ⚙️ إعدادات قابلة للتعديل
 const ACC_CONFIG = {
-  INSTAGRAM_URL: 'https://www.instagram.com/',   // ← ضع رابط حساب إنستغرام الخاص بالمنصة هنا
+  INSTAGRAM_URL: 'https://www.instagram.com/_9uss?xtok=amR3ZG05djI1Z2I0',   // ← رابط حساب إنستغرام الخاص بالمنصة
   APP_VERSION: '1.0.0',                          // ← رقم إصدار الموقع
   SUPPORT_COLLECTION: 'support_messages'         // مجموعة Firestore لرسائل الدعم الفني
 };
@@ -7972,8 +7952,6 @@ const ACC_CONFIG = {
 // الحقول الأكاديمية (المحافظة/الجامعة/الكلية/القسم) أُزيلت من نموذج التعديل — الكائن فارغ حالياً
 const ACC_LISTS = {};
 const ACC_STAGES  = ['المرحلة الأولى','المرحلة الثانية','المرحلة الثالثة','المرحلة الرابعة'];
-const ACC_COURSES = ['الكورس الأول','الكورس الثاني'];
-const ACC_EMOJIS  = ['👍','❤️','😂','😮','😢','🔥','👏','🎉','😍','🙏','💯','✅','😎','🤩','😅','🤝','💪','⭐','🥰','😭','👌','🤔','😡','💔'];
 // ── الترجمة الإنجليزية (العربية هي النص الأصلي داخل الـ HTML) ──
 const ACC_EN = {
   guestTitle:'Sign in to manage your account', guestDesc:'After signing in you can edit your academic info, username and appearance.', login:'Sign in',
@@ -8025,8 +8003,8 @@ function accOtherCacheSet(id, data) {
   } catch (e) {}
 }
 const accSelects = {};                 // القوائم المنسدلة ذات خيار "أخرى"
-let accLang  = localStorage.getItem('alfa_lang')  || 'ar';
-let accTheme = localStorage.getItem('alfa_theme') || 'dark';
+let accLang  = 'ar';   // حُذفت خيار اللغة من الإعدادات — تثبيت العربية للجميع
+let accTheme = localStorage.getItem('alfa_theme') || 'dark'; // المظهر المحفوظ يبقى سارياً (الداكن افتراضياً)
 
 const accEl   = id => document.getElementById(id);
 const accT    = (ar) => (accLang === 'en' && ACC_EN_MAP[ar]) ? ACC_EN_MAP[ar] : ar;
@@ -8060,7 +8038,6 @@ function accApplyTheme(mode) {
   document.documentElement.setAttribute('data-theme', eff);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', eff === 'light' ? '#f1f4fa' : '#0a0a1a');
-  document.querySelectorAll('#acc-seg-theme button').forEach(b => b.classList.toggle('on', b.dataset.val === accTheme));
 }
 if (accMQ && accMQ.addEventListener) accMQ.addEventListener('change', () => { if (accTheme === 'auto') accApplyTheme('auto'); });
 accApplyTheme(accTheme);   // تطبيق المظهر المحفوظ فور تحميل الصفحة
@@ -8080,7 +8057,6 @@ function accApplyLang(lang) {
     if (l.dataset.ar === undefined) l.dataset.ar = l.textContent;
     l.textContent = accLang === 'en' ? navMap[id] : l.dataset.ar;
   });
-  const sw = accEl('acc-lang-switch'); if (sw) sw.checked = accLang === 'en';
   accBuildForm();
   if (accProfile) accRender();
 }
@@ -8114,8 +8090,6 @@ function accFillOptions(sel, list, placeholder) {
 function accBuildForm() {
   Object.keys(ACC_LISTS).forEach(k => accMakeSelect(k, ACC_LISTS[k]));
   accFillOptions(accEl('acc-f-stage'), ACC_STAGES, true);
-  accFillOptions(accEl('acc-p-stage'), ACC_STAGES, false);
-  accFillOptions(accEl('acc-p-course'), ACC_COURSES, false);
   if (accProfile) accFillForm();
 }
 function accSegGet(id) { const b = document.querySelector('#' + id + ' button.on'); return b ? b.dataset.val : ''; }
@@ -8265,9 +8239,6 @@ function accRender() {
     const mgL = accEl('acc-mg-avatar-letter');
     if (mgL) { mgL.style.display = photo ? 'none' : ''; mgL.textContent = (name.trim()[0] || '؟'); }
   }
-  const stage = p.stage || '', course = p.course || ACC_COURSES[0];
-  accEl('acc-period-val').textContent = stage ? accT(stage) + ' - ' + accT(course) : '—';
-  accEl('acc-emoji-val').textContent = p.favReaction || localStorage.getItem('alfa_reaction') || '👍';
   accEl('acc-version').textContent = ACC_CONFIG.APP_VERSION;
   accEl('acc-instagram').href = ACC_CONFIG.INSTAGRAM_URL;
   // ابدأ اشتراك الملازم (إن لم يكن يعمل) ثم حدّث عدّاد الإعجابات على ملازمي
@@ -8361,7 +8332,9 @@ window.openPubProfile = function () {
   const mat = (Array.isArray(allMaterials) ? allMaterials : [])
     .find(m => String(m.id) === String(typeof detailMatId !== 'undefined' ? detailMatId : ''));
   if (!mat) return;
-  const aid = String(mat.authorId || '');
+  // الأدي من الملزمة، أو من الأدي الذي حلّه العرض الحيّ في التفاصيل (للملازم القديمة)
+  const _pubEl = document.getElementById('material-detail-publisher');
+  const aid = String(mat.authorId || '') || String((_pubEl && _pubEl.dataset.authorId) || '');
   if (!aid) { showToast('ℹ️', 'الملف الشخصي', 'لا يوجد معرّف لهذا الناشر'); return; }
   try { closeModal('material-detail-modal'); } catch (e) {} // إغلاق التفاصيل أولاً حتى يظهر الملف فوراً
   accOpenProfile(aid, mat.createdBy || '');
@@ -8881,31 +8854,6 @@ async function accSaveProfile() {
   } finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.save : 'حفظ التغييرات'); }
 }
 
-// ═══════════ الفترة الدراسية ═══════════
-function accOpenPeriod() {
-  if (currentUser && !userHasPerm(currentUser, 'profile')) {
-    showToast('⛔', 'مقيّد', 'تعديل الملف الشخصي غير مفعّل لحسابك');
-    return;
-  }
-  accEl('acc-p-stage').value  = (accProfile && accProfile.stage)  || ACC_STAGES[0];
-  accEl('acc-p-course').value = (accProfile && accProfile.course) || ACC_COURSES[0];
-  openModal('acc-period-modal');
-}
-async function accSavePeriod() {
-  if (!accProfile) return;
-  const data = { stage: accEl('acc-p-stage').value, course: accEl('acc-p-course').value };
-  const btn = accEl('acc-p-save');
-  accBusy(btn, true);
-  try {
-    await setDoc(doc(db, 'users', accProfile._id), data, { merge: true });
-    Object.assign(accProfile, data);
-    accEl('acc-f-stage').value = data.stage;
-    accRender();
-    closeModal('acc-period-modal');
-    showToast('✅', 'تم التحديث', accT(data.stage) + ' - ' + accT(data.course));
-  } catch (e) { showToast('❌', 'خطأ', accErrMsg(e)); }
-  finally { accBusy(btn, false, accLang === 'en' ? ACC_EN.saveShort : 'حفظ'); }
-}
 // ═══════════ تغيير اسم المستخدم ═══════════
 function accUsernameChecks(v) {
   return {
@@ -9079,20 +9027,7 @@ async function accUploadAvatar(file) {
 }
 
 // ═══════════ وجه التفاعل السريع ═══════════
-window.getFavReaction = () => localStorage.getItem('alfa_reaction') || '👍';   // ← استخدمها في نظام التفاعلات
-function accOpenEmoji() {
-  const cur = (accProfile && accProfile.favReaction) || window.getFavReaction();
-  const grid = accEl('acc-emoji-grid');
-  grid.innerHTML = ACC_EMOJIS.map(e => '<button type="button" data-emoji="' + e + '" class="' + (e === cur ? 'on' : '') + '">' + e + '</button>').join('');
-  openModal('acc-emoji-modal');
-}
-async function accPickEmoji(e) {
-  localStorage.setItem('alfa_reaction', e);
-  if (accProfile) accProfile.favReaction = e;
-  accRender(); closeModal('acc-emoji-modal');
-  showToast(e, 'تم', 'تم تعيين تفاعلك السريع');
-  try { if (accProfile) await setDoc(doc(db, 'users', accProfile._id), { favReaction: e }, { merge: true }); } catch (err) {}
-}
+window.getFavReaction = () => localStorage.getItem('alfa_reaction') || '👍';   // ← تفاعلك الافتراضي (بلا خيار تغيير بعد حذف القسم)
 
 // ═══════════ حذف الحساب (يتطلب كتابة الصلاة، ويُجدوَل 7 أيام) ═══════════
 const SALAWAT_TEXT = 'اللهم صل على محمد وآل محمد';
@@ -9184,13 +9119,11 @@ async function accSendContact() {
 }
 // ═══════════ ربط الأحداث ═══════════
 document.addEventListener('click', ev => {
-  const emoji = ev.target.closest('#acc-emoji-grid [data-emoji]');
-  if (emoji) { accPickEmoji(emoji.dataset.emoji); return; }
-  const seg = ev.target.closest('#acc-seg-shift button, #acc-seg-section button, #acc-seg-theme button');
+  const seg = ev.target.closest('#acc-seg-shift button, #acc-seg-section button');
   if (seg) {
     const id = seg.parentElement.id;
-    if (id === 'acc-seg-theme') { localStorage.setItem('alfa_theme', seg.dataset.val); accApplyTheme(seg.dataset.val); }
-    else { accSegSet(id, seg.dataset.val); accSetErr(id === 'acc-seg-shift' ? 'acc-e-shift' : 'acc-e-section', ''); }
+    accSegSet(id, seg.dataset.val);
+    accSetErr(id === 'acc-seg-shift' ? 'acc-e-shift' : 'acc-e-section', '');
     return;
   }
   const el = ev.target.closest('[data-act]'); if (!el) return;
@@ -9206,9 +9139,6 @@ document.addEventListener('click', ev => {
     case 'ask-logout':    openModal('acc-logout-modal'); break;
     case 'confirm-logout': closeModal('acc-logout-modal'); accDoLogout(); break;
     case 'save-username': accSaveUsername(); break;
-    case 'open-period':   accOpenPeriod(); break;
-    case 'save-period':   accSavePeriod(); break;
-    case 'open-emoji':    accOpenEmoji(); break;
     case 'open-delete':   accOpenDelete(); break;
     case 'confirm-delete':accConfirmDelete(); break;
     case 'open-contact':  if (typeof supOpen === 'function') supOpen(); else openModal('acc-contact-modal'); break; // الدعم الفني: محادثة كاملة دائمة
@@ -9242,7 +9172,6 @@ function markReportAsRead(reportId) {
   // Fade-out للشارة + كتابة واحدة إلى فايربيس + تحديث عدّاد الجرس — دون تحديث الصفحة
   markItemRead('reports', reportId);
 }
-accEl('acc-lang-switch').addEventListener('change', e => accApplyLang(e.target.checked ? 'en' : 'ar'));
 const _mgUserInput = accEl('acc-mg-user');
 if (_mgUserInput) _mgUserInput.addEventListener('input', accUpdateRules);
 accEl('acc-np-pass').addEventListener('input', accUpdatePassRules);
@@ -10268,6 +10197,15 @@ function verifiedBadgeHTML(authorId, authorName) {
   return '';
 }
 
+// ── شارة حيدر (صور/حيدر.png): تظهر آخر اسم صاحب أيدي 873802 فقط — لا بالاسم ──
+function haiderIconSrc(id) {
+  try { return (id != null && id !== '' && String(id) === '873802') ? 'صور/حيدر.png' : ''; } catch (e) { return ''; }
+}
+function haiderBadgeHTML(id) {
+  const src = haiderIconSrc(id);
+  return src ? `<img src="${src}" class="author-badge" alt="شعار">` : '';
+}
+
 // تعيد الاسم الكامل للمالك من خريطة alfa_id_names (أو الحالي إذا متاح) للمقارنة في الشارة
 function getOwnerFullName() {
   try {
@@ -10438,9 +10376,10 @@ function enhanceAuthorNames(root = document) {
         }
         const pn = holder.querySelector('.post-author-name');
         if (pn) {
-          const badge = verifiedBadgeHTML(pid, p.fullName);
-          if (pn.textContent !== p.fullName || (!!pn.querySelector('.verified-badge') !== !!badge)) {
-            pn.innerHTML = sanitizeText(p.fullName) + badge;
+          const vBadge = verifiedBadgeHTML(pid, p.fullName);
+          const hBadge = haiderBadgeHTML(pid); // شارة حيدر تبقى ملاصقة للاسم الحيّ
+          if (pn.textContent !== p.fullName || (!!pn.querySelector('.verified-badge') !== !!vBadge) || (!!pn.querySelector('.author-badge') !== !!hBadge)) {
+            pn.innerHTML = sanitizeText(p.fullName) + hBadge + vBadge;
           }
         }
       });
@@ -10466,24 +10405,22 @@ function enhanceAuthorNames(root = document) {
       const curName = nmEl.textContent.replace(/\s*<[^>]*>.*/g, '').trim() || nmEl.getAttribute('data-name') || '';
       if (curName) {
         const pid = String((pubDetail.dataset.authorId || '')).trim();
-        if (pid) {
+        // إما بالأدي الموجود، أو بحلّ اسمه القديم النصّي إلى أدي — applyLive ترقّي العنصر تلقائياً
+        if (pid || (curName && curName !== 'الإدارة')) {
           applyLive(pubDetail, curName, (p, elx) => {
             const pdid = String(p.userId || p._id || elx.dataset.authorId || '');
-            const existingBadge = elx.querySelector('.verified-badge');
-            const textOnly = elx.textContent.replace(/\s*<[^>]*>.*/g, '').trim();
-            if (textOnly !== p.fullName) {
-              elx.innerHTML = sanitizeText(p.fullName);
-              if (existingBadge) elx.appendChild(existingBadge);
-            }
             const badge = verifiedBadgeHTML(pdid, p.fullName) || doctorBadgeHTML(p.fullName);
-            if (badge && !elx.querySelector('.verified-badge')) {
-              elx.insertAdjacentHTML('beforeend', badge);
-            } else if (!badge && elx.querySelector('.verified-badge')) {
-              elx.querySelector('.verified-badge').remove();
+            const oldBadge = elx.querySelector('.verified-badge');
+            const textOnly = elx.textContent.replace(/\s*<[^>]*>.*/g, '').trim();
+            // أعد الرسم فقط عند تغيّر الاسم أو الشارة (يمنع استبدال شارة الاسم القديم بشارة الاسم الحيّ)
+            const badgeChanged = (!!oldBadge !== !!badge) || !!(badge && oldBadge && oldBadge.outerHTML !== badge);
+            if (textOnly !== p.fullName || badgeChanged) {
+              elx.innerHTML = sanitizeText(p.fullName) + badge;
             }
           });
-        } else {
-          // بدون أدي — قارن بالاسم مباشرة
+        }
+        if (!pid) {
+          // ما دام الأدي لم يُحلّ بعد (عملية غير متزامنة أو اسم غامض) — شارة بالاسم المعروض مباشرة
           const badge = verifiedBadgeHTML('', curName) || doctorBadgeHTML(curName);
           const existing = pubDetail.querySelector('.verified-badge');
           if (badge && !existing) {
@@ -11616,6 +11553,8 @@ window.amOpen = async function () {
   const lv = document.getElementById('am-list-view'), ev = document.getElementById('am-edit-view');
   if (lv) lv.style.display = '';
   if (ev) ev.style.display = 'none';
+  const sEl = document.getElementById('am-search');
+  if (sEl) sEl.value = ''; // فلتر البحث يبدأ من جديد حتى لا يخفي حسابات جديدة من القائمة
   const list = document.getElementById('am-list');
   if (list) list.innerHTML = '<div class="am-empty">جارٍ التحميل…</div>';
   try {
@@ -13309,7 +13248,7 @@ function renderChatMessage(msg, container, isContinuation = false, isLastInGroup
   actionsHtml += `</div>`;
 
   let senderIconHtml = '';
-  const iconSrc = msg.senderIcon ? msg.senderIcon : (msg.senderName === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : '');
+  const iconSrc = haiderIconSrc(msg.senderId); // شارة حيدر: بالأيدي 873802 فقط — لا بالاسم
   if (iconSrc) {
     senderIconHtml = `<img src="${iconSrc}" class="author-badge" alt="شعار">`;
   }
@@ -13446,7 +13385,7 @@ window.sendChatMessage = async function() {
          imageUrls: uploadedUrls,
          senderName: currentUser.name,
          senderColor: currentUser.color || '#a0a0b0',
-         senderIcon: currentUser.icon || (currentUser.name === 'حيدر محمد عبد الرحيم' ? 'صور/حيدر.png' : ''),
+         senderIcon: currentUser.icon || haiderIconSrc(currentUser.userId || currentUser.code) || '',
          senderId: currentUser.userId || currentUser.code || '',
          createdAt: Date.now(),
          edited: false,
@@ -13720,7 +13659,8 @@ function renderReportComment(msg, container, isContinuation = false) {
   const timeStr = new Date(msg.createdAt || Date.now()).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
   const editedTag = msg.edited ? '<span class="rc-edited-tag">(معدّلة)</span>' : '';
   let iconHtml = '';
-  if (msg.senderIcon) iconHtml = `<img src="${msg.senderIcon}" class="author-badge" alt="" style="width:16px;height:16px;border-radius:50%;">`;
+  const haiderIconSrcMsg = haiderIconSrc(msg.senderId); // شارة حيدر: بالأيدي 873802 فقط — لا بالاسم
+  if (haiderIconSrcMsg) iconHtml = `<img src="${haiderIconSrcMsg}" class="author-badge" alt="شعار">`;
   const sid = msg.senderId ? encodeURIComponent(String(msg.senderId)) : '';
   const snm = encodeURIComponent(msg.senderName || '');
   const senderClick = sid
