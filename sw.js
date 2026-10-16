@@ -5,12 +5,14 @@
    • يعرض الملف فوراً من الكاش (سرعة فورية للطالب)
    • ويجلب نسخة طازجة من السيرفر في الخلفية لتحديث الكاش
      لتصبح جاهزة لزيارة الطالب القادمة
-   • لا توجد أرقام إصدارات (Versions) في أي مكان:
-     اسم الكاش ثابت، والمحتوى يتجدد تلقائياً في كل زيارة
-     => رفع تحديث جديد للموقع لا يتطلب أي تعديل في هذا الملف
+   • لا توجد أرقام إصدارات (Versions) في أي مكان — باستثناء ترقية CACHE_NAME عند الحاجة:
+      الاسم ثابت والمحتوى يتجدد تلقائيا في كل زيارة (يحتاج تحميلين فقط)
+      => رفع تحديث جديد لا يحتاج تعديلا هنا — إلا لتغيير CACHE_NAME إجبارا لتحديث شامل يسقط الكاش القديم
    ============================================================= */
 
-const CACHE_NAME = 'alfaclass-core'; // اسم ثابت للأبد — لا يُغيَّر عند رفع تحديث
+// [ترقية 2026-10-16] إجبار تحديث شامل: الاسم القديم 'alfaclass-core'
+// سيُحذف في activate لأنه لم يعد في KEEP_CACHES — يفضي كاش index.html القديم
+const CACHE_NAME = 'alfaclass-core-v2';
 const KEEP_CACHES = [CACHE_NAME, 'downloaded-files']; // كاش تنزيلات الملفات لا يُحذف
 const CORE_ASSETS = [
   './',
@@ -76,6 +78,22 @@ function staleWhileRevalidate(event) {
   });
 }
 
+// جلب الصفحة الرئيسية من الشبكة أولاً (دائماً جديدة)، مع الكاش كبديل أوفلاين
+async function networkFirst(req) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const res = await fetch(req, { cache: 'no-cache' });
+    if (res && res.ok) {
+      cache.put(req, res.clone()).catch(() => {});
+    }
+    return res || offlineResponse(req);
+  } catch (err) {
+    const cached = await cache.match(req);
+    if (cached) return cached;
+    return offlineResponse(req);
+  }
+}
+
 // صفحة أوفلاين مصغّرة عند انقطاع الإنترنت وعدم وجود نسخة مخزنة
 function offlineResponse(req) {
   if (req.mode === 'navigate' || req.destination === 'document') {
@@ -96,11 +114,23 @@ self.addEventListener('fetch', event => {
   // طلبات الرفع/التعديل (POST/PUT…) لا تُاعتبر
   if (req.method !== 'GET') return;
 
-  // الطلبات الخارجية (Firebase / Cloudinary / Fonts / APIs) → للشبكة مباشرة
-  if (new URL(req.url).origin !== self.location.origin) return;
+  // الطلبات النطاقات الخارجية (Firebase / Cloudinary / Fonts / APIs) → للشبكة مباشرة
+  const scopeOrigin = new URL(self.registration.scope).origin;
+  if (new URL(req.url).origin !== scopeOrigin) return;
 
   // نحترم الطلبات التي طلب التطبيق عدم كاشها (تنزيلات الملفات / Range / no-store)
   if (req.cache === 'no-store' || req.cache === 'only-if-cached' || req.headers.has('range')) return;
+
+  // الصفحة الرئيسية (مستند index.html) تُجلب دائماً من الشبكة أولاً لضمان روابط ومحتوى جديد،
+  // مع الكاش كبديل عند انقطاع الإنترنت. باقي الملفات تتبع استراتيجية Stale-While-Revalidate.
+  const url = req.url;
+  const isDoc = req.mode === 'navigate' || req.destination === 'document';
+  const isIndex = isDoc && (url.endsWith('index.html') || url.endsWith('/'));
+
+  if (isIndex) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
 
   // كل الطلبات الأخرى → Stale-While-Revalidate
   event.respondWith(staleWhileRevalidate(event));
