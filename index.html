@@ -5202,7 +5202,7 @@ function renderPostsForDay(dayId, posts) {
     let actionsHtml = '';
     if (currentUser) {
       actionsHtml += '<div class="post-actions">';
-      if (currentUser.isAdmin) {
+      if (currentUser.isAdmin || userHasPerm(currentUser, 'prep')) {
         actionsHtml += `${!post.isOffline ? `<button class="btn-edit" onclick="openEditModal('${post.id}')">✏️ تعديل</button>` : ''}`;
         actionsHtml += `<button class="btn-delete" onclick="${post.isOffline ? `deleteOfflinePostHandler(${post.id})` : `deletePost('${post.id}', ${JSON.stringify(post.mediaUrls || []).replace(/"/g,'&quot;')})`}">🗑️ حذف</button>`;
       }
@@ -5816,7 +5816,7 @@ window.openPublishModal = function(dayId) {
 };
 
 window.openEditModal = function(postId) {
-  if (!currentUser?.isAdmin) return;
+  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'prep')) { showToast('⛔', 'مقيّد', 'تعديل التحضير غير مفعّل لحسابك'); return; }
   // find post
   let post = null;
   Object.values(currentPosts).forEach(arr => {
@@ -6127,7 +6127,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 
 // ── DELETE ──
 window.deletePost = async function(postId, mediaUrls) {
-  if (!currentUser?.isAdmin) return;
+  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'prep')) { showToast('⛔', 'مقيّد', 'حذف التحضير غير مفعّل لحسابك'); return; }
   const okDel = await confirmDialog({
     icon: '🗑️', title: 'حذف المنشور',
     message: 'سيُحذف هذا المنشور نهائياً مع كل مرفقاته من الموقع. لا يمكن التراجع عن هذا الإجراء.',
@@ -9337,7 +9337,7 @@ function renderReports() {
             <span class="report-author">${reportAuthorHtml(r)}</span>
             <span class="report-foot-actions">
               <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" data-rc-coll="reports" style="display:none">0</span></button>
-              ${currentUser?.isAdmin ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+              ${(currentUser?.isAdmin || userHasPerm(currentUser, 'report')) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
             </span>
           </div>
         </div>`;
@@ -11142,9 +11142,9 @@ window.openReportModal = function() {
   openModal('report-modal');
 };
 
-// ── تعديل بلاغ منشور (للمالك/الأدمن) ──
+// ── تعديل بلاغ منشور (للمالك/الأدمن/من يملك صلاحية نشر البلاغ) ──
 window.editReport = function(id) {
-  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'هذه العملية مخصصة للإدارة فقط'); return; }
+  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'report')) { showToast('⛔', 'مقيّد', 'تعديل البلاغ غير مفعّل لحسابك'); return; }
   const rep = reportsData.find(r => String(r.id) === String(id));
   if (!rep) { showToast('⚠️', 'خطأ', 'لم يُعثر على البلاغ'); return; }
 
@@ -11310,7 +11310,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
 });
 
 window.deleteReport = async function(id) {
-  if (!currentUser?.isAdmin) return;
+  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'report')) { showToast('⛔', 'مقيّد', 'حذف البلاغ غير مفعّل لحسابك'); return; }
   const okDel = await confirmDialog({
     icon: '📣', title: 'حذف البلاغ',
     message: 'سيُحذف هذا البلاغ نهائياً ولن يظهر لأحد. لا يمكن التراجع عن هذا الإجراء.',
