@@ -1644,10 +1644,6 @@
   .am-go { font-size: 15px; flex-shrink: 0; }
   .am-empty { text-align: center; color: var(--text-muted); font-size: 13px; padding: 22px 0; }
   .am-refresh { margin-top: 10px; font-size: 13px; }
-  /* زر أداة تنظيف الحسابات القديمة (النظام السابق) — لون خطر */
-  .am-purge { width: 100%; margin-top: 8px; padding: 10px; border-radius: 12px; border: 1px solid rgba(239,68,68,0.35); background: rgba(239,68,68,0.08); color: #f87171; font-family: var(--font); font-weight: 700; font-size: 13px; cursor: pointer; }
-  .am-purge:active { transform: scale(0.98); }
-  .am-purge:disabled { opacity: 0.6; cursor: wait; }
   .am-edit-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .am-back {
     background: rgba(255,255,255,0.07); border: 1px solid var(--border); color: var(--text-primary);
@@ -3835,7 +3831,6 @@
       <div class="am-stats-mini"><span>المسجّلون: <b id="am-count-total">—</b></span><span>النشطون (٧ أيام): <b id="am-count-active">—</b></span></div>
       <div class="am-list" id="am-list"></div>
       <button type="button" class="am-refresh" onclick="amOpen()">🔄 تحديث القائمة</button>
-      <button type="button" class="am-refresh am-purge" id="am-purge-btn" onclick="amPurgeLegacy()">🧹 حذف الحسابات القديمة (النظام السابق)</button>
     </div>
     <!-- عرض: تعديل حساب -->
     <div id="am-edit-view" style="display:none">
@@ -12232,98 +12227,7 @@ async function amDeleteUserExec() {
   }
 }
 
-// ── إدارة الأعضاء: حذف نهائي للحسابات القديمة (النظام السابق: تسجيل بالاسم/الرمز بلا كلمة سر) ──
-// النظام القديم كان يخزّن الحسابات باسم/رمز في Firestore بدون Firebase Auth،
-// فلا يمكن الدخول عليها بالنظام الحالي إطلاقاً — نحذفها نهائياً حتى تختفي من إدارة الأعضاء.
-// معايير الكشف (تُستثنى حساب المالك دائماً):
-//   1) مسار المستند غير رقمي (مفتاحه اسم/يوزر قديم بدل الأيدي)
-//   2) اليوزر مفقود أو غير صالح بالنظام الحالي (عربي/رموز/أرقام فقط بدون حرف إنجليزي)
-//   3) بلا uid و بلا emailPrefix (مستند من عصر قبل المصادقة)
-//   4) حساب سبق وحُذف بالطريقة المؤجلة (deleteForced) وبقي مستنده — يُحذف الآن نهائياً
-function amIsLegacyUser(u) {
-  if (!u) return false;
-  if (u.deleteForced) return true; // مُنع وحُدّد حذفه — يُنفَّذ حذفه الكامل الآن
-  // استثناء حساب المالك بأي صيغة
-  if (u.role === 'owner') return false;
-  if (String(u.userId || '') === String(OWNER_USER_ID) || String(u._id || '') === String(OWNER_USER_ID)) return false;
-  if (String(u.username || '').toLowerCase() === AUTH_OWNER) return false;
-  if (!/^\d+$/.test(String(u._id || ''))) return true; // 1) نظام قديم: المفتاح اسم/يوزر لا رقم
-  const un = String(u.username || '').trim().toLowerCase();
-  if (!un) return true; // 2) بلا يوزر (فضلات الأخطاء القديمة)
-  if (!/^[a-z0-9_.-]{3,30}$/.test(un) || !/[a-z]/.test(un)) return true; // يوزر غير صالح (عربي/رموز/أرقام فقط)
-  if (!u.uid && !u.emailPrefix) return true; // 3) قبل المصادقة: لا UID ولا بريد دخول ثابت
-  return false;
-}
-window.amPurgeLegacy = async function () {
-  if (!amIsOwner()) { showToast('⛔', 'مقيّد', 'هذه الأداة لصاحب الموقع فقط'); return; }
-  const btn = document.getElementById('am-purge-btn');
-  const btnLabel = '🧹 حذف الحسابات القديمة (النظام السابق)';
-  const resetBtn = () => { if (btn) { btn.disabled = false; btn.textContent = btnLabel; } };
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الفحص…'; }
-  // جلب كل المستندات بما فيها المحذوفة مؤقتاً (amFetchUsers يخفيها) حتى تُحذف هنا نهائياً
-  let all = [];
-  try {
-    const snap = await getDocs(collection(db, 'users'));
-    snap.forEach(d => { const u = d.data() || {}; u._id = d.id; all.push(u); });
-  } catch (e) {
-    resetBtn();
-    showToast('❌', 'خطأ', (e && e.code === 'permission-denied') ? 'قواعد Firestore تمنع قراءة قائمة الأعضاء' : 'تعذّر جلب قائمة الأعضاء');
-    return;
-  }
-  const legacy = all.filter(amIsLegacyUser);
-  if (!legacy.length) { resetBtn(); showToast('✅', 'الحسابات القديمة', 'لا توجد حسابات قديمة — كل الحسابات بالنظام الحالي السليم'); return; }
-  // معاينة الأسماء قبل الحذف (حتى 12 اسماً)
-  const names = legacy.slice(0, 12).map(u => '• ' + (u.fullName || u.username || 'مستند ' + u._id)).join('\n');
-  const more = legacy.length > 12 ? '\n… و' + (legacy.length - 12) + ' حساب آخر' : '';
-  const ok = await confirmDialog({
-    icon: '🧹',
-    title: 'حذف الحسابات القديمة نهائياً',
-    message: 'سيتم حذف ' + legacy.length + ' حساب من نظام التسجيل القديم (بالاسم/الرموز — بلا كلمة سر، ولا يمكن الدخول عليهم بالنظام الحالي):\n' + names + more + '\n\nالحذف نهائي ولا يمكن التراجع. هل تريد المتابعة؟',
-    confirmText: 'متابعة الحذف'
-  });
-  if (!ok) { resetBtn(); return; }
-  const ok2 = await confirmDialog({
-    icon: '⚠️',
-    title: 'تأكيد نهائي — خطير',
-    message: 'هذه خطوة نهائية: حذف ' + legacy.length + ' حساب نهائياً مع محادثات دعمهم. لا يمكن التراجع بعد الضغط.',
-    confirmText: 'حذف نهائي'
-  });
-  if (!ok2) { resetBtn(); return; }
-  if (btn) btn.textContent = '⏳ جارٍ الحذف النهائي…';
-  let done = 0, disabledCnt = 0, failed = 0;
-  for (const u of legacy) {
-    const id = String(u._id);
-    try {
-      // محادثة الدعم: الرسائل ثم المستند (إن وُجدت)
-      try {
-        const msgsSnap = await getDocs(collection(db, SUP_CHATS, id, 'messages'));
-        await Promise.all(msgsSnap.docs.map(d => deleteDoc(d.ref)));
-      } catch (e) {}
-      try { await deleteDoc(doc(db, SUP_CHATS, id)); } catch (e) {}
-      saChats.delete(id);
-      await deleteDoc(doc(db, 'users', id)); // الحذف النهائي للمستند
-      done++;
-    } catch (e) {
-      // إن منعت قواعد Firestore الحذف المباشر: تعطيل الحساب (إخفاء + سحب كل الصلاحيات) كحل بديل
-      try {
-        const noPerms = {};
-        AM_PERMS.forEach(p => { noPerms[p.key] = false; });
-        await setDoc(doc(db, 'users', id), { perms: noPerms, deleteForced: true, deletedBy: 'owner', deletedAt: new Date() }, { merge: true });
-        disabledCnt++;
-      } catch (e2) { failed++; }
-    }
-  }
-  try { await amFetchUsers(true); amRenderList(); } catch (e) {}
-  if (typeof saRenderListIfOpen === 'function') saRenderListIfOpen();
-  resetBtn();
-  if (failed) {
-    showToast('⚠️', 'اكتمل جزئياً', 'حُذف ' + done + ' حساب' + (disabledCnt ? ' وعُطّل ' + disabledCnt : '') + ' وفشل ' + failed + ' (تحقق من قواعد Firestore للحذف)');
-  } else if (disabledCnt) {
-    showToast('⚠️', 'تم التنظيف', 'حُذف ' + done + ' حساب وعُطّل ' + disabledCnt + ' (حجبتها قواعد Firestore من الحذف المباشر فأُخفيت وسُحبنت صلاحياتها)');
-  } else {
-    showToast('✅', 'تم الحذف', 'حُذف ' + done + ' حساب قديم نهائياً — لن يمكن الدخول عليهم بعد اليوم');
-  }
-};
+
 
 // شارة الدعم في الهيدر: نقطة حمراء عند وجود إشعار دعم غير مقروء
 function updateSupportBadge() {
