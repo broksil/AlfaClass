@@ -7203,6 +7203,17 @@ function getMatTypeSelection() {
   return [...box.querySelectorAll('.type-chip.active')].map(b => b.dataset.type || '').filter(Boolean);
 }
 
+// فتح ملزمة من رابط مشاركة مباشر (?m=) بمجرد وصول بيانات الملازم
+function openPendingMaterial() {
+  if (!pendingMatId) return;
+  const mat = (Array.isArray(allMaterials) ? allMaterials : []).find(m => String(m.id) === String(pendingMatId));
+  if (mat) {
+    openMaterialDetail(mat);
+    pendingMatId = null;
+  }
+  // إن لم تصل البيانات بعد، ستُجرى المحاولة 다시 عند كل تحديث من Firestore أدناه
+}
+
 // ── الاشتراك في Firestore ──
 function subscribeMaterials() {
   if (unsubMaterials) return;
@@ -7244,6 +7255,7 @@ function subscribeMaterials() {
 
     renderTypeChips();
     renderMaterialsGrid();
+    openPendingMaterial(); // فتح ملزمة من رابط مشاركة مباشر إن وُجد
     refreshMaterialDetailLike(allMaterials.find(m => String(m.id) === String(detailMatId))); // عدّاد القلوب في التفاصيل المفتوحة (تغيّر من أي مستخدم)
     updateUnreadBadge(); // تحديث عدّاد غير المقروء بعد بناء الشبكات
     // حدّث عدّاد «الأعجابات» وشبكة «منشوراتي» في الملف الشخصي إن كان مفتوحاً (تغيّر لحظي من أي مستخدم)
@@ -7381,6 +7393,7 @@ window.toggleMaterialLike = function(matId) {
 
 // ── مودال تفاصيل الملزمة: معرف الملزمة المفتوحة + تنسيق تاريخها + تحديث زر القلوب بداخله ──
 let detailMatId = null; // معرف الملزمة المعروضة حالياً في مودال التفاصيل
+let pendingMatId = null; // معرف ملزمة مطلوب فتحها من رابط المشاركة ?m=
 
 function formatMaterialDate(ts) {
   try {
@@ -7649,11 +7662,12 @@ window.openMaterialDetail = function(mat) {
   }
 
   shareBtn.onclick = async () => {
-    const shareData = { title: mat.name, text: `ملزمة: ${mat.name}`, url: dlSrc || window.location.href };
+    const matUrl = materialLinkURL(mat.id) || dlSrc || window.location.href;
+    const shareData = { title: mat.name, text: `ملزمة: ${mat.name}`, url: matUrl };
     if (navigator.canShare && navigator.canShare(shareData)) {
       try { await navigator.share(shareData); } catch {}
     } else {
-      navigator.clipboard.writeText(dlSrc || window.location.href);
+      navigator.clipboard.writeText(matUrl);
       showToast('📋', 'تم النسخ', 'تم نسخ رابط الملزمة');
     }
   };
@@ -8642,6 +8656,14 @@ function profileLinkURL(userId) {
   let path = window.location.pathname.replace(/index\.html$/, '');
   if (!path.endsWith('/')) path += '/';
   return window.location.origin + path + 'profile?u=' + encodeURIComponent(id);
+}
+// رابط مشاركة ملزمة مباشرة: /?m=<معرف الملزمة> — يفتح تفاصيل الملزمة عند الضغط على الرابط
+function materialLinkURL(matId) {
+  const id = String(matId || '').trim();
+  if (!id) return '';
+  let path = window.location.pathname.replace(/index\.html$/, '');
+  if (!path.endsWith('/')) path += '/';
+  return window.location.origin + path + '?m=' + encodeURIComponent(id);
 }
 // معرّف حسابي لروابط المشاركة/النسخ: الأيدي المستقر ثم اليوزر
 function myProfileIdForLink() {
@@ -13776,6 +13798,15 @@ function init() {
     if (shareUid && shareUid.trim()) {
       accPendingView = { id: shareUid.trim(), name: '' };
       setActiveNav('user'); // يستدعي accOpen ← accOpenOther ويفتح الملف فوراً (حتى للزائر)
+    }
+  } catch (e) {}
+
+  // رابط مشاركة ملزمة مباشرة (?m=معرّف) — يفتح تفاصيل الملزمة عند الضغط على الرابط
+  try {
+    const shareMat = new URLSearchParams(window.location.search).get('m');
+    if (shareMat && shareMat.trim()) {
+      pendingMatId = shareMat.trim();
+      openPendingMaterial();
     }
   } catch (e) {}
 }

@@ -124,8 +124,10 @@ self.addEventListener('fetch', event => {
   // الصفحة الرئيسية (مستند index.html) تُجلب دائماً من الشبكة أولاً لضمان روابط ومحتوى جديد،
   // مع الكاش كبديل عند انقطاع الإنترنت. باقي الملفات تتبع استراتيجية Stale-While-Revalidate.
   const url = req.url;
+  const u   = new URL(url);
   const isDoc = req.mode === 'navigate' || req.destination === 'document';
-  const isIndex = isDoc && (url.endsWith('index.html') || url.endsWith('/'));
+  // pagina principale (anche con ?m=… / ?u=…) → sempre da rete prima
+  const isIndex = isDoc && (u.pathname.endsWith('index.html') || u.pathname.endsWith('/'));
 
   if (isIndex) {
     event.respondWith(networkFirst(req));
