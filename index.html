@@ -7206,12 +7206,14 @@ function getMatTypeSelection() {
 // فتح ملزمة من رابط مشاركة مباشر (?m=) بمجرد وصول بيانات الملازم
 function openPendingMaterial() {
   if (!pendingMatId) return;
+  // تفعيل قسم الملازم (الجدول/الملازم) قبل فتح واجهة التفاصيل
+  try { setActiveNav('schedule'); } catch (e) {}
   const mat = (Array.isArray(allMaterials) ? allMaterials : []).find(m => String(m.id) === String(pendingMatId));
   if (mat) {
     openMaterialDetail(mat);
     pendingMatId = null;
   }
-  // إن لم تصل البيانات بعد، ستُجرى المحاولة 다시 عند كل تحديث من Firestore أدناه
+  // إن لم تصل البيانات بعد، ستُجرى المحاولة مرة أخرى عند كل تحديث من Firestore أدناه
 }
 
 // ── الاشتراك في Firestore ──
@@ -13801,12 +13803,13 @@ function init() {
     }
   } catch (e) {}
 
-  // رابط مشاركة ملزمة مباشرة (?m=معرّف) — يفتح تفاصيل الملزمة عند الضغط على الرابط
+  // رابط مشاركة ملزمة مباشرة (?m=معرّف) — يفتح قسم الملازم وواجهة التفاصيل عند الضغط على الرابط
   try {
     const shareMat = new URLSearchParams(window.location.search).get('m');
     if (shareMat && shareMat.trim()) {
       pendingMatId = shareMat.trim();
-      openPendingMaterial();
+      setActiveNav('schedule'); // تفعيل قسم الملازم فورًا
+      openPendingMaterial();    // ثم فتح واجهة التفاصيل عند توفر البيانات
     }
   } catch (e) {}
 }
