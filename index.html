@@ -5202,7 +5202,7 @@ function renderPostsForDay(dayId, posts) {
     let actionsHtml = '';
     if (currentUser) {
       actionsHtml += '<div class="post-actions">';
-      if (currentUser.isAdmin || userHasPerm(currentUser, 'prep')) {
+      if (currentUser.isAdmin || (userHasPerm(currentUser, 'prep') && isOwnAuthor(post.authorId))) {
         actionsHtml += `${!post.isOffline ? `<button class="btn-edit" onclick="openEditModal('${post.id}')">✏️ تعديل</button>` : ''}`;
         actionsHtml += `<button class="btn-delete" onclick="${post.isOffline ? `deleteOfflinePostHandler(${post.id})` : `deletePost('${post.id}', ${JSON.stringify(post.mediaUrls || []).replace(/"/g,'&quot;')})`}">🗑️ حذف</button>`;
       }
@@ -5816,7 +5816,6 @@ window.openPublishModal = function(dayId) {
 };
 
 window.openEditModal = function(postId) {
-  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'prep')) { showToast('⛔', 'مقيّد', 'تعديل التحضير غير مفعّل لحسابك'); return; }
   // find post
   let post = null;
   Object.values(currentPosts).forEach(arr => {
@@ -5824,6 +5823,8 @@ window.openEditModal = function(postId) {
     if (f) post = f;
   });
   if (!post) return;
+  // التحقق من الصلاحية + الملكية: صاحب صلاحية prep يعدل منشوراته فقط
+  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'prep') && isOwnAuthor(post.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
 
   editingMediaUrls = post.mediaUrls ? [...post.mediaUrls] : []; // نسخ المصفوفة لعدم التأثير المباشر قبل الحفظ
   document.getElementById('pub-day-id').value = post.dayId;
@@ -6030,6 +6031,12 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
   if (!userHasPerm(currentUser, 'prep')) { showToast('⛔', 'مقيّد', 'نشر التحضير غير مفعّل لحسابك'); return; }
   const dayId = document.getElementById('pub-day-id').value;
   const editId = document.getElementById('pub-edit-id').value;
+  // وضع التعديل: يُسمح فقط بمنشوراتي (المالك/الأدمن يتجاوز هذا القيد)
+  let origPost = null;
+  if (editId) {
+    Object.values(currentPosts).forEach(arr => { const f = arr.find(x => x.id === editId); if (f) origPost = f; });
+    if (!currentUser?.isAdmin && (!origPost || !isOwnAuthor(origPost.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
+  }
   
   let type = document.getElementById('pub-type').value;
   if (type === 'آخر') type = document.getElementById('pub-type-custom').value.trim() || 'آخر';
@@ -6055,7 +6062,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     author: currentUser.name,
     authorColor: currentUser.color,
     authorIcon: currentUser.icon || '',
-    authorId: currentUser.userId || currentUser.code || '',
+    authorId: (origPost && origPost.authorId) || currentUser.userId || currentUser.code || '',
     authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
     createdAt: Date.now(),
     clientSig: editId ? '' : `sig-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -6127,7 +6134,10 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 
 // ── DELETE ──
 window.deletePost = async function(postId, mediaUrls) {
-  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'prep')) { showToast('⛔', 'مقيّد', 'حذف التحضير غير مفعّل لحسابك'); return; }
+  // التحقق من الصلاحية + الملكية: صاحب صلاحية prep يحذف منشوراته فقط
+  let post = null;
+  Object.values(currentPosts).forEach(arr => { const f = arr.find(p => p.id === postId); if (f) post = f; });
+  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'prep') && post && isOwnAuthor(post.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذا المنشور'); return; }
   const okDel = await confirmDialog({
     icon: '🗑️', title: 'حذف المنشور',
     message: 'سيُحذف هذا المنشور نهائياً مع كل مرفقاته من الموقع. لا يمكن التراجع عن هذا الإجراء.',
@@ -7739,7 +7749,7 @@ window.openMaterialDetail = function(mat) {
     }
   };
 
-  if (currentUser?.isAdmin || userHasPerm(currentUser, 'material')) {
+  if (currentUser?.isAdmin || (userHasPerm(currentUser, 'material') && isOwnAuthor(mat.authorId))) {
     adminAct.style.display = 'flex';
     document.getElementById('material-detail-edit').onclick   = () => { closeModal('material-detail-modal'); openMaterialModal(mat); };
     document.getElementById('material-detail-delete').onclick = () => deleteMaterial(mat.id);
@@ -7805,6 +7815,11 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
   const btn      = document.getElementById('btn-do-material');
   if (!userHasPerm(currentUser, 'material')) { showToast('⛔', 'مقيّد', 'نشر الملازم غير مفعّل لحسابك'); return; }
   const editId   = document.getElementById('mat-edit-id').value;
+  // وضع التعديل: يُسمح فقط بملازمي (المالك/الأدمن يتجاوز هذا القيد)
+  if (editId && !currentUser?.isAdmin) {
+    const origMat = (Array.isArray(allMaterials) ? allMaterials : []).find(m => String(m.id) === String(editId));
+    if (!origMat || !isOwnAuthor(origMat.authorId)) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذه الملزمة'); return; }
+  }
   const subject  = document.getElementById('mat-subject').value;
   const types    = getMatTypeSelection(); // يمكن اختيار أكثر من نوع (✓)
   const type     = types[0] || '';        // النوع الأول للتوافق الخلفي (اللون/البادج/البحث)
@@ -7923,7 +7938,9 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
 
 // حذف ملزمة
 async function deleteMaterial(id) {
-  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'material')) { showToast('⛔', 'مقيّد', 'حذف الملازم غير مفعّل لحسابك'); return; }
+  // التحقق من الصلاحية + الملكية: صاحب صلاحية material يحذف ملازمَه فقط
+  const mat = (Array.isArray(allMaterials) ? allMaterials : []).find(m => String(m.id) === String(id));
+  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'material') && mat && isOwnAuthor(mat.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذه الملزمة'); return; }
   const okDel = await confirmDialog({
     icon: '📚', title: 'حذف الملزمة',
     message: 'سيُحذف ملف الملزمة وبياناتها نهائياً من قسم الملازم. لا يمكن التراجع عن هذا الإجراء.',
@@ -9337,7 +9354,7 @@ function renderReports() {
             <span class="report-author">${reportAuthorHtml(r)}</span>
             <span class="report-foot-actions">
               <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" data-rc-coll="reports" style="display:none">0</span></button>
-              ${(currentUser?.isAdmin || userHasPerm(currentUser, 'report')) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+              ${(currentUser?.isAdmin || (userHasPerm(currentUser, 'report') && isOwnAuthor(r.authorId))) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
             </span>
           </div>
         </div>`;
@@ -11142,11 +11159,11 @@ window.openReportModal = function() {
   openModal('report-modal');
 };
 
-// ── تعديل بلاغ منشور (للمالك/الأدمن/من يملك صلاحية نشر البلاغ) ──
+// ── تعديل بلاغ منشور (للمالك/الأدمن، أو صاحب الصلاحية على بلاغاته فقط) ──
 window.editReport = function(id) {
-  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'report')) { showToast('⛔', 'مقيّد', 'تعديل البلاغ غير مفعّل لحسابك'); return; }
   const rep = reportsData.find(r => String(r.id) === String(id));
   if (!rep) { showToast('⚠️', 'خطأ', 'لم يُعثر على البلاغ'); return; }
+  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'report') && isOwnAuthor(rep.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا البلاغ'); return; }
 
   resetReportModal();
   editingReport = rep;
@@ -11310,7 +11327,9 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
 });
 
 window.deleteReport = async function(id) {
-  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'report')) { showToast('⛔', 'مقيّد', 'حذف البلاغ غير مفعّل لحسابك'); return; }
+  // التحقق من الصلاحية + الملكية: صاحب صلاحية report يحذف بلاغاته فقط
+  const rep = reportsData.find(r => String(r.id) === String(id));
+  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'report') && rep && isOwnAuthor(rep.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذا البلاغ'); return; }
   const okDel = await confirmDialog({
     icon: '📣', title: 'حذف البلاغ',
     message: 'سيُحذف هذا البلاغ نهائياً ولن يظهر لأحد. لا يمكن التراجع عن هذا الإجراء.',
@@ -11538,6 +11557,13 @@ function userHasPerm(u, key) {
   return defaultPerm(u, key);
 }
 function selfCan(key) { return userHasPerm(currentUser, key); }
+// هل المنشور من نشر المستخدم الحالي؟ — ليسمح لصاحب الصلاحية بتعديل/حذف منشوراته فقط
+// (المنشورات القديمة بلا authorId يملكها المالك/الأدمن وحدهم)
+function isOwnAuthor(authorId) {
+  const my = String(currentUser?.userId || currentUser?.code || '');
+  const who = String(authorId || '');
+  return !!my && !!who && who === my;
+}
 
 // جلب كل المستخدمين (كاش دقيقة، أو بالإجبار) — نفس مجموعة users التي يقرأها الموقع أصلاً
 async function amFetchUsers(force) {
