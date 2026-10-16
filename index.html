@@ -8634,25 +8634,63 @@ function accToggleSettings() {
   if (!box) return;
   box.hidden = !box.hidden;
 }
-// مشاركة الملف الشخصي — رابط يفتح ملفك مباشرة عند الضغط عليه (?u=)
+// ═══════════ الروابط النظيفة للملفات الشخصية: /profile?u=<معرّف> ═══════════
+// بناء الرابط النظيف من معرّف الحساب (يتجاهل index.html إن وُجد في نهاية المسار)
+function profileLinkURL(userId) {
+  const id = String(userId || '').trim();
+  if (!id) return '';
+  let path = window.location.pathname.replace(/index\.html$/, '');
+  if (!path.endsWith('/')) path += '/';
+  return window.location.origin + path + 'profile?u=' + encodeURIComponent(id);
+}
+// معرّف حسابي لروابط المشاركة/النسخ: الأيدي المستقر ثم اليوزر
+function myProfileIdForLink() {
+  const p = accProfile || {};
+  return String(p.userId || currentUser?.userId || p.username || p._id || currentUser?.code || '').trim();
+}
+// نسخ الرابط النظيف برمجياً إلى الحافظة (Clipboard API + بديل للمتصفحات القديمة)
+async function copyProfileLink(userId) {
+  const url = profileLinkURL(userId);
+  if (!url) { showToast('ℹ️', 'نسخ الرابط', 'تعذّر تحديد معرّف الحساب'); return false; }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url);
+      showToast('📋', 'تم النسخ', 'تم نسخ رابط الملف الشخصي!');
+      return true;
+    }
+    throw new Error('Clipboard API غير متاح');
+  } catch (e) {
+    try { // بديل: حقل مؤقت + execCommand — لسياقات HTTP أو متصفحات قديمة
+      const ta = document.createElement('textarea');
+      ta.value = url; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.top = '-1000px';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      if (!ok) throw new Error('execCommand فشل');
+      showToast('📋', 'تم النسخ', 'تم نسخ رابط الملف الشخصي!');
+      return true;
+    } catch (e2) {
+      showToast('🔗', 'رابط الملف الشخصي', url); // يظهر الرابط ليُنسخ يدوياً
+      return false;
+    }
+  }
+}
+window.copyProfileLink = copyProfileLink; // متاح لأي زر «نسخ الرابط» تضيفه لاحقاً (onclick)
+// مشاركة الملف الشخصي — زر واحد يدمج النسخ: واجهة المشاركة إن توفّرت (الجوال،
+// وتحتوي بدورها على «نسخ») وإلا يُنسخ الرابط النظيف للحافظة مع تنبيه
 function accShareProfile() {
   const p = accProfile || {};
+  const uid = myProfileIdForLink();
+  if (!uid) { showToast('ℹ️', 'مشاركة', 'تعذّر تحديد معرّف حسابك — أعد المحاولة بعد تحميل الملف'); return; }
+  const url = profileLinkURL(uid);
   const name = p.fullName || currentUser?.name || '';
   const user = p.username || p._id || '';
-  const uid = String(p.userId || currentUser?.userId || user || '').trim();
-  if (!uid) { showToast('ℹ️', 'مشاركة', 'تعذّر تحديد معرّف حسابك — أعد المحاولة بعد تحميل الملف'); return; }
-  const url = window.location.origin + window.location.pathname + '?u=' + encodeURIComponent(uid);
-  const text = `ملف ${name} (@${user}) على ألفاكلاس`;
+  const text = `ملف ${name}${user ? ' (@' + user + ')' : ''} على ألفاكلاس`;
   try {
     if (navigator.share) { navigator.share({ title: 'ألفاكلاس', text, url }).catch(() => {}); return; }
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url)
-        .then(() => showToast('📋', 'تم النسخ', 'تم نسخ رابط ملفك الشخصي — أرسله ليفتح ملفك مباشرة'))
-        .catch(() => showToast('🔗', 'رابط ملفك الشخصي', url));
-      return;
-    }
   } catch (e) {}
-  showToast('🔗', 'رابط ملفك الشخصي', url);
+  copyProfileLink(uid); // بلا واجهة مشاركة ← نسخ مباشر مع تنبيه «تم نسخ رابط الملف الشخصي!»
 }
 // زر «إضافة بارانات» — واجهة شكلية (لا يوجد نظام قصص بعد)
 function accAddHighlight() {
