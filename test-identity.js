@@ -84,7 +84,7 @@ currentUser = { userId: '654321', code: 'member1', name: 'عضو واحد' };
 accProfile = { _id: '654321', userId: '654321', username: 'member1', fullName: 'عضو واحد', takenUsernames: ['member1'] };
 store['alfa_id_names'] = JSON.stringify({ '654321': { u: 'member1', n: 'عضو واحد' } });
 eq('يوزر قديم يُعرض كما هو', identityLabel('olduser'), 'olduser');
-eq('أيدي معروف → @يوزر', identityLabel('654321'), '@member1');
+eq('أيدي معروف → اسمه الكامل (يُفضَّل على اليوزر)', identityLabel('654321'), 'عضو واحد');
 eq('أيدي مجهول → عضو #id', identityLabel('111222'), 'عضو #111222');
 eq('معرّف المالك 666 → عضو #666', identityLabel('666'), 'عضو #666');
 eq('معرّف زائر → زائر', identityLabel('4321'), 'زائر 4321');

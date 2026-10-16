@@ -678,6 +678,8 @@
     background: rgba(255,255,255,0.08);
   }
   .ann-teacher-name { line-height: 1.4; }
+  /* شارة التوثيق بجانب اسم الأستاذ/الدكتور */
+  .ann-teacher-name .verified-badge { width: 1.15em; height: 1.15em; }
   /* نص الرسالة: يظهر كامل دون قصّ مهما طال — مع إظهار أسطر النص الأصلية (pre-wrap) */
   .ann-message {
     font-size: 13px; color: rgba(226,226,240,0.75); line-height: 1.75; overflow-wrap: anywhere;
@@ -783,6 +785,49 @@
   .poll-bar .pb-sub { position: relative; margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
   .poll-bar .pb-mine { font-size: 10px; font-weight: 800; color: var(--accent2); }
   .poll-bar .pb-voters { font-size: 10px; font-weight: 600; color: var(--text-muted); word-break: break-word; line-height: 1.6; }
+
+  /* صور المصوتين تحت خيار الاستفتاء (البلاغ + نشر التحضير) */
+  .poll-voters-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; width: 100%; }
+  .poll-voter-item { display: flex; flex-direction: row; align-items: center; gap: 6px; width: 100%; direction: rtl; }
+  .poll-voter-img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: rgba(255,255,255,0.06); flex-shrink: 0; }
+  .poll-voter-more { width: 28px; height: 28px; border-radius: 50%; background: var(--border); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .poll-voter-name { font-size: 11px; color: var(--text-muted); font-weight: 600; line-height: 1.2; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+  .poll-voter-time { font-size: 9px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; opacity: 0.75; text-align: right; margin: 0; }
+
+  /* زر إظهار المزيد من الخيارات (عند عرض الاستفتاء) */
+  .poll-more-btn { margin-top: 10px; width: 100%; padding: 9px; border-radius: 12px; border: 1.5px dashed var(--border); background: rgba(255,255,255,0.04); color: var(--text-secondary); font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer; }
+  .poll-more-btn:active { transform: scale(0.98); }
+
+  /* إخفاء الخيارات الزائدة عن السادس في وضع العرض فقط */
+  .poll-bar.hidden-more { display: none; }
+
+  /* لوحة المصوتين التي تظهر تحت الشريط عند الضغط (مثل تيك توك/تكريم) */
+  .poll-voters-panel { margin-top: 8px; padding: 8px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; gap: 6px; animation: pollSlideDown 0.25s ease; }
+  @keyframes pollSlideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .poll-voters-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 800; color: var(--text-primary); }
+  .poll-voters-count { color: var(--accent2); }
+  .poll-voters-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .poll-voter-card { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 72px; }
+  .poll-voter-card .poll-voter-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); background: rgba(255,255,255,0.06); }
+  .poll-voter-name { font-size: 11px; font-weight: 700; color: var(--text-primary); text-align: center; line-height: 1.3; }
+  /* المصوت داخل الاستفتاء: الاسم ملاصق للصورة على اليمين (يُلغي التوسيط ليبقى ملاصقاً للصورة) */
+  .poll-voters-grid .poll-voter-name, .poll-voters-grid .poll-voter-time { text-align: right; }
+  /* صف اسم المصوت + زر إلغاء التصويت بجانبه (لصاحبه فقط) */
+  .poll-voter-row { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+  .poll-voter-row .poll-voter-name { flex: 0 1 auto; min-width: 0; }
+  /* شارة التوثيق بجانب اسم المصوت (للمالك 666 فقط) */
+  .poll-voter-row .verified-badge { flex-shrink: 0; width: 13px; height: 13px; margin-inline-start: 0; }
+  .poll-voter-cancel {
+    flex-shrink: 0; font-size: 10px; font-weight: 800; font-family: var(--font);
+    color: #f87171; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35);
+    border-radius: 8px; padding: 2px 7px; line-height: 1.5; cursor: pointer; white-space: nowrap;
+    transition: transform 0.15s, background 0.2s;
+  }
+  .poll-voter-cancel:active { transform: scale(0.95); }
+  .poll-voter-cancel:hover { background: rgba(239,68,68,0.2); }
+
+  /* زر سحب الصوت (عند الضغط على نفس الخيار الذي صوّت له المستخدم) */
+  .poll-btn-withdraw { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
 
   /* ── عرض المرفقات داخل بطاقة البلاغ ── */
   .report-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
@@ -3700,9 +3745,9 @@
       <div class="poll-flags">
         <label class="poll-flag"><input type="checkbox" id="poll-opt-hide-pct"><span>إخفاء النسبة — تظهر الأصوات فقط</span></label>
         <label class="poll-flag"><input type="checkbox" id="poll-opt-hide-voters"><span>إخفاء المصوتين — لا يظهر من صوّت</span></label>
-        <label class="poll-flag"><input type="checkbox" id="poll-opt-lock"><span>لا يمكن إعادة الاختيار أو إعادة التصويت</span></label>
+        <label class="poll-flag"><input type="checkbox" id="poll-opt-lock"><span>لا تغيير مباشر — التغيير عبر «إلغاء التصويت» ثم التصويت مجدداً</span></label>
       </div>
-      <div class="att-hint">من خيارين إلى 6 — تظهر أسماء المصوتين على كل خيار، ويمكن تغيير الصوت ما لم تُفعّل خيار المنع.</div>
+      <div class="att-hint">خيارات غير محدودة — تظهر أول ستة خيارات مع زر «إظهار المزيد». تظهر صورة حساب كل مصوت تحت خيارّه مع عدد الأصوات، ويمكن سحب الصوت بالضغط على نفس الخيار أو بزر «إلغاء التصويت» بجانب اسم المصوت — وهذا هو طريق تغيير الاختيار في كل الاستفتاءات.</div>
     </div>
 
     <button class="btn-submit" id="btn-do-report">🚀 نشر البلاغ</button>
@@ -4078,9 +4123,9 @@
       <div class="poll-flags">
         <label class="poll-flag"><input type="checkbox" id="pub-poll-opt-hide-pct"><span>إخفاء النسبة — تظهر الأصوات فقط</span></label>
         <label class="poll-flag"><input type="checkbox" id="pub-poll-opt-hide-voters"><span>إخفاء المصوتين — لا يظهر من صوّت</span></label>
-        <label class="poll-flag"><input type="checkbox" id="pub-poll-opt-lock"><span>لا يمكن إعادة الاختيار أو إعادة التصويت</span></label>
+        <label class="poll-flag"><input type="checkbox" id="pub-poll-opt-lock"><span>لا تغيير مباشر — التغيير عبر «إلغاء التصويت» ثم التصويت مجدداً</span></label>
       </div>
-      <div class="att-hint">من خيارين إلى 6 — تظهر أسماء المصوتين على كل خيار، ويمكن تغيير الصوت ما لم تُفعّل خيار المنع.</div>
+      <div class="att-hint">خيارات غير محدودة — تظهر أول ستة خيارات مع زر «إظهار المزيد». تظهر صورة حساب كل مصوت تحت خيارّه مع عدد الأصوات، ويمكن سحب الصوت بالضغط على نفس الخيار أو بزر «إلغاء التصويت» بجانب اسم المصوت — وهذا هو طريق تغيير الاختيار في كل الاستفتاءات.</div>
     </div>
 
     <div class="progress-bar" id="upload-progress-bar">
@@ -4562,6 +4607,7 @@ function formatNote(text) {
 // ── SESSION ──
 function loadSession() {
   if (localStorage.getItem('isLoggedIn') === 'true') {
+    const rawPerms = localStorage.getItem('perms');
     currentUser = {
       name: localStorage.getItem('name'),
       role: localStorage.getItem('role'),
@@ -4570,7 +4616,8 @@ function loadSession() {
       isAdmin: localStorage.getItem('isAdmin') === 'true',
       isSuperAdmin: localStorage.getItem('isSuperAdmin') === 'true',
       userId: localStorage.getItem('userId') || '',
-      code: localStorage.getItem('username') || ''
+      code: localStorage.getItem('username') || '',
+      perms: rawPerms ? (() => { try { return JSON.parse(rawPerms); } catch (e) { return {}; } })() : {}
     };
     // تحميل الملف في الخلفية: يضمن أن تكون الهوية (الأيدي + الأسماء السابقة) جاهزة
     // لكل مطابقات الهوية (التصويت/الإعجاب/القراءات) فور استعادة الجلسة
@@ -4588,6 +4635,7 @@ function saveSession(user) {
   localStorage.setItem('isAdmin', user.isAdmin ? 'true' : 'false');
   localStorage.setItem('isSuperAdmin', user.isSuperAdmin ? 'true' : 'false');
   localStorage.setItem('userId', user.userId || '');
+  if (user.perms && typeof user.perms === 'object') localStorage.setItem('perms', JSON.stringify(user.perms));
 }
 
 function clearSession() {
@@ -4599,6 +4647,7 @@ function clearSession() {
   localStorage.removeItem('isAdmin');
   localStorage.removeItem('isSuperAdmin');
   localStorage.removeItem('userId');
+  localStorage.removeItem('perms');
   currentUser = null;
 }
 
@@ -7619,7 +7668,7 @@ window.openMaterialDetail = function(mat) {
     avatarEl.textContent = pubName.charAt(0) || 'م';
     applyMaterialDetailAvatar(avatarEl, mat, pubName); // صورة الملف الشخصي فوق الحرف الأول
   }
-  if (pubEl)    pubEl.innerHTML = sanitizeText(pubName) + verifiedBadgeHTML(mat.authorId, mat.createdBy);
+  if (pubEl) { pubEl.innerHTML = sanitizeText(pubName) + verifiedBadgeHTML(mat.authorId, mat.createdBy); pubEl.dataset.authorId = mat.authorId || ''; }
   if (dateEl) {
     const ds = mat.createdAt ? formatMaterialDate(mat.createdAt) : '';
     dateEl.textContent = ds;
@@ -8113,6 +8162,11 @@ async function accLoadProfile() {
     if (data.fullName && String(currentUser.name || '') !== String(data.fullName)) {
       currentUser.name = String(data.fullName);
       localStorage.setItem('name', currentUser.name);
+      syncChanged = true;
+    }
+    if (data.perms && typeof data.perms === 'object' && JSON.stringify(currentUser.perms || {}) !== JSON.stringify(data.perms)) {
+      currentUser.perms = data.perms;
+      localStorage.setItem('perms', JSON.stringify(data.perms));
       syncChanged = true;
     }
     if (syncChanged) { saveSession(currentUser); updateHeaderUI(true); }
@@ -8728,6 +8782,7 @@ function accApplyToSession() {
   currentUser.role = isOwner ? '' : (p.shift || 'طالب');
   currentUser.code = p.username || p._id;          // اليوزر (لا مسار المستند)
   currentUser.userId = p.userId ? String(p.userId) : (currentUser.userId || '');
+  currentUser.perms = (p && p.perms && typeof p.perms === 'object') ? p.perms : {};
   saveSession(currentUser);
   localStorage.setItem('username', p.username || p._id);
   localStorage.setItem('shift', p.shift || '');
@@ -9528,6 +9583,36 @@ function annTeacherInfo(name) {
   if (hit) return { ar: hit.ar, img: hit.img || '' };
   return { ar: raw, img: '' }; // أستاذ غير مسجل: يُعرض اسمه كما وصل
 }
+// ── تمييز الدكاترة/الأساتذة من الاسم (لقب عربي «د./دكتور/أ.د» أو إنجليزي Dr./Prof./PhD أو مسجّل في السجل) ──
+function isDoctorName(name) {
+  const raw = String(name == null ? '' : name).trim();
+  if (!raw) return false;
+  if (/^د\s*\.\s*\S/.test(raw)) return true;                            // «د. فلان»
+  if (/^د\s+\S/.test(raw)) return true;                                 // «د فلان» (بدون نقطة)
+  if (/^(ال)?دكتو?ر[اةه]?\s+\S/.test(raw)) return true;                 // «دكتور/دكتورة/الدكتور فلان»
+  if (/^أ\.?\s?د\s*\./.test(raw)) return true;                          // «أ.د. فلان»
+  if (/^(استاذ|أستاذ)\s+(دكتور|دكتورة)/.test(raw)) return true;          // «استاذ دكتور فلان»
+  const k = raw.toLowerCase().replace(/\s+/g, ' ');
+  if (/^(dr|doctor|prof|professor|ph\.?d)\.?\s+\S/.test(k)) return true; // Dr./Doctor/Prof./PhD
+  if (/\bph\.?d\b/.test(k)) return true;                                // PhD في أي موضع من الاسم
+  try {
+    if (typeof ANN_TEACHERS !== 'undefined' && ANN_TEACHERS) {
+      const bare = k.replace(/^(dr|doctor|mr|mrs|ms|prof|professor|instructor|teacher|eng|mgr)\.?\s+/i, '').trim();
+      if (ANN_TEACHERS[k] || ANN_TEACHERS[bare]) return true;            // مسجّل في سجل الأساتذة
+      const keys = Object.keys(ANN_TEACHERS);
+      for (let i = 0; i < keys.length; i++) {
+        const t = ANN_TEACHERS[keys[i]];
+        if (t && t.ar && String(t.ar).trim() === raw) return true;       // مطابقة الاسم العربي المسجّل
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+// شارة التوثيق (نفس الشارة العامة) بجانب اسم دكتور/أستاذ
+function doctorBadgeHTML(name) {
+  try { if (isDoctorName(name)) return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>'; } catch (e) {}
+  return '';
+}
 
 const ANN_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
@@ -9551,12 +9636,14 @@ function annBuildCard(a, isAgent) {
     const sj = splitAnnSubject(a.subjectName || a.title);
     // بيانات الأستاذ: اسم بالعربية + صورة حسابه (إن وُجدت في السجل)
     const t = annTeacherInfo(a.teacherName);
+    // شارة التوثيق بجانب اسم الأستاذ: تبويب الأساتذة (كل أستاذ) + تليغات الممثل عند كونه دكتوراً
+    const teacherBadge = a.teacherName ? ((!isAgent || isDoctorName(a.teacherName) || isDoctorName(t.ar)) ? (doctorBadgeHTML(a.teacherName) || doctorBadgeHTML(t.ar)) : '') : '';
     return `
       <div class="ann-card${isAgent ? ' ann-card--agent' : ''}" data-ann-id="${sanitizeText(a.id)}">
         <div class="ann-subject" dir="auto">📚 ${sanitizeText(sj.main || 'إعلان')}</div>
         ${sj.sub ? `<div class="ann-subject-sub" dir="auto">${sanitizeText(sj.sub)}</div>` : ''}
         ${msg ? `<div class="ann-message" dir="auto">${sanitizeText(msg)}</div>` : ''}
-        ${a.teacherName ? `<div class="ann-teacher">${t.img ? `<img class="ann-teacher-avatar" src="${sanitizeText(t.img)}" alt="" loading="lazy" onerror="this.outerHTML='👨‍🏫'">` : '👨‍🏫'}<span class="ann-teacher-name" dir="auto">${sanitizeText(t.ar)}</span></div>` : ''}
+        ${a.teacherName ? `<div class="ann-teacher">${t.img ? `<img class="ann-teacher-avatar" src="${sanitizeText(t.img)}" alt="" loading="lazy" onerror="this.outerHTML='👨‍🏫'">` : '👨‍🏫'}<span class="ann-teacher-name" dir="auto">${sanitizeText(t.ar)}${teacherBadge}</span></div>` : ''}
         <div class="ann-foot">
           <span class="ann-foot-start">
           ${!isAgent && !isAnnRead(a.id) ? `<span class="new-badge" data-badge-key="announcements:${sanitizeText(a.id)}">جديد</span>` : ''}
@@ -9837,10 +9924,10 @@ function renderPollOptions() {
       ${pollOptionsDraft.length > 2 ? `<span class="rm" onclick="removePollOption(${i})" title="حذف الخيار">✕</span>` : ''}
     </div>`).join('');
   const add = document.querySelector('#att-panel-poll .poll-add');
-  if (add) add.style.display = pollOptionsDraft.length >= 6 ? 'none' : 'block';
+  if (add) add.style.display = 'block';
 }
 window.setPollOption = function(i, v) { pollOptionsDraft[i] = v; };
-window.addPollOption = function() { if (pollOptionsDraft.length >= 6) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 خيارات'); return; } pollOptionsDraft.push(''); renderPollOptions(); };
+window.addPollOption = function() { pollOptionsDraft.push(''); renderPollOptions(); };
 window.removePollOption = function(i) { if (pollOptionsDraft.length <= 2) return; pollOptionsDraft.splice(i, 1); renderPollOptions(); };
 
 function buildReportPoll() {
@@ -10033,10 +10120,10 @@ function renderPubPollOptions() {
       ${pubPollOptionsDraft.length > 2 ? `<span class="rm" onclick="removePubPollOption(${i})" title="حذف الخيار">✕</span>` : ''}
     </div>`).join('');
   const add = document.querySelector('#pub-att-panel-poll .poll-add');
-  if (add) add.style.display = pubPollOptionsDraft.length >= 6 ? 'none' : 'block';
+  if (add) add.style.display = 'block';
 }
 window.setPubPollOption = function(i, v) { pubPollOptionsDraft[i] = v; };
-window.addPubPollOption = function() { if (pubPollOptionsDraft.length >= 6) { showToast('⚠️', 'تنبيه', 'الحد الأقصى 6 خيارات'); return; } pubPollOptionsDraft.push(''); renderPubPollOptions(); };
+window.addPubPollOption = function() { pubPollOptionsDraft.push(''); renderPubPollOptions(); };
 window.removePubPollOption = function(i) { if (pubPollOptionsDraft.length <= 2) return; pubPollOptionsDraft.splice(i, 1); renderPubPollOptions(); };
 function resetPubPollFlags() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
@@ -10111,7 +10198,7 @@ function reportAuthorHtml(r) {
     ? `<img class="avatar-photo" src="${photo}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
     : '';
   return `<span class="avatar-slot" data-author-id="${authorId.replace(/"/g, '&quot;')}" data-author-name="${authorName}">${letter}${img}</span>` +
-         `<span class="report-author-name"><span class="report-author-text">${name}</span>${verifiedBadgeHTML(authorId, r.author)}</span>`;
+         `<span class="report-author-name"><span class="report-author-text">${name}</span>${verifiedBadgeHTML(authorId, r.author) || doctorBadgeHTML(r.author)}</span>`;
 }
 
 // ── شارة التوثيق: المالك (id=666) أو من تُمنحهم صلاحية «التوثيق» ──
@@ -10130,17 +10217,40 @@ function verifiedBadgeHTML(authorId, authorName) {
   if (id && (id === String(OWNER_USER_ID) || _verifiedIds.has(id))) {
     return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
   }
-  // توافق مع منشورات/رسائل قديمة كُتبت قبل وجود الأيدي (المالك باليوزر baqer)
+  // توافق مع منشورات/رسائل قديمة كُتبت قبل وجود الأيدي (المالك باليوزر baqer أو باسمه الكامل)
+  const ownerName = getOwnerFullName();
   if (id === AUTH_OWNER || String(authorName == null ? '' : authorName) === AUTH_OWNER) {
     return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
   }
+  if (ownerName && String(authorName == null ? '' : authorName) === ownerName) {
+    return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+  }
+  // توافق مع الحساب الحالي المُسجل دخولاً (المالك) حتى لو يُنشر باسمه الحي
+  try {
+    const cur = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : {};
+    if (id && id === String(cur.userId || cur._id || '') && amIsOwner()) {
+      return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+    }
+  } catch (e) {}
   return '';
+}
+
+// تعيد الاسم الكامل للمالك من خريطة alfa_id_names (أو الحالي إذا متاح) للمقارنة في الشارة
+function getOwnerFullName() {
+  try {
+    const m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}');
+    const key = String(typeof OWNER_USER_ID !== 'undefined' ? OWNER_USER_ID : '666');
+    const e = m[key];
+    if (e && e.n) return e.n;
+  } catch (e) {}
+  return null;
 }
 
 // ── خدمة صور/بيانات الملفات الشخصية (مصدر واحد + كاش يتجدد عند التغيير) ──
 const _authorPhotoCache = new Map();   // key → Promise<url|null>
 const _authorProfileCache = new Map(); // key → { t, p: Promise<profile|null> } — كاش حيّ بالهوية
 let _usersPhotoMap = null;             // الاسم الكامل → رابط الصورة (قراءة دفعة واحدة)
+const _pollVoterProfileCache = new Map(); // مفتاح المصوت → { photo, name } — كاش صور/أسماء المصوتين في الاستفتاء (متزامن أثناء الرسم)
 
 // جلب ملف حيّ بأي مفتاح هوية (أيدي/يوزر/يوزر سابق) — يبقى نفس الشخص مهما تغيّر اسمه
 async function _fetchAuthorProfile(key) {
@@ -10245,6 +10355,7 @@ async function loadAuthorPhotoByName(name) {
 function invalidateAuthorPhotos(authorId) {
   if (authorId) _authorPhotoCache.delete(authorId);
   _usersPhotoMap = null;
+  try { _pollVoterProfileCache.clear(); } catch (e) {} // إبطال كاش صور المصوتين بعد تغيير صورة ملف شخصي
 }
 function refreshAllAuthorAvatars() {
   try { renderReports(); } catch (e) {}          // البلاغات (إن كانت محمّلة)
@@ -10284,6 +10395,14 @@ function enhanceAuthorNames(root = document) {
         if (!holder) return;
         const rn = holder.querySelector('.report-author-text');
         if (rn && rn.textContent !== p.fullName) rn.textContent = p.fullName;
+        // مزامنة شارة التوثيق/الدكتور بجانب اسم كاتب البلاغ مع الاسم الحيّ
+        const rh = holder.querySelector('.report-author-name');
+        if (rh) {
+          const wantBadge = verifiedBadgeHTML(pid, p.fullName) || doctorBadgeHTML(p.fullName);
+          if (!!rh.querySelector('.verified-badge') !== !!wantBadge) {
+            rh.innerHTML = `<span class="report-author-text">${sanitizeText(p.fullName)}</span>${wantBadge}`;
+          }
+        }
         const pn = holder.querySelector('.post-author-name');
         if (pn) {
           const badge = verifiedBadgeHTML(pid, p.fullName);
@@ -10307,6 +10426,41 @@ function enhanceAuthorNames(root = document) {
         if (elx.textContent !== p.fullName) elx.textContent = p.fullName;
       });
     });
+    // 4) ناشر التفاصيل للمواد/التحضير (.material-detail-publisher) — تحديث الشارة ديناميكياً
+    const pubDetail = root.querySelector('.material-detail-publisher');
+    if (pubDetail) {
+      const nmEl = pubDetail;
+      const curName = nmEl.textContent.replace(/\s*<[^>]*>.*/g, '').trim() || nmEl.getAttribute('data-name') || '';
+      if (curName) {
+        const pid = String((pubDetail.dataset.authorId || '')).trim();
+        if (pid) {
+          applyLive(pubDetail, curName, (p, elx) => {
+            const pdid = String(p.userId || p._id || elx.dataset.authorId || '');
+            const existingBadge = elx.querySelector('.verified-badge');
+            const textOnly = elx.textContent.replace(/\s*<[^>]*>.*/g, '').trim();
+            if (textOnly !== p.fullName) {
+              elx.innerHTML = sanitizeText(p.fullName);
+              if (existingBadge) elx.appendChild(existingBadge);
+            }
+            const badge = verifiedBadgeHTML(pdid, p.fullName) || doctorBadgeHTML(p.fullName);
+            if (badge && !elx.querySelector('.verified-badge')) {
+              elx.insertAdjacentHTML('beforeend', badge);
+            } else if (!badge && elx.querySelector('.verified-badge')) {
+              elx.querySelector('.verified-badge').remove();
+            }
+          });
+        } else {
+          // بدون أدي — قارن بالاسم مباشرة
+          const badge = verifiedBadgeHTML('', curName) || doctorBadgeHTML(curName);
+          const existing = pubDetail.querySelector('.verified-badge');
+          if (badge && !existing) {
+            pubDetail.insertAdjacentHTML('beforeend', badge);
+          } else if (!badge && existing) {
+            existing.remove();
+          }
+        }
+      }
+    }
   } catch (e) {}
 }
 // إثراء عام: يملأ كل عنصر .avatar-slot بصورة حية من الملف الشخصي
@@ -10442,16 +10596,43 @@ function myIdentityKeys() {
   } catch (e) {}
   return keys;
 }
+// استخراج مفتاح الناخب من عنصر voters (يدعم السلاسل القديمة والكائنات الجديدة {k, t})
+function voterKey(v) {
+  if (v == null) return '';
+  if (typeof v === 'object') return String(v.k || v.key || '');
+  return String(v);
+}
+// استخراج وقت التصويت من عنصر voters (يدعم السلاسل القديمة والكائنات الجديدة {k, t})
+function voterTime(v) {
+  if (v == null) return 0;
+  if (typeof v === 'object') return Number(v.t || v.time || v.timeStamp || 0);
+  return 0;
+}
 // هل يحتوي المصفوفة على أي مفتاح من مفاتيحي؟ (مطابقة مرنة مع البيانات القديمة)
 function hasMyKey(arr) {
   if (!Array.isArray(arr)) return false;
   const keys = myIdentityKeys();
-  return arr.some(v => keys.includes(String(v)));
+  return arr.some(v => keys.includes(voterKey(v)));
 }
 // إزالة كل مفاتيحي من مصفوفة (عند إلغاء إعجاب/تصويت/متابعة بأي اسم قديم)
 function stripMyKeys(arr) {
   const keys = myIdentityKeys();
-  return Array.isArray(arr) ? arr.filter(v => !keys.includes(String(v))) : [];
+  return Array.isArray(arr) ? arr.filter(v => !keys.includes(voterKey(v))) : [];
+}
+// تنسيق الوقت نسبياً بالعربية (time ago)
+function timeAgo(ts) {
+  if (!ts) return '';
+  const now = Date.now();
+  const diff = now - Number(ts);
+  if (diff < 60000) return 'الآن';
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 60) return `منذ ${minutes} دقيقة`;
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 24) return `منذ ${hours} ساعة`;
+  const days = Math.floor(diff / 86400000);
+  if (days < 7) return `منذ ${days} أيام`;
+  const date = new Date(Number(ts));
+  return date.toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 // هل هذه الرسالة مرسلها أنا؟ — بالأيدي أولاً، والاسم للتوافق مع الرسائل القديمة
 function isMsgMine(msg) {
@@ -10499,7 +10680,8 @@ function identityLabel(key) {
     let m = {};
     try { m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}'); } catch (e) { m = {}; }
     const entry = m[k];
-    if (entry && entry.u) return '@' + entry.u;
+    if (entry && entry.n) return entry.n;             // الاسم الكامل للحساب
+    if (entry && entry.u) return entry.u;             // اليوزر بدون @ إذا لم يوجد اسم كامل
     return 'عضو #' + k;
   }
   return k; // يوزر أو اسم كامل (بيانات قديمة) — يُعرض كما هو
@@ -10580,13 +10762,176 @@ function reportAttachmentsHtml(r) {
   }
   return html;
 }
+function escJS(s) {
+  let s2 = String(s == null ? '' : s);
+  s2 = s2.replace(/\\/g, '\\\\');
+  s2 = s2.replace(/'/g, "\\'");
+  return s2;
+}
 function pollVoterLabel(key) {
-  const k = String(key || '');
+  const k = voterKey(key);
+  const live = _pollVoterProfileCache.get(k);                             // الاسم الحيّ من الملف الشخصي (يُحمَّل أدناه)
+  if (live && live.name) return sanitizeText(live.name);
   if (/^\d{4}$/.test(k)) return `زائر ${sanitizeText(k)}`;                 // معرّف زائر (4 أرقام)
   if (/^\d{3,6}$/.test(k)) return sanitizeText(identityLabel(k));          // معرّف عضو ثابت (الأيدي)
-  if (/^[a-z0-9._\-]{3,30}$/.test(k)) return `@${sanitizeText(k)}`;       // يوزر (بيانات قديمة)
+  if (/^[a-z0-9._\-]{3,30}$/.test(k)) return sanitizeText(k);            // يوزر (بيانات قديمة) — بدون @
   return sanitizeText(k);                                                  // اسم كامل (بيانات قديمة)
 }
+// جلب صورة/اسم المصوت من مستند المستخدم (مرة واحدة لكل مفتاح) ثم إعادة رسم الاستفتاء
+// لعرض صورة الملف الشخصي والاسم الحيّ بجانب كل مصوت فور توفّرهما
+function ensurePollVoterProfile(key) {
+  const k = voterKey(key);
+  if (!k || _pollVoterProfileCache.has(k)) return;
+  _pollVoterProfileCache.set(k, { photo: '', name: '' });                 // نمنع تكرار الجلب لهذا المفتاح
+  try {
+    loadAuthorProfile(k).then(async p => {
+      // مفتاح قديم بصيغة اسم كامل: نحلّه إلى أدي ثم نجلب ملفه الحيّ
+      if (!p && !/^\d+$/.test(k) && !/^[a-z0-9._\-]{3,30}$/.test(k)) {
+        try {
+          const rid = await resolveAuthorIdByName(k);
+          if (rid) p = await loadAuthorProfile(rid);
+        } catch (e) {}
+      }
+      if (!p) return;
+      const photo = String(p.photoURL || '');
+      const name = String(p.fullName || p.username || '');
+      if (!photo && !name) return;
+      _pollVoterProfileCache.set(k, { photo, name });
+      try { rememberIdName(String(p.userId || p._id || k), p.username || '', p.fullName || ''); } catch (e) {}
+      queuePollVotersRefresh();                                           // تحديث المعروض بالصورة/الاسم الجديدَين
+    }).catch(() => {});
+  } catch (e) {}
+}
+// إعادة رسم القائمة بعد وصول صور/أسماء جديدة (مؤجَّل قليلاً لتجميع نتائج عدة مصوتين في دور واحد)
+let _pollVotersRefreshTimer = 0;
+function queuePollVotersRefresh() {
+  if (_pollVotersRefreshTimer) return;
+  _pollVotersRefreshTimer = setTimeout(() => {
+    _pollVotersRefreshTimer = 0;
+    try { renderReports(); } catch (e) {}
+    try { refreshOfflinePosts(); } catch (e) {}
+  }, 300);
+}
+function pollVoterPhoto(key) {
+  const k = voterKey(key);
+  if (!k) return '';
+  if (currentUser) { // صورتي أولاً — مباشرة من حسابي الحالي
+    const uid = String(currentUser.userId || '');
+    const code = String(currentUser.code || '');
+    const name = String(currentUser.name || '');
+    const mePhoto = (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '';
+    if (uid && uid === k) return mePhoto;
+    if (code && code === k) return mePhoto;
+    if (name && name === k) return mePhoto;
+  }
+  const live = _pollVoterProfileCache.get(k);                             // صورة الملف الشخصي للمصوت (كاش محمل)
+  if (live && live.photo) return live.photo;
+  if (_usersPhotoMap instanceof Map) {                                    // خريطة (الاسم الكامل ← الصورة)
+    const byName = _usersPhotoMap.get(k);
+    if (byName) return byName;
+  } else if (typeof _usersPhotoMap === 'object' && _usersPhotoMap && _usersPhotoMap[k]) {
+    return _usersPhotoMap[k].photoURL || '';
+  }
+  return '';
+}
+// بديل آمن عند فشل تحميل الصورة: حرف من اسم المصوت بدل إخفائه تماماً
+window.pollVoterImgFail = function(img) {
+  try {
+    const span = document.createElement('span');
+    span.className = 'poll-voter-img';
+    span.style.cssText = 'background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;';
+    span.title = (img && img.getAttribute && img.getAttribute('title')) || '';
+    span.textContent = (img && img.getAttribute && img.getAttribute('data-letter')) || '؟';
+    img.replaceWith(span);
+  } catch (e) { try { img.style.display = 'none'; } catch (e2) {} }
+};
+// ── شارة التوثيق بجانب اسم المصوت في الاستفتاء: لصاحب التطبيق فقط (أيدي 666 / baqer) ──
+function isOwnerVoterKey(key) {
+  const k = String(key == null ? '' : key).trim();
+  if (!k) return false;
+  try {
+    if (typeof OWNER_USER_ID !== 'undefined' && k === String(OWNER_USER_ID)) return true; // الأيدي الثابت للمالك 666
+    if (typeof AUTH_OWNER !== 'undefined' && k === AUTH_OWNER) return true;              // اليوزر القديم baqer
+    // توافق البيانات القديمة: تصويت مسجّل باسم المالك الكامل أو يوزره (من خريطة alfa_id_names)
+    let m = {};
+    try { m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}'); } catch (e2) { m = {}; }
+    const entry = m[String(typeof OWNER_USER_ID !== 'undefined' ? OWNER_USER_ID : '666')];
+    if (entry && ((entry.u && entry.u === k) || (entry.n && entry.n === k))) return true;
+  } catch (e) {}
+  return false;
+}
+function ownerVerifiedBadgeHTML(key) {
+  try {
+    if (isOwnerVoterKey(key)) return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+  } catch (e) {}
+  return '';
+}
+function pollVoterAvatarHtml(key, label, voteTime, opts) {
+  const k = voterKey(key);
+  ensurePollVoterProfile(k);                                              // يجلب صورة/اسم المصوت عند أول ظهور له
+  const photo = pollVoterPhoto(k);
+  const rawLabel = String(label || '').replace(/^@/, '');
+  const safeLabel = sanitizeText(rawLabel).replace(/"/g, '&quot;');
+  const letter = (String(rawLabel || '؟').trim().charAt(0) || '؟');
+  const timeHtml = voteTime ? `<div class="poll-voter-time">${timeAgo(voteTime)}</div>` : '';
+  const imgHtml = photo
+    ? `<img class="poll-voter-img" src="${sanitizeText(photo).replace(/"/g, '&quot;')}" alt="" loading="lazy" title="${safeLabel}" data-letter="${sanitizeText(letter).replace(/"/g, '&quot;')}" onerror="pollVoterImgFail(this)">`
+    : `<span class="poll-voter-img" style="background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;" title="${safeLabel}">${sanitizeText(letter)}</span>`;
+  // زر "إلغاء التصويت" بجانب اسم صاحب الصوت فقط: يسحب الصوت ليعود قادرًا على التصويت مجدداً
+  // (لا يظهر لغيري، ولا إن كان الاستفتاء مقفولاً أو ممنوعاً لحسابي)
+  let cancelBtn = '';
+  try {
+    if (opts && opts.canWithdraw && hasMyKey([k])) {
+      cancelBtn = `<button type="button" class="poll-voter-cancel" onclick="event.stopPropagation(); votePoll('${escJS(String(opts.id))}', ${Number(opts.idx) || 0}, '${escJS(String(opts.coll || 'reports'))}')" title="سحب صوتك من هذا الخيار حتى تصوّت مجدداً">إلغاء التصويت</button>`;
+    }
+  } catch (e) {}
+  // شارة التوثيق بجانب اسم المالك فقط (أيدي 666) — تبقى ملاصقة للاسم حتى مع طوله
+  const ownerBadge = ownerVerifiedBadgeHTML(k);
+  const nameHtml = (cancelBtn || ownerBadge)
+    ? `<div class="poll-voter-row"><div class="poll-voter-name">${safeLabel}</div>${ownerBadge}${cancelBtn}</div>`
+    : `<div class="poll-voter-name">${safeLabel}</div>`;
+  return `<div class="poll-voter-item">${imgHtml}<div class="poll-voter-info" style="flex:1;min-width:0;">${nameHtml}${timeHtml}</div></div>`;
+}
+let expandedPollIds = new Set();
+window.togglePollMore = function(reportId) {
+  if (expandedPollIds.has(reportId)) expandedPollIds.delete(reportId);
+  else expandedPollIds.add(reportId);
+  try { renderReports(); } catch (e) {}
+  try { refreshOfflinePosts(); } catch (e) {}
+};
+window.togglePollVoters = function(reportId, idx) {
+  const key = 'voters-' + String(reportId) + '-' + idx;
+  if (expandedPollIds.has(key)) expandedPollIds.delete(key);
+  else expandedPollIds.add(key);
+  try { renderReports(); } catch (e) {}
+  try { refreshOfflinePosts(); } catch (e) {}
+};
+window.togglePollVotersInline = function(reportId, idx) {
+  const key = 'voters-' + String(reportId) + '-' + idx;
+  if (expandedPollIds.has(key)) expandedPollIds.delete(key);
+  else expandedPollIds.add(key);
+  try { renderReports(); } catch (e) {}
+  try { refreshOfflinePosts(); } catch (e) {}
+};
+window.copyPollOptionLink = async function(url, btn) {
+  try {
+    await navigator.clipboard.writeText(url);
+    const bar = btn && btn.closest ? btn.closest('.poll-bar') : null;
+    if (bar) {
+      bar.classList.add('poll-copying');
+      setTimeout(() => bar.classList.remove('poll-copying'), 1500);
+    }
+    showToast('🔗', 'تم النسخ', 'تم نسخ رابط الخيار');
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (ee) {}
+    ta.remove();
+    showToast('🔗', 'تم النسخ', 'تم نسخ رابط الخيار');
+  }
+};
 function reportPollHtml(r, coll = 'reports') {
   // دفاعي: إذا لم يُعثر على هياكل البيانات الصحيحة للاستفتاء (خيارات على الأقل 2) - لا نُسقط العرض بالكامل
   if (!r || !r.poll || !Array.isArray(r.poll.options) || r.poll.options.length < 2) {
@@ -10597,39 +10942,80 @@ function reportPollHtml(r, coll = 'reports') {
   const votedIdx = p.options.findIndex(o => hasMyKey(o.voters)); // بالأيدي + كل أسمائي السابقة
   const hidePct = !!p.hidePercent;    // خيار المنشئ: إخفاء النسبة (تظهر الأصوات فقط)
   const hideVoters = !!p.hideVoters;  // خيار المنشئ: إخفاء المصوتين (من صوّت)
-  const lock = p.lockVote === true || p.locked === true; // يقفل إعادة التصويت إذا فعّله المنشئ
-  const canChange = votedIdx >= 0 && !lock;
+  const lock = p.lockVote === true || p.locked === true; // شارة المنشئ القديمة — السلوك موحّد الآن: التغيير عبر «إلغاء التصويت» في كل الحالات
+  const canAct = currentUser && userHasPerm(currentUser, 'vote') && votedIdx < 0; // يتطلب تسجيل دخول — الزائر لا يصوّت
+  const expanded = expandedPollIds.has(String(r.id));
+  const showLimit = 6;
   const bars = p.options.map((o, i) => {
     const v = Number(o.votes) || 0;
     const pct = total ? Math.round((v * 100) / total) : 0;
     const mine = votedIdx === i ? ' mine' : '';
-    const clickable = (!currentUser || userHasPerm(currentUser, 'vote')) && (votedIdx < 0 || canChange) ? ` onclick="votePoll('${r.id}', ${i}, '${coll}')"` : '';
+    const isMyVote = votedIdx === i;
+    const clickable = (canAct || isMyVote) ? ` onclick="event.stopPropagation(); votePoll('${escJS(r.id)}', ${i}, '${escJS(coll)}')"` : ''; // بعد التصويت: خياري أنا فقط (سحب عبر الإلغاء)
+    const hidden = !expanded && i >= showLimit ? ' hidden-more' : '';
     const fill = hidePct ? '' : `<div class="fill" data-w="${pct}"></div>`;
     const right = hidePct ? `${v} صوت` : `${pct}% · ${v}`;
-    // وسم صوتي الشخصي + أسماء المصوتين (تُخفى إذا فعّل المنشئ «إخفاء المصوتين»)
-    const mineTag = votedIdx === i
-      ? `<div class="pb-mine">✓ هذا صوتك${!lock ? ' — اضغط خياراً آخر لتغييره' : ''}</div>` : '';
-    const votersLine = (!hideVoters && Array.isArray(o.voters) && o.voters.length)
-      ? `<div class="pb-voters">👥 ${o.voters.map(pollVoterLabel).join('، ')}</div>` : '';
-    const sub = (mineTag || votersLine) ? `<div class="pb-sub">${mineTag}${votersLine}</div>` : '';
+    // صور المصوتين تحت الخيار + عددهم (مباشر مثل قبل)
+    let votersHtml = '';
+    if (!hideVoters && Array.isArray(o.voters) && o.voters.length) {
+      const vKey = 'voters-' + String(r.id) + '-' + i;
+      const vOpen = expandedPollIds.has(vKey); // قائمة المصوتين مفتوحة بالكامل (كل الأصوات بصورهم وأسمائهم)
+      const visible = vOpen ? o.voters : o.voters.slice(0, 6);
+      // زر الإلغاء يظهر دائماً لصوتي (حتى بالقفل) — هو بوابة تغيير الخيار: إلغاء ثم تصويت جديد
+      const canWithdraw = !currentUser || userHasPerm(currentUser, 'vote');
+      const imgs = visible.map(k => pollVoterAvatarHtml(k, pollVoterLabel(k), voterTime(k), { id: r.id, idx: i, coll, canWithdraw })).join('');
+      const extra = o.voters.length - visible.length;
+      let more = '';
+      if (extra > 0) {
+        more = `<div class="poll-voter-item" style="cursor:pointer" onclick="event.stopPropagation(); togglePollVotersInline('${escJS(r.id)}', ${i})" title="عرض كل المصوتين"><span class="poll-voter-img poll-voter-more">+${extra}</span><div class="poll-voter-name">+${extra} — عرض الكل</div></div>`;
+      } else if (vOpen && o.voters.length > 6) {
+        more = `<div class="poll-voter-item" style="cursor:pointer" onclick="event.stopPropagation(); togglePollVotersInline('${escJS(r.id)}', ${i})" title="عرض أقل"><span class="poll-voter-img poll-voter-more">▲</span><div class="poll-voter-name">عرض أقل</div></div>`;
+      }
+      votersHtml = `<div class="poll-voters-grid">${imgs}${more}</div>`;
+    }
+    // وسم صوتي الشخصي - بدون نص "اضغط لسحب الصوت" (السحب يتم تلقائياً عند الضغط على نفس الخيار)
+    let mineTag = '';
+    if (isMyVote) {
+      mineTag = `<div class="pb-mine">✓ هذا صوتك</div>`;
+    }
+    const subParts = [mineTag, votersHtml].filter(Boolean).join('');
+    const sub = subParts ? `<div class="pb-sub">${subParts}</div>` : '';
     return `
-      <div class="poll-bar${mine}"${clickable}>
+      <div class="poll-bar${mine}${hidden}"${clickable}>
         ${fill}
-        <div class="txt"><span>${sanitizeText(o.text || '')}</span><span>${right}</span></div>
+        <div class="txt" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span>${sanitizeText(o.text || '')}</span>
+          <span>${right}</span>
+        </div>
         ${sub}
       </div>`;
   }).join('');
+  // زر إظهار المزيد من الخيارات (يظهر فقط إذا كان هناك أكثر من 6)
+  let moreBtn = '';
+  if (p.options.length > showLimit) {
+    moreBtn = `<button type="button" class="poll-more-btn" onclick="event.stopPropagation(); togglePollMore('${escJS(r.id)}')">
+      ${expanded ? 'إظهار أقل' : 'إظهار المزيد من الخيارات'}
+    </button>`;
+  }
   const metaTxt = votedIdx < 0
-    ? (lock ? 'اضغط على خيارك للتصويت (مرة واحدة لكل شخص)' : 'اضغط على خيارك للتصويت — يمكنك تغيير صوتك')
-    : (lock ? '✓ تم تصويتك — شكراً لك' : '✓ صوتك مسجّل — اضغط خياراً آخر لتغييره');
+    ? 'اضغط على خيارك للتصويت — يمكنك تغييره لاحقاً عبر «إلغاء التصويت» بجانب اسمك'
+    : '✓ صوتك مسجّل — لتغيير خيارك اضغط «إلغاء التصويت» بجانب اسمك أو خيارك نفسه ثم اختر خياراً آخر';
   return `
     <div class="report-poll">
       <div class="report-poll-q">📊 ${sanitizeText(p.question || 'استفتاء')}</div>
       ${bars}
+      ${moreBtn}
       <div class="poll-meta">${metaTxt} · المجموع: ${total} صوت</div>
     </div>`;
 }
 window.votePoll = async function(reportId, idx, coll = 'reports') {
+  // منع الزائر غير المسجل دخول من التصويت — يجب تسجيل الدخول أولاً
+  if (!currentUser) {
+    showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول أولاً للتصويت في الاستفتاء');
+    showAuthPanel('login');
+    openModal('login-modal');
+    return;
+  }
   if (currentUser && !userHasPerm(currentUser, 'vote')) {
     showToast('⛔', 'مقيّد', 'التصويت في الاستفتاءات غير مفعّل لحسابك');
     return;
@@ -10638,7 +11024,7 @@ window.votePoll = async function(reportId, idx, coll = 'reports') {
     const ref = doc(db, coll, reportId);
     const key = getMyVoterKey();   // مفتاح الكتابة: المعرّف الرقمي الثابت
     const myKeys = myIdentityKeys(); // كل مفاتيحي للمطابقة مع الأصوات القديمة (يوزر/اسم سابق)
-    const lock = await runTransaction(db, async (tx) => {
+    const result = await runTransaction(db, async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists()) throw new Error('not-found');
       const p = snap.data().poll;
@@ -10646,9 +11032,21 @@ window.votePoll = async function(reportId, idx, coll = 'reports') {
       if (!p.options[idx]) throw new Error('bad-option');
       const isLock = p.lockVote === true || p.locked === true;
       // نُحدّد الخيار الحالي للمستخدم داخل المعاملة (قراءة متسقة) — بالأيدي وليست باليوزر
-      const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.some(k => myKeys.includes(String(k))));
-      if (votedIdx === idx) throw new Error('same');
-      if (votedIdx >= 0 && isLock) throw new Error('locked');
+      const votedIdx = p.options.findIndex(o => Array.isArray(o.voters) && o.voters.some(k => myKeys.includes(voterKey(k))));
+      // سحب الصوت: نفس الخيار الذي صوّت له المستخدم وليس مقفلاً
+      if (votedIdx === idx) {
+        // إلغاء التصويت مسموح حتى في الاستفتاء المقفل — هو بوابة العودة للتصويت بخيار آخر
+        const options = p.options.map(o => ({
+          ...o,
+          votes: Number(o.votes) || 0,
+          voters: Array.isArray(o.voters) ? o.voters.slice() : []
+        }));
+        options[idx].voters = options[idx].voters.filter(k => !myKeys.includes(voterKey(k)));
+        options[idx].votes = Math.max(0, options[idx].votes - 1);
+        tx.update(ref, { 'poll.options': options });
+        return { action: 'withdrawn' };
+      }
+      if (votedIdx >= 0) throw new Error('change-needs-cancel'); // التغيير المباشر ممنوع في كل الاستفتاءات — يمر عبر «إلغاء التصويت»
       // نعمل على نسخة مطابقة من الخيارات ونكتب المصفوفة كاملة
       // (Firestore لا يدعم تدوين النقطة مع فهرس مصفوفة لتحديث عنصر داخل مصفوفة)
       const options = p.options.map(o => ({
@@ -10656,22 +11054,17 @@ window.votePoll = async function(reportId, idx, coll = 'reports') {
         votes: Number(o.votes) || 0,
         voters: Array.isArray(o.voters) ? o.voters.slice() : []
       }));
-      if (votedIdx >= 0) {
-        // تغيير الصوت: يُنقل من الخيار القديم إلى الجديد (مع إزالة أي مفتاح قديم لي)
-        options[votedIdx].voters = options[votedIdx].voters.filter(k => !myKeys.includes(String(k)));
-        options[votedIdx].votes = Math.max(0, options[votedIdx].votes - 1);
-      }
-      options[idx].voters = options[idx].voters.filter(k => !myKeys.includes(String(k))).concat(key);
+      options[idx].voters = options[idx].voters.filter(k => !myKeys.includes(voterKey(k))).concat({ k: key, t: Date.now() });
       options[idx].votes = options[idx].votes + 1;
       tx.update(ref, { 'poll.options': options });
-      return { votedIdx, isLock };
+      return { action: votedIdx >= 0 ? 'changed' : 'voted' };
     });
-    if (lock.votedIdx >= 0) showToast('✅', 'استفتاء', 'تم تغيير صوتك بنجاح');
+    if (result.action === 'withdrawn') showToast('➖', 'استفتاء', 'تم سحب صوتك من هذا الخيار');
+    else if (result.action === 'changed') showToast('✅', 'استفتاء', 'تم تغيير صوتك بنجاح');
     else showToast('✅', 'استفتاء', 'تم تسجيل صوتك بنجاح');
   } catch (e) {
     const msg = e && e.message;
-    if (msg === 'same') { showToast('ℹ️', 'استفتاء', 'هذا هو اختيارك الحالي'); return; }
-    if (msg === 'locked') { showToast('ℹ️', 'استفتاء', 'لقد صوّتت سابقاً — لا يمكن إعادة التصويت'); return; }
+    if (msg === 'locked' || msg === 'change-needs-cancel') { showToast('ℹ️', 'استفتاء', 'التغيير المباشر غير متاح — اضغط «إلغاء التصويت» بجانب اسمك ثم اختر خياراً آخر'); return; }
     if (msg === 'not-found' || msg === 'bad-poll' || msg === 'bad-option') return;
     console.error(e);
     showToast('❌', 'خطأ', 'تعذّر تسجيل صوتك — حاول مجدداً');
@@ -13909,5 +14302,7 @@ if (isIos && !isStandalone && !localStorage.getItem('iosPromptDismissed')) {
   }, 3500); // إظهار بعد 3.5 ثوانٍ من التحميل
 }
 </script>
+
+
 </body>
 </html>
