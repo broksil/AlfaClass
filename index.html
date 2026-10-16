@@ -4607,7 +4607,21 @@ function formatNote(text) {
 // ── SESSION ──
 function loadSession() {
   if (localStorage.getItem('isLoggedIn') === 'true') {
+    let perms = {};
     const rawPerms = localStorage.getItem('perms');
+    if (rawPerms) {
+      try { perms = JSON.parse(rawPerms); } catch (e) { perms = {}; }
+    } else {
+      // لا توجد صلاحيات محفوظة: نحاول استخراجها من كاش الملف الشخصي المحلي (للمستخدمين الذين دخلوا قبل التحديث)
+      const uname = String(localStorage.getItem('username') || '').toLowerCase();
+      if (uname) {
+        const cached = accProfileCacheGet(uname);
+        if (cached && cached.perms && typeof cached.perms === 'object') {
+          perms = cached.perms;
+          try { localStorage.setItem('perms', JSON.stringify(perms)); } catch (e) {}
+        }
+      }
+    }
     currentUser = {
       name: localStorage.getItem('name'),
       role: localStorage.getItem('role'),
@@ -4617,7 +4631,7 @@ function loadSession() {
       isSuperAdmin: localStorage.getItem('isSuperAdmin') === 'true',
       userId: localStorage.getItem('userId') || '',
       code: localStorage.getItem('username') || '',
-      perms: rawPerms ? (() => { try { return JSON.parse(rawPerms); } catch (e) { return {}; } })() : {}
+      perms: perms
     };
     // تحميل الملف في الخلفية: يضمن أن تكون الهوية (الأيدي + الأسماء السابقة) جاهزة
     // لكل مطابقات الهوية (التصويت/الإعجاب/القراءات) فور استعادة الجلسة
@@ -4990,7 +5004,7 @@ function renderDays(anim = 'fade') {
         <div class="post-list" id="posts-${day.id}">
           <div class="day-empty">لا يوجد محتوى</div>
         </div>
-        ${currentUser?.isAdmin ? `<button class="btn-publish" onclick="openPublishModal('${day.id}')">+ نشر تحضير</button>` : ''}
+        ${userHasPerm(currentUser, 'prep') ? `<button class="btn-publish" onclick="openPublishModal('${day.id}')">+ نشر تحضير</button>` : ''}
       </div>
     `;
     fragment.appendChild(card);
@@ -5192,7 +5206,9 @@ function renderPostsForDay(dayId, posts) {
         actionsHtml += `${!post.isOffline ? `<button class="btn-edit" onclick="openEditModal('${post.id}')">✏️ تعديل</button>` : ''}`;
         actionsHtml += `<button class="btn-delete" onclick="${post.isOffline ? `deleteOfflinePostHandler(${post.id})` : `deletePost('${post.id}', ${JSON.stringify(post.mediaUrls || []).replace(/"/g,'&quot;')})`}">🗑️ حذف</button>`;
       }
-      actionsHtml += `<button id="enq-btn-${post.id}" class="btn-edit" style="color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1);" onclick="openEnquiryModal('${post.id}')">❓ استفسار</button>`;
+      if (userHasPerm(currentUser, 'enquiry')) {
+        actionsHtml += `<button id="enq-btn-${post.id}" class="btn-edit" style="color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1);" onclick="openEnquiryModal('${post.id}')">❓ استفسار</button>`;
+      }
       actionsHtml += '</div>';
     }
 
@@ -7907,7 +7923,7 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
 
 // حذف ملزمة
 async function deleteMaterial(id) {
-  if (!currentUser?.isAdmin) return;
+  if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'material')) { showToast('⛔', 'مقيّد', 'حذف الملازم غير مفعّل لحسابك'); return; }
   const okDel = await confirmDialog({
     icon: '📚', title: 'حذف الملزمة',
     message: 'سيُحذف ملف الملزمة وبياناتها نهائياً من قسم الملازم. لا يمكن التراجع عن هذا الإجراء.',
@@ -11190,7 +11206,7 @@ window.editReport = function(id) {
 
 
 document.getElementById('btn-do-report')?.addEventListener('click', async () => {
-  if (!currentUser?.isAdmin) { showToast('⛔', 'مقيّد', 'النشر في البلاغات مخصص للإدارة فقط'); return; }
+  if (!userHasPerm(currentUser, 'report')) { showToast('⛔', 'مقيّد', 'نشر البلاغ غير مفعّل لحسابك'); return; }
   const btn = document.getElementById('btn-do-report');
   const type = 'أخرى'; // حقل «نوع البلاغ» حُذف من النموذج — القيمة الافتراضية تُخزَّن للتوافق مع البلاغات القديمة
   const title = document.getElementById('rep-title').value.trim();
@@ -11351,7 +11367,7 @@ window.setActiveNav = function(id) {
     renderSubjectGrid();
     renderTypeChips();
     renderMaterialsGrid();
-    if (fab && currentUser?.isAdmin) fab.classList.add('show');
+    if (fab && userHasPerm(currentUser, 'material')) fab.classList.add('show');
   } else if (id === 'reports') {
     // البلاغات
     if (repView) repView.style.display = 'block';
@@ -11506,12 +11522,12 @@ const NEW_USER_PERMS = {
   prep: false, report: false, material: false, comment: false, enquiry: false,
   support: false, verify: false, profile: true, vote: false
 };
-// الافتراضي عند عدم وجود حقل perms في المستند — يحاكي سلوك الموقع الحالي
+// الافتراضي عند عدم وجود حقل perms في المستند — متسق مع NEW_USER_PERMS:
+// القاعدة: بدون علامة صح صريحة في الصلاحيات ⇒ لا يستطيع تنفيذ العملية، إلا المالك دائماً
 function defaultPerm(u, key) {
   const isOwner = !!(u && (u.role === 'owner' || String(u.userId || '') === String(OWNER_USER_ID)));
   if (isOwner) return true;
-  if (['comment', 'enquiry', 'profile', 'vote'].includes(key)) return true; // مفتوحة للجميع كما هي الحال
-  return false; // الباقي مقيّد حالياً حتى يمنحه صاحب الموقع
+  return NEW_USER_PERMS[key] === true; // نفس افتراضيات المستخدم الجديد: profile فقط
 }
 function userHasPerm(u, key) {
   if (!u) return false;
