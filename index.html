@@ -336,6 +336,7 @@
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y; /* تمكين التمرير الأفقي بالإصبع على أزرار المواد */
     padding: 6px 0 10px; /* الحشو الأفقي (16px) يحدده قاعدة الامتداد الكامل #subject-chips/#type-chips أدناه */
   }
   .subject-chips::-webkit-scrollbar { display: none; }
@@ -986,6 +987,7 @@
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y; /* تمكين التمرير الأفقي بالإصبع على أزرار النوع */
     padding-bottom: 6px;
     margin-bottom: 16px;
   }
@@ -2499,10 +2501,8 @@
   }
 
   /* عزل حركات اللمس داخل جدول الأعضاء/الملازم — لا تتسرب إلى الجدول */
-  #view-materials, #view-materials * {
-    touch-action: pan-y;
-  }
   #view-materials {
+    touch-action: pan-y;
     overscroll-behavior: contain;
   }
 
@@ -7556,6 +7556,13 @@ function renderMaterialsGrid() {
   });
   const q = (materialsSearchQuery || '').trim();
   if (q) filtered = filtered.filter(m => (m.name || '').includes(q) || (m.subject || '').includes(q));
+
+  // الترتيب: الأحدث أولاً (جديد → قديم) بناءً على createdAt
+  filtered.sort((a, b) => {
+    const tA = a.createdAt?.toMillis?.() || a.createdAt?.getTime?.() || Number(a.createdAt) || 0;
+    const tB = b.createdAt?.toMillis?.() || b.createdAt?.getTime?.() || Number(b.createdAt) || 0;
+    return tB - tA; // تنازلي: الملزمة الجديدة تظهر أولًا
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / MATERIALS_PER_PAGE));
   if (materialsPage > totalPages) materialsPage = totalPages;
