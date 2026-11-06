@@ -2510,9 +2510,21 @@
   body.account-mode header { display: none !important; }
   /* إزالة حدود العمود (500px) ومسافة الهيدر المحجوزة (80px) — المحتوى يبدأ من أعلى الشاشة ويمتد بالكامل */
   body.account-mode main {
-    padding: 6px 0 24px;
+    padding: 6px 0 100px;
     max-width: none;
     width: 100%;
+  }
+  /* إظهار الشريط السفلي في وضع الملف الشخصي */
+  body.account-mode #bottom-nav {
+    display: flex !important;
+    z-index: 300 !important;
+  }
+  /* زر متابعة كبير عند عرض ملف شخص آخر */
+  .follow-btn-large {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    padding: 14px 24px !important;
+    min-width: 140px !important;
   }
   /* هوامش أفقية مرنة: ضيقة على الهواتف وتتسع تدريجياً على الشاشات الكبيرة */
   #view-account { padding-inline: clamp(12px, 3vw, 22px); }
@@ -3208,9 +3220,9 @@
         <!-- الهيدر: بطاقة البروفايل -->
         <!-- شريط أعلى البروفايل: همبرغر (يسار) + علامة + إضافة (يمين) -->
         <div class="ig-topbar">
-          <button class="ig-icon-btn" type="button" data-act="toggle-settings" aria-label="الإعدادات">☰</button>
+          <button class="ig-icon-btn" type="button" data-act="toggle-settings" aria-label="الإعدادات" id="acc-btn-settings">☰</button>
+          <button class="ig-icon-btn" type="button" data-act="profile-back" onclick="accViewUser=null; setActiveNav('user');" aria-label="رجوع" id="acc-btn-back" style="display:none">→</button>
           <div class="ig-brand" id="acc-topbar-user">@—</div>
-          <button class="ig-icon-btn" type="button" data-act="ig-add" aria-label="إضافة">+</button>
         </div>
 
         <!-- ترويسة البروفايل (نمط إنستغرام) -->
@@ -3231,19 +3243,17 @@
         <div class="ig-identity">
           <div class="ig-name" id="acc-name">—</div>
           <div class="ig-bio" id="acc-bio">لا يوجد وصف بعد.</div>
-          <span class="acc-badge" id="acc-badge">🎓 طالب</span>
         </div>
 
         <!-- متابعة (ملف عضو آخر) — متابعة فقط بلا مراسلة، نمط إنستغرام -->
         <div class="ig-actions acc-follow-row" id="acc-follow-row" style="display:none">
-          <button class="ig-btn" type="button" id="acc-follow-btn" onclick="accToggleFollow()">متابعة</button>
-          <button class="ig-btn ghost" type="button" onclick="accViewOwnProfile()">رجوع إلى ملفي</button>
+          <button class="ig-btn follow-btn-large" type="button" id="acc-follow-btn" onclick="accToggleFollow()">متابعة</button>
         </div>
         <div class="ig-actions" id="acc-own-actions">
           <button class="ig-btn" type="button" data-act="open-manage">تعديل الملف الشخصي</button>
           <button class="ig-btn ghost" type="button" data-act="share-profile">مشاركة الملف الشخصي</button>
         </div>
-        <button class="ig-highlight" type="button" id="acc-highlight-btn" data-act="ig-add">+ إضافة بارانات</button>
+        <button class="ig-highlight" type="button" id="acc-publish-material-btn" onclick="openMaterialModal()">+ نشر ملازم</button>
         <!-- منشوراتي: ملازمي المنشورة معروضة بشكل مرتب داخل الملف الشخصي -->
         <div class="acc-section-title" id="acc-posts-title" data-i18n="myPosts">منشوراتي</div>
         <div class="acc-posts-grid" id="acc-posts-grid"></div>
@@ -8250,6 +8260,8 @@ function accRender() {
   accEl('acc-guest').style.display = guest ? 'block' : 'none';
   accEl('acc-main').style.display  = guest ? 'none'  : 'block';
   if (accViewUser) { accRenderOther(); return; } // ملف عضو آخر (متابعة فقط) — يُعرض حتى للزائر عبر رابط المشاركة
+  // إظهار الشريط السفلي عند عرض ملف المستخدم الخاص
+  const bn = document.getElementById('bottom-nav'); if (bn) bn.style.display = 'flex';
   if (guest || !accProfile) return;
   accProfileCacheSet(String(currentUser.code || '').toLowerCase(), accProfile); // حفظ فوري: ظهور سريع في المرة القادمة
   const p = accProfile;
@@ -8257,9 +8269,11 @@ function accRender() {
   const avBtn = accEl('acc-avatar'); if (avBtn) avBtn.setAttribute('data-act', 'open-manage');
   const likeStat = accEl('acc-likes-stat'); if (likeStat) likeStat.setAttribute('data-act', 'open-likes');
   const ownAct = accEl('acc-own-actions'); if (ownAct) ownAct.style.display = '';
-  const hlBtn = accEl('acc-highlight-btn'); if (hlBtn) hlBtn.style.display = '';
+  const hlBtn = accEl('acc-publish-material-btn'); if (hlBtn) hlBtn.style.display = '';
   const frRow = accEl('acc-follow-row'); if (frRow) frRow.style.display = 'none';
-  const bkBtn = document.querySelector('.ig-topbar [data-act="toggle-settings"]'); if (bkBtn) bkBtn.style.display = '';
+  // في ملفك الشخصي: إظهار زر الإعدادات ☰ وإخفاء زر الرجوع →
+  const btnSettings = document.getElementById('acc-btn-settings'); if (btnSettings) btnSettings.style.display = '';
+  const btnBack = document.getElementById('acc-btn-back'); if (btnBack) btnBack.style.display = 'none';
   const addBtn = document.querySelector('.ig-topbar [data-act="ig-add"]'); if (addBtn) addBtn.style.display = '';
   const pt = accEl('acc-posts-title'); if (pt) pt.textContent = 'منشوراتي';
   accUpdateFollowStats();
@@ -8438,9 +8452,12 @@ function accRenderOther() {
   // إظهار جسم الملف فوراً — مسار فتح ملف عضو يعود قبل accRender فقد يبقى acc-main مخفياً (شاشة فارغة)
   accEl('acc-guest').style.display = 'none';
   accEl('acc-main').style.display = 'block';
+  // Hide bottom nav when viewing another user's profile
+  const bn = document.getElementById('bottom-nav'); if (bn) bn.style.display = 'none';
   const name = u.fullName || u.username || '—';
   // الترويسة: إخفاء الإعدادات والإضافة وإظهار اسم العضو
   const bk = document.querySelector('.ig-topbar [data-act="toggle-settings"]'); if (bk) bk.style.display = 'none';
+  const btnBack = document.getElementById('acc-btn-back'); if (btnBack) btnBack.style.display = '';
   const ad = document.querySelector('.ig-topbar [data-act="ig-add"]'); if (ad) ad.style.display = 'none';
   const topU = accEl('acc-topbar-user'); if (topU) topU.textContent = '@' + (u.username || u._id);
   // الهوية: الاسم + التوثيق (حسب صلاحية «التوثيق») + الشارة
@@ -8460,7 +8477,7 @@ function accRenderOther() {
   const likeStat = accEl('acc-likes-stat'); if (likeStat) likeStat.removeAttribute('data-act');
   // إخفاء أزراري وإظهار المتابعة
   const ownAct = accEl('acc-own-actions'); if (ownAct) ownAct.style.display = 'none';
-  const hl = accEl('acc-highlight-btn'); if (hl) hl.style.display = 'none';
+  const hl = accEl('acc-publish-material-btn'); if (hl) hl.style.display = 'none';
   const frRow = accEl('acc-follow-row'); if (frRow) frRow.style.display = '';
   const pt = accEl('acc-posts-title'); if (pt) pt.textContent = 'منشورات ' + name;
   try { if (typeof subscribeMaterials === 'function' && !unsubMaterials) subscribeMaterials(); } catch (e) {}
@@ -8825,10 +8842,8 @@ function accShareProfile() {
   } catch (e) {}
   copyProfileLink(uid); // بلا واجهة مشاركة ← نسخ مباشر مع تنبيه «تم نسخ رابط الملف الشخصي!»
 }
-// زر «إضافة بارانات» — واجهة شكلية (لا يوجد نظام قصص بعد)
-function accAddHighlight() {
-  showToast('✨', 'البارانات', 'هذه الميزة قادمة قريباً');
-}
+// (تم حذف زر «إضافة بارانات» واستبداله بزر «نشر ملازم»)
+// دالة نشر الملازم مفتوحة عبر openMaterialModal() مع فحص صلاحية 'material'
 // ═══════════ حفظ البيانات الشخصية ═══════════
 function accProfileData() { const d = Object.assign({}, accProfile); delete d._id; return d; }
 function accApplyToSession() {
@@ -9222,7 +9237,7 @@ document.addEventListener('click', ev => {
     case 'open-likes':      accOpenLikes(); break;
     case 'close-likes':     accCloseLikes(); break;
     case 'share-profile': accShareProfile(); break;
-    case 'ig-add':        accAddHighlight(); break;
+    case 'ig-add':        openMaterialModal(); break;
   }
 });
 accEl('acc-avatar-file').addEventListener('change', e => accUploadAvatar(e.target.files[0]));
@@ -11357,6 +11372,8 @@ window.deleteReport = async function(id) {
 // ── BOTTOM NAV ──
 window.setActiveNav = function(id) {
   document.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
+  // إظهار الشريط السفلي عند أي تغيير في الشاشة
+  const bn = document.getElementById('bottom-nav'); if (bn) bn.style.display = 'flex';
   const el = document.getElementById('nav-' + id);
   if (el) el.classList.add('active');
 
@@ -11408,6 +11425,8 @@ window.setActiveNav = function(id) {
   } else {
     // الجدول الدراسي (home)
     if (homeView) homeView.style.display = 'block';
+    // إظهار الشريط السفلي عند العودة للواجهة الرئيسية أو أي شاشة أخرى
+    // إظهار الشريط السفلي عند أي تغيير في الشاشة (خروج من ملف شخص آخر)
   }
 };
 
