@@ -1,0 +1,1 @@
+{ "name": "alfaclass-telegram-bio", "version": "1.0.0", "description": "Firebase Cloud Function to fetch Telegram Bot Bio via getChat API", "main": "index.js", "dependencies": { "firebase-admin": "^11.10.1", "firebase-functions": "^4.5.0" }, "engines": { "node": "18" } }

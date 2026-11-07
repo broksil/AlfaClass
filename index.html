@@ -2987,6 +2987,72 @@
   /* مهم: يجعل أنيميشن الإغلاق يتفوّق على أنيميشن الدخول ذي الأولوية الأعلى */
   #login-modal .modal-box.closing { animation: modalOut 0.25s ease forwards; }
 </style>
+
+  <script>
+    // ── AlfaClass — Read Telegram Mini App session ────────────────
+    // Executed on every page load. If a Telegram auth session exists
+    // (set by profile/index.html after Telegram WebApp auth), this
+    // code makes the user data available globally for the main app.
+    (function() {
+      'use strict';
+      const session = window.AlfaClassTelegramAuth ? AlfaClassTelegramAuth.getSessionUser() : null;
+      if (session && session.telegramUserId) {
+        // Expose globally for any script in the app
+        window.__alfaclassUser = session;
+        window.__alfaclassTelegramUserId = session.telegramUserId;
+
+        // Update localStorage to match existing auth pattern
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('telegramUserId', String(session.telegramUserId));
+        localStorage.setItem('username', session.username || '');
+        localStorage.setItem('fullName', session.fullName || '');
+        localStorage.setItem('avatarUrl', session.avatarUrl || '');
+        localStorage.setItem('telegramUsername', session.telegramUsername || '');
+
+        // Update header: show user name + avatar
+        const header = document.querySelector('header');
+        if (header) {
+          // Find or create the user indicator in the header
+          let userIndicator = header.querySelector('.alp-user-indicator');
+          if (!userIndicator) {
+            userIndicator = document.createElement('div');
+            userIndicator.className = 'alp-user-indicator';
+            userIndicator.style.cssText =
+              'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);margin-bottom:10px;';
+            header.insertBefore(userIndicator, header.querySelector('nav') || header.firstChild);
+          }
+
+          // Show avatar or initials
+          const avatar = userIndicator.querySelector('.alp-avatar');
+          if (avatar) {
+            if (session.avatarUrl) {
+              avatar.src = session.avatarUrl;
+              avatar.style.display = 'block';
+            } else {
+              avatar.style.display = 'none';
+            }
+          }
+
+          const nameEl = userIndicator.querySelector('.alp-user-name');
+          if (nameEl) {
+            nameEl.textContent = session.fullName || session.firstName || 'مستخدم';
+          }
+          const usrEl = userIndicator.querySelector('.alp-user-username');
+          if (usrEl) {
+            usrEl.textContent = session.telegramUsername
+              ? '@' + session.telegramUsername
+              : '@' + (session.username || session.telegramUserId);
+          }
+
+          // Hide login/signup buttons, show user menu
+          const loginBtn = header.querySelector('[data-action="login"]');
+          if (loginBtn) loginBtn.style.display = 'none';
+        }
+
+        console.log('[AlfaClass] Telegram auth session loaded for user', session.telegramUserId);
+      }
+    })();
+  </script>
 </head>
 <body>
 
