@@ -2995,7 +2995,9 @@
     // code makes the user data available globally for the main app.
     (function() {
       'use strict';
-      const session = window.AlfaClassTelegramAuth ? AlfaClassTelegramAuth.getSessionUser() : null;
+      let session = null;
+      try { session = JSON.parse(sessionStorage.getItem('alfaclass_session_user')); } catch (e) {}
+      if (!session && window.AlfaClassTelegramAuth) session = AlfaClassTelegramAuth.getSessionUser();
       if (session && session.telegramUserId) {
         // Expose globally for any script in the app
         window.__alfaclassUser = session;
