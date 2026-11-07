@@ -4,101 +4,95 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
-  <title>تسجيل الدخول — ألفاكلاس</title>
+  <title>ألفاكلاس — تسجيل الدخول</title>
   <link rel="icon" type="image/png" sizes="32x32" href="../icon-192.png">
   <style>
+    :root {
+      --bg-primary: #080818;
+      --accent: #7c3aed;
+      --accent2: #a78bfa;
+      --accent-glow: rgba(124,58,237,0.3);
+    }
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
-      background: #080818;
+      background: var(--bg-primary);
       color: #f0f0ff;
       min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
+    }
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-primary);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      z-index: 9999;
+      gap: 20px;
+      transition: opacity 0.6s ease, transform 0.6s ease;
     }
-    .container { width: 100%; max-width: 460px; text-align: center; }
-    .logo { font-size: 46px; margin-bottom: 8px; }
-    h1 { font-size: 20px; margin: 0 0 8px; font-weight: 700; }
-    .subtitle { color: #a9a9c9; font-size: 14px; line-height: 1.7; margin-bottom: 28px; }
-
-    .status-box {
-      background: #111128;
-      border: 1px solid #333;
+    #loading-screen.hide { opacity: 0; transform: scale(1.05); pointer-events: none; }
+    .loading-verse {
+      font-size: 26px; font-weight: 800; letter-spacing: 0;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+      padding: 0 20px;
+    }
+    .loading-bar {
+      width: 220px; height: 6px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .loading-bar-inner {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px;
+      box-shadow: 0 0 15px var(--accent-glow);
+      transition: width 0.3s ease;
+    }
+    .loading-error {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.4);
       border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 18px;
-      min-height: 130px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      transition: opacity 0.3s ease;
-    }
-    .status-box.empty { opacity: 0.3; }
-    .status-box .label {
-      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-      color: #7a7a9a; margin-bottom: 6px;
-    }
-    .status-box .value { font-size: 16px; font-weight: 600; word-break: break-word; }
-    .status-box .sub {
-      font-size: 13px; color: #a9a9c9; margin-top: 6px; line-height: 1.6;
-    }
-    .avatar {
-      width: 80px; height: 80px; border-radius: 50%;
-      object-fit: cover; border: 3px solid #5b6cff;
-      margin: 0 auto 12px;
-    }
-    .err { display: none; color: #ff8f8f; font-size: 13px; margin-top: 10px; word-break: break-word; }
-    .err.visible { display: block; }
-    .loading { text-align: center; padding: 30px; color: #a9a9c9; }
-    .back-link {
-      margin-top: 20px; color: #7a7a9a; text-decoration: none;
+      padding: 16px;
+      color: #ff8f8f;
       font-size: 13px;
+      font-family: monospace;
+      text-align: left;
+      direction: ltr;
+      z-index: 10000;
+      word-break: break-word;
+      white-space: pre-wrap;
     }
-    .back-link:hover { color: #f0f0ff; }
-    .hint { font-size: 12px; color: #6b6b8a; margin-top: 12px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-error.visible { display: block; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">🎓</div>
-    <h1>ألفاكلاس</h1>
-    <p class="subtitle">جارٍ تسجيل الدخول تلقائياً عبر تيليجرام…</p>
-
-    <div class="loading" id="loading">
-      <div style="display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px;"></div>
-      جارٍ الاتصال بـ Telegram…
-    </div>
-
-    <div class="status-box empty" id="statusBox">
-      <div class="label">الملف الشخصي</div>
-      <img class="avatar" id="avatar" src="" alt="صورة الملف الشخصي">
-      <div class="value" id="fullName">—</div>
-      <div class="value" id="usernameRow" style="font-size:14px;font-weight:500;color:#a9a9c9;">
-        <span id="usernameText">—</span>
-      </div>
-      <div class="sub" id="bioRow">—</div>
-    </div>
-
-    <div id="err" class="err"></div>
-
-    <a class="back-link" href="../index.html">← العودة إلى ألفاكلاس</a>
-    <p class="hint">هذا الصفحة مخصصة للتسجيل التلقائي عبر تيليجرام فقط.</p>
+  <div id="loading-screen">
+    <div class="loading-verse">وقل ربي زدني علماً</div>
+    <div class="loading-bar"><div class="loading-bar-inner" id="progress-fill"></div></div>
   </div>
 
-  <script>
-    const style = document.createElement('style');
-    style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
-    document.head.appendChild(style);
-  </script>
+  <div id="loading-error" class="loading-error"></div>
 
-  <!-- Username utilities (transliteration) -->
   <script src="../utils/username-utils.js"></script>
-
-  <!-- Telegram Auth Module -->
   <script src="../profile/telegram-auth.js"></script>
 </body>
 </html>

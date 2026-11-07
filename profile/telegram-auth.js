@@ -1,9 +1,21 @@
 /**
  * AlfaClass — Telegram Mini App Auto-Authentication Module (100% Frontend-only)
- * Entry point: profile/index.html
- * No backend dependencies — all sync happens client-side via Firebase Firestore SDK.
  */
 const USER_COLLECTION = 'users';
+
+function setProgress(percent) {
+  const fill = document.getElementById('progress-fill');
+  if (fill) fill.style.width = percent + '%';
+}
+
+function showError(message) {
+  const errEl = document.getElementById('loading-error');
+  if (errEl) {
+    errEl.textContent = message;
+    errEl.classList.add('visible');
+  }
+  console.error('[AlfaClass] Auth error:', message);
+}
 
 let _db = null;
 async function initFirebase() {
@@ -16,12 +28,11 @@ async function initFirebase() {
     messagingSenderId: "548886375389",
     appId: "1:548886375389:web:a49c2a446981cd2836e434",
   }));
-  return _db;
+  return { db: _db, doc: fstM.doc, getDoc: fstM.getDoc, setDoc: fstM.setDoc, updateDoc: fstM.updateDoc };
 }
-
-async function syncUserToFirestore(p) {
-  if (!_db) await initFirebase();
-  const uRef = doc(_db, USER_COLLECTION, String(p.telegramUserId));
+async function syncUserToFirestore(p, firebase) {
+  const { db, doc, getDoc, setDoc, updateDoc } = firebase;
+  const uRef = doc(db, USER_COLLECTION, String(p.telegramUserId));
   const now = new Date();
   const d = {
     fullName: p.displayName, username: p.username, photoUrl: p.avatarUrl || null,
@@ -33,9 +44,8 @@ async function syncUserToFirestore(p) {
     const exists = await getDoc(uRef).then(s => s.exists());
     if (exists) await updateDoc(uRef, d); else await setDoc(uRef, d);
     return { success: true, action: exists ? 'updated' : 'created' };
-  } catch (e) { return { success: false, error: e.message }; }
+  } catch (e) { throw new Error(e.message || 'Firestore sync failed'); }
 }
-
 function setSessionUser(d) {
   const s = {
     telegramUserId: d.telegramUserId, fullName: d.displayName,
@@ -48,59 +58,52 @@ function setSessionUser(d) {
   window.__alfaclassUser = s;
   window.__alfaclassTelegramUserId = d.telegramUserId;
 }
-
-function renderUserUI(p, bio) {
-  const load = document.getElementById('loading');
-  const box = document.getElementById('statusBox');
-  const av = document.getElementById('avatar');
-  const fn = document.getElementById('fullName');
-  const ut = document.getElementById('usernameText');
-  const br = document.getElementById('bioRow');
-  const err = document.getElementById('err');
-  const ur = document.getElementById('usernameRow');
-  load.style.display = 'none';
-  box.classList.remove('empty');
-  if (p.avatarUrl) { av.src = p.avatarUrl; av.style.display = 'block'; } else { av.style.display = 'none'; }
-  fn.textContent = p.displayName || 'مستخدم تيليجرام';
-  ut.textContent = `@${p.username}`;
-  br.textContent = bio || 'لا يوجد وصف في تيليجرام.';
-  br.style.color = '#a9a9c9';
-  ur.innerHTML = p.telegramUsername
-    ? `<span style="color:#7a7a9a;">مستخدم تيليجرام:</span> @${p.telegramUsername}`
-    : `<span style="color:#7a7a9a;">اسم المستخدم المولّد:</span> @${p.username}`;
-  console.log(`[AlfaClass] User ${p.telegramUserId} authenticated via Telegram.`);
-}
-
 async function runAuthFlow() {
-  const load = document.getElementById('loading');
-  const err = document.getElementById('err');
-  load.style.display = 'flex';
-  err.classList.remove('visible');
+  const safetyTimer = setTimeout(() => {
+    window.location.replace('../index.html?source=telegram');
+  }, 4000);
 
-  const user = window.Telegram!.WebApp.initDataUnsafe!.user;
-  if (!user || !user.id) throw new Error('Missing Telegram user ID');
-
-  const uid = user.id;
-  const fn = user.first_name || 'مستخدم';
-  const ln = user.last_name || '';
-  const tu = user.username || null;
-  const pu = user.photo_url || '';
-  const disp = `${fn} ${ln}`.trim();
-
-  const username = generateUsernameWithFallback({ firstName: fn, telegramUserId: uid, username: tu });
-  const payload = { telegramUserId: uid, displayName: disp, firstName: fn, lastName: ln, username, avatarUrl: pu, telegramUsername: tu, bio: 'لا يوجد وصف' };
-
-  let fsResult = null;
   try {
-    fsResult = await syncUserToFirestore(payload);
-    console.log(`[AlfaClass] Firestore sync: ${fsResult.action}`);
-  } catch (e) { console.warn(`[AlfaClass] Firestore sync skipped: ${e.message}`); }
+    if (!window.Telegram || !window.Telegram.WebApp) {
+      throw new Error('Telegram WebApp not available. Please open this app from Telegram.');
+    }
+    window.Telegram.WebApp.ready();
+    setProgress(20);
 
-  setSessionUser({ telegramUserId: uid, displayName: disp, firstName: fn, lastName: ln, username, avatarUrl: pu, bio: 'لا يوجد وصف', telegramUsername: tu });
-  renderUserUI(payload, 'لا يوجد وصف');
+    const user = window.Telegram.WebApp.initDataUnsafe?.user;
+    if (!user || !user.id) {
+      throw new Error('Missing Telegram user ID. Please open this app from Telegram.');
+    }
 
-  setTimeout(() => window.location.replace('../index.html?source=telegram'), 600);
-  return { success: true, payload, firestoreResult: fsResult };
+    const uid = user.id;
+    const fn = user.first_name || 'مستخدم';
+    const ln = user.last_name || '';
+    const tu = user.username || null;
+    const pu = user.photo_url || '';
+    const disp = `${fn} ${ln}`.trim();
+
+    const username = generateUsernameWithFallback({ firstName: fn, telegramUserId: uid, username: tu });
+    const payload = { telegramUserId: uid, displayName: disp, firstName: fn, lastName: ln, username, avatarUrl: pu, telegramUsername: tu, bio: 'لا يوجد وصف' };
+    setProgress(50);
+
+    const firebase = await initFirebase();
+    const fsResult = await syncUserToFirestore(payload, firebase);
+    setProgress(80);
+
+    setSessionUser({ telegramUserId: uid, displayName: disp, firstName: fn, lastName: ln, username, avatarUrl: pu, bio: 'لا يوجد وصف', telegramUsername: tu });
+    setProgress(100);
+
+    clearTimeout(safetyTimer);
+    await new Promise(r => setTimeout(r, 200));
+    window.location.replace('../index.html?source=telegram');
+
+    return { success: true, payload, firestoreResult: fsResult };
+  } catch (e) {
+    clearTimeout(safetyTimer);
+    showError(e.message || 'Unknown error occurred');
+    setTimeout(() => window.location.replace('../index.html?source=telegram'), 2000);
+    throw e;
+  }
 }
 
 const AlfaClassTelegramAuth = {
@@ -122,8 +125,7 @@ if (typeof document !== 'undefined') {
     if (window.Telegram && window.Telegram.WebApp) {
       runAuthFlow().catch(e => {
         console.error('[AlfaClass] Auto-start error:', e);
-        const el = document.getElementById('err');
-        if (el) { el.textContent = 'حدث خطأ غير متوقع أثناء تسجيل الدخول.'; el.classList.add('visible'); }
+        showError(e.message || 'حدث خطأ غير متوقع أثناء تسجيل الدخول.');
       });
     }
   };
