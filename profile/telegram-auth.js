@@ -3,30 +3,37 @@
  */
 const USER_COLLECTION = 'users';
 
-async function waitForTelegramData(maxWait = 2000, interval = 100) {
-  const start = Date.now();
-  while (Date.now() - start < maxWait) {
-    if (
-      window.Telegram &&
-      window.Telegram.WebApp &&
-      window.Telegram.WebApp.initDataUnsafe &&
-      window.Telegram.WebApp.initDataUnsafe.user
-    ) {
-      return { success: true, user: window.Telegram.WebApp.initDataUnsafe.user };
-    }
-    await new Promise(r => setTimeout(r, interval));
+async function syncUserToFirestoreCompat(p) {
+  if (typeof firebase === 'undefined') {
+    throw new Error('Firebase not initialized — ensure SDKs are loaded before this script.');
   }
-  const rawData = window.Telegram?.WebApp?.initData || 'COMPLETELY EMPTY';
-  showError(
-    'Timeout: initDataUnsafe.user not available after 2 seconds',
-    `raw initData: ${rawData}`
-  );
-  return { success: false };
-}
-
-function setProgress(percent) {
-  const fill = document.getElementById('progress-fill');
-  if (fill) fill.style.width = percent + '%';
+  const firebaseApp = firebase.initializeApp({
+    apiKey: "AIzaSyDrT10AouY-MAtS4Brt-1fPpPt4YoT8spc",
+    authDomain: "alfaclass-120e3.firebaseapp.com",
+    projectId: "alfaclass-120e3",
+    messagingSenderId: "548886375389",
+    appId: "1:548886375389:web:a49c2a446981cd2836e434",
+  });
+  const db = firebaseApp.firestore();
+  const uRef = db.collection(USER_COLLECTION).doc(String(p.telegramUserId));
+  const now = new Date();
+  const d = {
+    fullName: p.displayName, username: p.username, photoUrl: p.avatarUrl || null,
+    bio: p.bio || 'لا يوجد وصف', telegramUserId: p.telegramUserId,
+    telegramUsername: p.telegramUsername || null,
+    updatedAt: now, lastSeenAt: now, telegramInitializedAt: now,
+  };
+  try {
+    const docSnap = await uRef.get();
+    if (docSnap.exists()) {
+      await uRef.update(d);
+    } else {
+      await uRef.set(d);
+    }
+    return { success: true, action: docSnap.exists() ? 'updated' : 'created' };
+  } catch (e) {
+    throw new Error(`Firestore sync failed: ${e.message}`);
+  }
 }
 
 function showError(message, stack) {
@@ -63,47 +70,7 @@ async function runAuthFlow() {
     bio: 'لا يوجد وصف',
   };
   setProgress(80);
-  let fsResult = { success: true, action: 'skipped' };
-  if (window.__alfaclassFirebase) {
-    const { db, doc, getDoc, setDoc, updateDoc } = window.__alfaclassFirebase;
-    const uRef = doc(db, USER_COLLECTION, String(uid));
-    const now = new Date();
-    const pData = {
-      fullName: disp, username, photoUrl: pu || null,
-      bio: 'لا يوجد وصف', telegramUserId: uid,
-      telegramUsername: tu || null,
-      updatedAt: now, lastSeenAt: now, telegramInitializedAt: now,
-    };
-    try {
-      const exists = await getDoc(uRef).then(s => s.exists());
-      if (exists) await updateDoc(uRef, pData); else await setDoc(uRef, pData);
-      fsResult = { success: true, action: exists ? 'updated' : 'created' };
-    } catch (e) { fsResult = { success: false, error: e.message }; }
-  } else {
-    const appM = await import('https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js');
-    const fstM = await import('https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js');
-    const fbApp = fstM.getFirestore(appM.initializeApp({
-      apiKey: "AIzaSyDrT10AouY-MAtS4Brt-1fPpPt4YoT8spc",
-      authDomain: "alfaclass-120e3.firebaseapp.com",
-      projectId: "alfaclass-120e3",
-      messagingSenderId: "548886375389",
-      appId: "1:548886375389:web:a49c2a446981cd2836e434",
-    }));
-    const { db, doc, getDoc, setDoc, updateDoc } = fbApp;
-    const uRef = doc(db, USER_COLLECTION, String(uid));
-    const now = new Date();
-    const pData = {
-      fullName: disp, username, photoUrl: pu || null,
-      bio: 'لا يوجد وصف', telegramUserId: uid,
-      telegramUsername: tu || null,
-      updatedAt: now, lastSeenAt: now, telegramInitializedAt: now,
-    };
-    try {
-      const exists = await getDoc(uRef).then(s => s.exists());
-      if (exists) await updateDoc(uRef, pData); else await setDoc(uRef, pData);
-      fsResult = { success: true, action: exists ? 'updated' : 'created' };
-    } catch (e) { fsResult = { success: false, error: e.message }; }
-  }
+  const fsResult = await syncUserToFirestoreCompat(payload);
   setProgress(100);
   const s = {
     telegramUserId: uid,
