@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="google-site-verification" content="JhgaPzeHK7LxgNwh_sOUL9eyO087c2Em0I0LD0UteKk" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#080818">
+<title>ألفاكلاس | تسجيل الدخول</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080818;--card:#10102a;--line:#26264d;--acc:#7c3aed;--acc2:#a78bfa;--tx:#f0f0ff;--mut:#9393b8;--bad:#ef4444;--ok:#22c55e;--font:'Cairo',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0}
+html,body,*{ -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none }
+input,textarea,select,[contenteditable="true"],[contenteditable=""],[data-selectable="true"]{ -webkit-user-select:text;-moz-user-select:text;-ms-user-select:text;user-select:text;-webkit-touch-callout:default }
+html,body{min-height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;
+background-image:radial-gradient(60% 40% at 85% 0%,#7c3aed33,transparent),radial-gradient(50% 35% at 0% 100%,#3b82f622,transparent);
+padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;padding-bottom:calc(20px + var(--kb-height,0px))}
+.card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:30px 24px;box-shadow:0 20px 60px #0008;position:relative;overflow:hidden}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--acc),#5b21b6);display:grid;place-items:center;font-weight:900;font-size:22px}
+.brand b{font-size:20px;font-weight:900}
+.panel{display:none}
+.panel.on{display:block;animation:in .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes in{from{opacity:0;transform:translateX(var(--dx,0))}to{opacity:1;transform:none}}
+h1{font-size:24px;font-weight:900;margin-bottom:6px}
+.sub{color:var(--mut);font-size:14px;margin-bottom:22px;line-height:1.7}
+.f{margin-bottom:16px}
+label.l{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:#c9c9ea}
+input[type=text],input[type=password]{width:100%;font:inherit;color:var(--tx);background:#0b0b20;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:var(--acc2);box-shadow:0 0 0 3px #7c3aed33}
+.bad input{border-color:var(--bad)}
+.ltr{direction:ltr;text-align:left}
+.err{color:var(--bad);font-size:12.5px;min-height:0;margin-top:5px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;text-align:center;padding:11px;border:1.5px solid var(--line);border-radius:12px;background:#0b0b20;cursor:pointer;font-weight:600;transition:.2s}
+.seg input:checked+span{background:var(--acc);border-color:var(--acc);color:#fff}
+.seg input:focus-visible+span{box-shadow:0 0 0 3px #a78bfa66}
+.seg label{position:relative}
+.btn{width:100%;font:inherit;font-weight:700;font-size:16px;color:#fff;background:linear-gradient(135deg,var(--acc),#6d28d9);border:0;border-radius:12px;padding:13px;cursor:pointer;transition:transform .15s,opacity .2s}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--tx)}
+.row{display:flex;gap:10px}.row .btn:first-child{flex:1.4}.row .btn:last-child{flex:1}
+.alt{text-align:center;margin-top:18px;font-size:14px;color:var(--mut)}
+.alt a{color:var(--acc2);font-weight:700;cursor:pointer;text-decoration:none;background:none;border:0;font:inherit;font-weight:700}
+.alt a:hover{text-decoration:underline}
+.dots{display:flex;gap:6px;margin-bottom:18px}
+.dots i{height:4px;flex:1;border-radius:4px;background:var(--line);transition:background .3s}
+.dots i.on{background:var(--acc2)}
+.form-err{background:#ef44441a;border:1px solid #ef444455;color:#fca5a5;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:14px;display:none}
+.skip-link{display:block;text-align:center;margin-top:14px;font-size:13px;color:var(--mut);text-decoration:none;transition:color .2s}
+.skip-link:hover{color:var(--acc2)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="card">
+  <div class="brand"><div class="logo">أ</div><b>ألفاكلاس</b></div>
+
+  <!-- تسجيل الدخول -->
+  <section class="panel on" id="pLogin">
+   <h1>أهلاً بعودتك 👋</h1>
+   <p class="sub">سجّل دخولك لمتابعة التحاضير والجدول الدراسي.</p>
+   <div class="form-err" id="loginErr"></div>
+   <div class="f"><label class="l" for="lfa-f1">اسم المستخدم</label><input class="ltr login-field" type="text" id="lfa-f1" name="lfa-f1" autocapitalize="none" inputmode="text" autocomplete="off" readonly><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f2">كلمة السر</label><input class="ltr login-field" type="password" id="lfa-f2" name="lfa-f2" inputmode="text" autocomplete="new-password" readonly><div class="err"></div></div>
+   <button class="btn" id="loginBtn">تسجيل الدخول</button>
+   <p class="alt">ليس لديك حساب؟ <a data-go="step1">إنشاء حساب جديد</a></p>
+   <a href="index.html" class="skip-link">تصفح بدون تسجيل دخول ←</a>
+  </section>
+
+  <!-- إنشاء حساب: خطوة 1 -->
+  <section class="panel" id="pStep1">
+   <div class="dots"><i class="on"></i><i></i></div>
+   <h1>إنشاء حساب</h1>
+   <p class="sub">الخطوة الأولى: بياناتك الأكاديمية.</p>
+   <div class="f"><label class="l" for="lfa-f3">الاسم الكامل</label><input class="login-field" type="text" id="lfa-f3" name="lfa-f3" inputmode="text" autocomplete="off" readonly><div class="err"></div></div>
+   <div class="f"><span class="l" style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:#c9c9ea">نوع الدوام</span>
+    <div class="seg"><label><input type="radio" name="shift" value="صباحي"><span>صباحي</span></label><label><input type="radio" name="shift" value="مسائي"><span>مسائي</span></label></div><div class="err" id="shiftErr"></div></div>
+   <div class="f"><span class="l" style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:#c9c9ea">الشعبة</span>
+    <div class="seg"><label><input type="radio" name="section" value="أ"><span>أ</span></label><label><input type="radio" name="section" value="ب"><span>ب</span></label></div><div class="err" id="sectionErr"></div></div>
+   <button class="btn" id="nextBtn">التالي</button>
+   <p class="alt">لديك حساب؟ <a data-go="login">العودة لتسجيل الدخول</a></p>
+  </section>
+
+  <!-- إنشاء حساب: خطوة 2 -->
+  <section class="panel" id="pStep2">
+   <div class="dots"><i class="on"></i><i class="on"></i></div>
+   <h1>بيانات الحساب</h1>
+   <p class="sub">الخطوة الثانية: اختر اسم مستخدم وكلمة سر.</p>
+   <div class="form-err" id="signErr"></div>
+   <div class="f"><label class="l" for="lfa-f4">اسم المستخدم (إنجليزي)</label><input class="ltr login-field" type="text" id="lfa-f4" name="lfa-f4" autocapitalize="none" inputmode="text" autocomplete="off" readonly><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f5">كلمة السر</label><input class="ltr login-field" type="password" id="lfa-f5" name="lfa-f5" inputmode="text" autocomplete="new-password" readonly><div class="err"></div></div>
+   <div class="f"><label class="l" for="lfa-f6">إعادة كلمة السر</label><input class="ltr login-field" type="password" id="lfa-f6" name="lfa-f6" inputmode="text" autocomplete="new-password" readonly><div class="err"></div></div>
+   <div class="row"><button class="btn" id="signBtn">إنشاء الحساب</button><button class="btn ghost" id="backBtn">رجوع</button></div>
+  </section>
+ </div>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,deleteUser} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {getFirestore,doc,setDoc,getDoc,serverTimestamp,collection,getDocs,query,where,limit} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const app=initializeApp({apiKey:"AIzaSyDrT10AouY-MAtS4Brt-1fPpPt4YoT8spc",authDomain:"alfaclass-120e3.firebaseapp.com",projectId:"alfaclass-120e3",messagingSenderId:"548886375389",appId:"1:548886375389:web:a49c2a446981cd2836e434"});
+const auth=getAuth(app),db=getFirestore(app);
+const OWNER="baqer",DOMAIN="@alfaclass.app";
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const email=u=>u.toLowerCase()+DOMAIN;
+
+/* ===== البحث عن الحساب: باليوزر أو البريد الداخلي أو المسار (Firestore يعتمد على الأيدي) ===== */
+const findUser=async(name)=>{
+  name=String(name||'').trim().toLowerCase();
+  if(!name)return null;
+  try{const q=await getDocs(query(collection(db,'users'),where('username','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
+  try{const s=await getDoc(doc(db,'users',name));if(s.exists())return{d:s.data(),id:s.id};}catch(e){}
+  // الأسماء السابقة تبقى محجوزة لصاحبها — دعم الدخول/البحث بها بعد تغيير اليوزر
+  try{const q=await getDocs(query(collection(db,'users'),where('previousUsername','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
+  try{const q=await getDocs(query(collection(db,'users'),where('takenUsernames','array-contains',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
+  try{const q=await getDocs(query(collection(db,'users'),where('emailPrefix','==',name),limit(1)));if(!q.empty)return{d:q.docs[0].data(),id:q.docs[0].id};}catch(e){}
+  return null;
+};
+const loginCandidates=async(name)=>{
+  const f=await findUser(name);
+  if(!f)return [name];
+  const d=f.d,list=[];
+  const push=v=>{v=String(v||'').trim().toLowerCase();if(v&&!list.includes(v))list.push(v);};
+  push(d.emailPrefix);push(d.username);                          // البريد الثابت ثم الاسم الحالي
+  if(Array.isArray(d.takenUsernames))d.takenUsernames.forEach(push); // كل الأسماء السابقة
+  push(d.previousUsername);push(name);                           // توافق مع القديم + ما كتبه المستخدم
+  return list.slice(0,6);
+};
+
+/* ===== إذا كان المستخدم مسجل دخوله بالفعل، انقله مباشرة ===== */
+onAuthStateChanged(auth,u=>{
+  if(u && !window.__signing){
+    const name=u.email.split('@')[0];
+    findUser(name).then(f=>{
+      if(f){
+        const d=f.d;
+        localStorage.setItem('isLoggedIn','true');
+        localStorage.setItem('name',d.fullName||name);
+        localStorage.setItem('username',d.username||name);
+        localStorage.setItem('role',d.role==='owner'?'':(d.shift||''));
+        localStorage.setItem('color',d.role==='owner'?'#fbbf24':'#a78bfa');
+        localStorage.setItem('isAdmin',d.role==='owner'?'true':'false');
+        localStorage.setItem('isSuperAdmin',d.role==='owner'?'true':'false');
+        localStorage.setItem('shift',d.shift||'');
+        localStorage.setItem('section',d.section||'');
+        localStorage.setItem('userId',d.userId?String(d.userId):'');
+        localStorage.setItem('firebaseUid',u.uid);
+      }
+      // بلا مستند أيضاً نحوّل إلى index.html — وسيُصلح حسابه تلقائياً هناك (مستند كامل باليوزر)
+      window.location.href='index.html';
+    });
+  }
+});
+
+/* ===== تنقل بين الشاشات ===== */
+const panels={login:$('#pLogin'),step1:$('#pStep1'),step2:$('#pStep2')};
+let cur='login';
+function go(to,dir=1){
+  if(to===cur)return;
+  panels[cur].classList.remove('on');
+  panels[to].style.setProperty('--dx',(dir*-28)+'px');
+  panels[to].classList.add('on');
+  cur=to;
+}
+$$('[data-go]').forEach(a=>a.onclick=()=>go(a.dataset.go,a.dataset.go==='login'?-1:1));
+
+/* ===== أدوات التحقق ===== */
+function setErr(el,msg){
+  const f=el.closest('.f');f.classList.toggle('bad',!!msg);
+  f.querySelector('.err').textContent=msg||'';return !msg;
+}
+const clearOnInput=el=>el.addEventListener('input',()=>setErr(el,''));
+$$('input[type=text],input[type=password]').forEach(clearOnInput);
+$$('input[type=radio]').forEach(r=>r.onchange=()=>{$('#'+r.name+'Err').textContent=''});
+const showForm=(id,msg)=>{const b=$(id);b.textContent=msg||'';b.style.display=msg?'block':'none'};
+const authMsg=c=>({
+  'auth/email-already-in-use':'اسم المستخدم مأخوذ، اختر اسماً آخر.',
+  'auth/invalid-credential':'اسم المستخدم أو كلمة السر غير صحيحة.',
+  'auth/user-not-found':'اسم المستخدم أو كلمة السر غير صحيحة.',
+  'auth/wrong-password':'اسم المستخدم أو كلمة السر غير صحيحة.',
+  'auth/too-many-requests':'محاولات كثيرة، حاول لاحقاً.',
+  'auth/network-request-failed':'تعذّر الاتصال بالإنترنت.',
+  'auth/operation-not-allowed':'Email/Password Auth غير مفعّل في Firebase Console.',
+  'auth/half-account':'اسم المستخدم موجود في المصادقة لكن بكلمة سر مختلفة — تواصل مع صاحب الموقع لإصلاح الحساب.',
+  'permission-denied':'ليس لديك صلاحية (راجع قواعد Firestore).'
+}[c]||'حدث خطأ غير متوقع، حاول مرة أخرى.');
+
+/* ===== تسجيل الدخول ===== */
+$('#loginBtn').onclick=async()=>{
+  const u=$('#lfa-f1'),p=$('#lfa-f2');showForm('#loginErr');
+  const ok=[setErr(u,u.value.trim()?'':'أدخل اسم المستخدم'),setErr(p,p.value?'':'أدخل كلمة السر')].every(Boolean);
+  if(!ok)return;
+  const b=$('#loginBtn');b.disabled=true;
+  try{
+    const name=u.value.trim().toLowerCase();
+    // يدعم تغيير اليوزر: جرّب البريد الداخلي الثابت ثم الاسم الحالي ثم الأسماء السابقة بالترتيب
+    const candidates=await loginCandidates(name);
+    let cred=null,lastErr=null;
+    for(const prefix of candidates){
+      try{cred=await signInWithEmailAndPassword(auth,prefix+DOMAIN,p.value);break;}
+      catch(e){const c=e&&e.code;
+        if(c!=='auth/invalid-credential'&&c!=='auth/user-not-found'&&c!=='auth/wrong-password'&&c!=='auth/invalid-email')throw e;
+        lastErr=e;}
+    }
+    if(!cred)throw lastErr;
+    const f=await findUser(name);
+    if(f){
+      const d=f.d;
+      localStorage.setItem('isLoggedIn','true');
+      localStorage.setItem('name',d.fullName||name);
+      localStorage.setItem('username',d.username||name);
+      localStorage.setItem('role',d.role==='owner'?'':(d.shift||''));
+      localStorage.setItem('color',d.role==='owner'?'#fbbf24':'#a78bfa');
+      localStorage.setItem('isAdmin',d.role==='owner'?'true':'false');
+      localStorage.setItem('isSuperAdmin',d.role==='owner'?'true':'false');
+      localStorage.setItem('shift',d.shift||'');
+      localStorage.setItem('section',d.section||'');
+      localStorage.setItem('userId',d.userId?String(d.userId):'');
+      localStorage.setItem('firebaseUid',cred.user.uid);
+    }
+    window.location.href='index.html';
+  }catch(e){showForm('#loginErr',authMsg(e.code))}
+  b.disabled=false;
+};
+[$('#lfa-f1'),$('#lfa-f2')].forEach(i=>i.onkeydown=e=>e.key==='Enter'&&$('#loginBtn').click());
+
+/* ===== إنشاء حساب: الخطوة 1 ===== */
+const radio=n=>(document.querySelector(`input[name=${n}]:checked`)||{}).value;
+$('#nextBtn').onclick=()=>{
+  const n=$('#lfa-f3');
+  const a=setErr(n,n.value.trim().length<3?'أدخل اسمك الكامل':'');
+  const s=radio('shift'),c=radio('section');
+  $('#shiftErr').textContent=s?'':'اختر نوع الدوام';
+  $('#sectionErr').textContent=c?'':'اختر الشعبة';
+  if(a&&s&&c)go('step2',1);
+};
+$('#backBtn').onclick=()=>go('step1',-1);
+
+/* ===== إنشاء حساب: الخطوة 2 ===== */
+$('#signBtn').onclick=async()=>{
+  const u=$('#lfa-f4'),p=$('#lfa-f5'),p2=$('#lfa-f6');showForm('#signErr');
+  const un=u.value.trim();
+  const e1=setErr(u,!un?'أدخل اسم المستخدم':!/^[A-Za-z0-9_]+$/.test(un)?'حروف إنجليزية وأرقام فقط':un.length<3?'يجب ألا يقل عن 3 أحرف':!/[A-Za-z]/.test(un)?'يجب أن يحوي اسم المستخدم على حرف إنجليزي واحد على الأقل':'');
+  const e2=setErr(p,!p.value?'أدخل كلمة السر':p.value.length<8?'يجب ألا تقل عن 8 أحرف':'');
+  const e3=setErr(p2,!p2.value?'أعد كتابة كلمة السر':p2.value!==p.value?'كلمتا السر غير متطابقتين':'');
+  if(!(e1&&e2&&e3))return;
+  const b=$('#signBtn');b.disabled=true;
+  try{
+    const name=un.toLowerCase();
+    // تحقق من التكرار: الاسم الحالي أو أي اسم سابق لأي حساب (الأسماء القديمة تبقى محجوزة لأصحابها)
+    const nameTaken=async(f)=>{
+      try{
+        const q=f==='taken'
+          ? await getDocs(query(collection(db,'users'),where('takenUsernames','array-contains',name),limit(1)))
+          : await getDocs(query(collection(db,'users'),where(f,'==',name),limit(1)));
+        return !q.empty;
+      }catch(e){return false;}
+    };
+    if(await nameTaken('username')||await nameTaken('previousUsername')||await nameTaken('taken')){
+      showForm('#signErr','اسم المستخدم مأخوذ، اختر اسماً آخر.');
+      b.disabled=false;
+      return;
+    }
+    window.__signing=true;
+    // إنشاء حساب المصادقة — وإن كان موجوداً فعلاً لكن بلا مستند (فشل حفظ سابق) نُصلحه بنفس كلمة السر
+    let cred=null,healed=null;
+    try{
+      cred=await createUserWithEmailAndPassword(auth,email(name),p.value);
+    }catch(err){
+      if(err&&err.code==='auth/email-already-in-use'){
+        const existing=await findUser(name);
+        if(existing)throw err; // حساب حقيقي قائم — الاسم مأخوذ فعلاً
+        try{cred=await signInWithEmailAndPassword(auth,email(name),p.value);}
+        catch(e2){const x=new Error('half');x.code='auth/half-account';throw x;} // موجود في المصادقة بكلمة سر أخرى
+        // بعد المصادقة أعد الفحص: إن كان المستند موجوداً فعلاً (تعذّر قراءته قبل المصادقة) فلا نُنشئ مستنداً مكرراً
+        healed=await findUser(name);
+      }else throw err;
+    }
+    let newUserId=healed?(healed.d.userId!=null?String(healed.d.userId):''):null;
+    if(!healed){
+      newUserId=name===OWNER?666:Math.floor(100000+Math.random()*900000);
+      // المعرّف الرقمي هو مفتاح المستند في Firestore (لا اليوزر)
+      try{
+        await setDoc(doc(db,'users',String(newUserId)),{
+          username:name,fullName:$('#lfa-f3').value.trim(),
+          shift:radio('shift'),section:radio('section'),
+          role:name===OWNER?'owner':'student',
+          uid:cred.user.uid,createdAt:serverTimestamp(),
+          userId:newUserId,emailPrefix:name, // بريد الدخول الثابت
+          perms:name===OWNER?null:{prep:false,report:false,material:false,comment:false,enquiry:false,support:false,verify:false,profile:true,vote:false}, // جديد: تعديل الملف فقط
+          takenUsernames:[name]              // كل الأسماء التي استعملها الحساب (تُضاف إليها عند كل تغيير)
+        });
+      }catch(err){
+        // فشل حفظ المستند: نحذف حساب المصادقة المولَّد حتى لا يبقى اسم محجوز بلا حساب يظهر في إدارة الأعضاء
+        try{await deleteUser(cred.user);}catch(_){}
+        throw err;
+      }
+    }
+    window.__signing=false;
+    // حفظ البيانات في localStorage (تُؤخذ من المستند القائم عند شفاء حساب ناقص)
+    const isOwner=name===OWNER;
+    const hd=healed?healed.d:{};
+    localStorage.setItem('isLoggedIn','true');
+    localStorage.setItem('name',hd.fullName||$('#lfa-f3').value.trim());
+    localStorage.setItem('username',hd.username||name);
+    localStorage.setItem('role',isOwner?'':(hd.shift||radio('shift')));
+    localStorage.setItem('color',isOwner?'#fbbf24':'#a78bfa');
+    localStorage.setItem('isAdmin',isOwner?'true':'false');
+    localStorage.setItem('isSuperAdmin',isOwner?'true':'false');
+    localStorage.setItem('shift',hd.shift||radio('shift'));
+    localStorage.setItem('section',hd.section||radio('section'));
+    localStorage.setItem('userId',String(newUserId||''));
+    localStorage.setItem('firebaseUid',cred.user.uid);
+    window.location.href='index.html';
+  }catch(e){window.__signing=false;showForm('#signErr',authMsg(e.code))}
+  b.disabled=false;
+};
+</script>
+<script>
+/* ── حيل صارمة: منع الأوتوفيل (readonly) + تثبيت تركيز الكيبورد عند تغيير اللغة ── */
+(function () {
+  var SEL = 'input.login-field, textarea.login-field';
+  var lastField = null, lastPointer = 0, lastBlur = 0;
+
+  function fieldOf(t) { return (t && t.closest) ? t.closest(SEL) : null; }
+  function unlock(el) { if (el && el.hasAttribute('readonly')) el.removeAttribute('readonly'); }
+  function isField(el) { return !!el && !!el.classList && el.classList.contains('login-field'); }
+
+  /* (1) حيلة readonly: الحقول مقيّدة عند التحميل فيتجاهلها مدير كلمات المرور، وتُفتح عند أول لمسة */
+  ['pointerdown', 'touchstart', 'mousedown', 'click'].forEach(function (evt) {
+    document.addEventListener(evt, function (e) {
+      lastPointer = Date.now();
+      var el = fieldOf(e.target);
+      if (!el) return;
+      unlock(el);
+      if (evt === 'pointerdown' || evt === 'mousedown') { try { el.focus({ preventScroll: false }); } catch (err) {} }
+    }, true);
+  });
+  document.addEventListener('focusin', function (e) {
+    var el = fieldOf(e.target);
+    if (el) { unlock(el); lastField = el; }
+  }, true);
+
+  /* (2) تثبيت التركيز: أي blur مفاجئ → إعادة focus() بعد 40ms (إلا إذا لمس المستخدم عنصرًا آخر فعلًا) */
+  document.addEventListener('focusout', function (e) {
+    if (!isField(e.target)) return;
+    lastField = e.target; lastBlur = Date.now();
+    setTimeout(function () {
+      var el = lastField;
+      if (!el || !isField(el) || !document.body.contains(el) || el.disabled) return;
+      if (Date.now() - lastBlur > 1500) return;
+      if (Date.now() - lastPointer < 700) return;   // المستخدم لمس شيئًا آخر بنفسه
+      var a = document.activeElement;
+      if (a && a !== document.body && a !== document.documentElement) return;
+      try { el.focus({ preventScroll: true }); } catch (err) { try { el.focus(); } catch (e2) {} }
+    }, 40);
+  }, true);
+
+  /* (3) Virtual Keyboard API: قياس ارتفاع الكيبورد وإظهار الحقل فوقه */
+  if ('virtualKeyboard' in navigator) {
+    try {
+      navigator.virtualKeyboard.addEventListener('geometrychange', function () {
+        var hgt = (navigator.virtualKeyboard.boundingRect || {}).height || 0;
+        document.documentElement.style.setProperty('--kb-height', hgt + 'px');
+        var el = document.activeElement;
+        if (el && isField(el)) {
+          var r = el.getBoundingClientRect();
+          var limit = window.innerHeight - hgt - 16;
+          if (r.bottom > limit) window.scrollBy(0, r.bottom - limit);
+        }
+      });
+    } catch (e) {}
+  }
+})();
+</script>
+</body>
+</html>
