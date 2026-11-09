@@ -576,7 +576,14 @@
   .report-title { font-size: 15px; font-weight: 800; line-height: 1.5; margin-bottom: 4px; overflow-wrap: anywhere; }
   .report-body { font-size: 13px; color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
   .report-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
-  .report-author { font-size: 11px; color: var(--text-secondary); font-weight: 700; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .report-author {
+    font-size: 11px; color: var(--text-secondary); font-weight: 700;
+    display: flex; align-items: center; gap: 8px; min-width: 0;
+    cursor: pointer; user-select: none; transition: opacity 0.15s, transform 0.15s;
+  }
+  .report-author:hover { opacity: 0.88; }
+  .report-author:hover .report-author-text { text-decoration: underline; text-underline-offset: 3px; color: var(--accent2, #a78bfa); }
+  .report-author:active { transform: scale(0.97); }
   /* صورة الملف الشخصي الموحدة (البلاغات + المنشورات) — تتجدد عند تغييرها */
   .avatar-slot {
     position: relative; width: 34px; height: 34px; flex-shrink: 0;
@@ -1333,6 +1340,14 @@
     background: rgba(255,255,255,0.06);
     border-radius: 8px;
     font-size: 11px; color: var(--text-secondary);
+    cursor: pointer; transition: 0.15s;
+  }
+  .views-badge:hover {
+    background: rgba(255,255,255,0.12);
+    color: var(--text-primary);
+  }
+  .views-badge:active {
+    transform: scale(0.95);
   }
 
   .day-empty {
@@ -1634,6 +1649,43 @@
     position: relative; width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
     background: linear-gradient(135deg, var(--accent), #4f46e5);
     display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 16px;
+  }
+  .am-avatar-wrap {
+    position: relative; width: 42px; height: 42px; flex-shrink: 0;
+  }
+  .am-avatar-wrap .am-avatar {
+    width: 100%; height: 100%;
+  }
+  .am-avatar-dot {
+    position: absolute; bottom: -1px; left: -1px; width: 12px; height: 12px;
+    border-radius: 50%; background: #10b981; border: 2px solid #13141f;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.9); z-index: 5;
+  }
+  .am-avatar-dot.pulse {
+    animation: amPulse 1.8s infinite ease-in-out;
+  }
+  .am-status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #10b981; vertical-align: middle; margin-left: 4px; flex-shrink: 0;
+  }
+  .am-status-dot.pulse {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: amPulse 1.8s infinite ease-in-out;
+  }
+  @keyframes amPulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+  .am-status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.3;
+  }
+  .am-status-pill.online {
+    background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.32);
+  }
+  .am-status-pill.offline {
+    background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.08);
   }
   .am-avatar i { font-style: normal; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 0; }
   .am-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
@@ -3153,7 +3205,8 @@
       </div>
       <div class="ha-stats">
         <div class="ha-stat"><span class="ha-num" id="ha-total">—</span><span class="ha-lbl">👥 عدد المسجّلين</span></div>
-        <div class="ha-stat"><span class="ha-num" id="ha-active">—</span><span class="ha-lbl">⚡ أعضاء نشطون (٧ أيام)</span></div>
+        <div class="ha-stat"><span class="ha-num" id="ha-online" style="color:#10b981">—</span><span class="ha-lbl"><span class="am-status-dot pulse"></span> متصل الآن</span></div>
+        <div class="ha-stat"><span class="ha-num" id="ha-active">—</span><span class="ha-lbl">⚡ نشط مؤخراً</span></div>
       </div>
       <button type="button" class="ha-manage" onclick="amOpen()">👥 إدارة الأعضاء</button>
       <button type="button" class="ha-manage" onclick="saOpen()">🎓 دعم الطلاب</button>
@@ -3840,7 +3893,11 @@
         <button type="button" class="ha-x" onclick="closeModal('am-modal')" aria-label="إغلاق">✕</button>
       </div>
       <input class="form-input am-search" id="am-search" type="search" placeholder="بحث بالاسم أو اليوزر أو المعرّف…" oninput="amFilter()">
-      <div class="am-stats-mini"><span>المسجّلون: <b id="am-count-total">—</b></span><span>النشطون (٧ أيام): <b id="am-count-active">—</b></span></div>
+      <div class="am-stats-mini">
+        <span>المسجّلون: <b id="am-count-total">—</b></span>
+        <span style="color:#10b981"><span class="am-status-dot pulse"></span> نشط الآن: <b id="am-count-online">0</b></span>
+        <span>نشط مؤخراً: <b id="am-count-active">—</b></span>
+      </div>
       <div class="am-list" id="am-list"></div>
       <button type="button" class="am-refresh" onclick="amOpen()">🔄 تحديث القائمة</button>
     </div>
@@ -5021,7 +5078,7 @@ function renderDays(anim = 'fade') {
         <div>
           <div class="day-name">${day.name}</div>
           <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:4px">
-            <span class="views-badge" id="views-${day.id}" onclick="openViewersModal(event, '${day.id}')">👁 <span>0</span></span>
+            <span class="views-badge" id="views-${day.id}" onclick="openViewersModal(event, '${day.id}')" title="عرض سجل المشاهدات">👁 <span>0</span></span>
           </div>
         </div>
       </div>
@@ -5647,10 +5704,6 @@ async function incrementView(dayId) {
 
 window.openViewersModal = function(e, dayId) {
   e.stopPropagation(); // منع فتح تفاصيل اليوم عند الضغط على زر العين
-  if (!currentUser?.isAdmin) {
-    toggleDay(dayId); // فتح بطاقة اليوم للطلاب العاديين
-    return;
-  }
   const badge = document.getElementById(`views-${dayId}`);
   if (!badge) return;
   
@@ -5668,29 +5721,148 @@ window.openViewersModal = function(e, dayId) {
     entries.forEach(([vKey, time]) => {
       const date = new Date(time);
       const timeStr = date.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute:'2-digit' }) + ' - ' + date.toLocaleDateString('ar-IQ', { month:'short', day:'numeric' });
+      
+      const keyStr = String(vKey == null ? '' : vKey).trim();
+      const isGuest = /^زائر\s*\(/i.test(keyStr) || keyStr.toLowerCase() === 'guest' || (/^\d{4}$/.test(keyStr) && !/^[1-9]\d{2}$/.test(keyStr));
+      const isNumericId = /^\d{3,15}$/.test(keyStr);
+      
       const item = document.createElement('div');
       item.className = 'notif-item';
-      item.style.display = 'flex'; item.style.justifyContent = 'space-between'; item.style.alignItems = 'center';
-      // تسمية أولية للمفتاح (أيدي/زائر/اسم قديم) ثم تُستبدل بالاسم الحيّ إن أمكن
-      const isIdKey = /^\d{3,6}$/.test(vKey);
-      const isGuestLabel = /^زائر\s*\(/.test(String(vKey));
-      const nameEl = document.createElement('span');
-      nameEl.style.fontWeight = 'bold';
-      nameEl.textContent = isIdKey ? identityLabel(vKey) : sanitizeText(vKey);
+      item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:9px 12px; margin-bottom:6px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); transition:background 0.2s; user-select:none;';
+      
+      // جهة اليمين: الصورة الرمزية + الاسم واليوزر
+      const leftCol = document.createElement('div');
+      leftCol.style.cssText = 'display:flex; align-items:center; gap:10px; min-width:0; flex:1;';
+      
+      const avatarBox = document.createElement('div');
+      avatarBox.style.cssText = 'width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; border:1px solid rgba(255,255,255,0.12);';
+      
+      const avatarImg = document.createElement('img');
+      avatarImg.style.cssText = 'width:100%; height:100%; object-fit:cover; display:none;';
+      avatarImg.alt = '';
+      
+      const avatarIcon = document.createElement('span');
+      avatarIcon.style.fontSize = '16px';
+      avatarIcon.textContent = isGuest ? '👤' : '🎓';
+      
+      avatarBox.appendChild(avatarImg);
+      avatarBox.appendChild(avatarIcon);
+      leftCol.appendChild(avatarBox);
+      
+      const textCol = document.createElement('div');
+      textCol.style.cssText = 'display:flex; flex-direction:column; min-width:0;';
+      
+      const nameEl = document.createElement('div');
+      nameEl.style.cssText = 'font-weight:bold; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-primary, #ffffff);';
+      
+      const subEl = document.createElement('div');
+      subEl.style.cssText = 'font-size:11px; color:var(--text-secondary, rgba(255,255,255,0.6)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;';
+      
+      // التسمية المبدئية (سريعة من الكاش أو المعرّف)
+      let cachedEntry = null;
+      try {
+        const m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}');
+        cachedEntry = m[keyStr] || null;
+      } catch (e) {}
+
+      if (isGuest) {
+        nameEl.textContent = sanitizeText(keyStr);
+        subEl.textContent = 'زائر';
+      } else {
+        const cachedLabel = (cachedEntry && cachedEntry.n) || identityLabel(keyStr);
+        nameEl.textContent = sanitizeText(cachedLabel || ('عضو #' + keyStr));
+        const userTag = (cachedEntry && cachedEntry.u) ? ('@' + cachedEntry.u) : (isNumericId ? ('#' + keyStr) : '');
+        subEl.textContent = userTag;
+        if (cachedEntry && cachedEntry.p) {
+          avatarImg.src = cachedEntry.p;
+          avatarImg.style.display = 'block';
+          avatarIcon.style.display = 'none';
+        }
+      }
+      
+      textCol.appendChild(nameEl);
+      if (subEl.textContent) textCol.appendChild(subEl);
+      leftCol.appendChild(textCol);
+      item.appendChild(leftCol);
+      
+      // جهة اليسار: التوقيت
+      const rightCol = document.createElement('div');
+      rightCol.style.cssText = 'display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; margin-right:8px;';
+      
       const timeEl = document.createElement('span');
-      timeEl.style.cssText = 'color:var(--text-secondary);font-size:11px';
+      timeEl.style.cssText = 'color:var(--text-secondary, rgba(255,255,255,0.5)); font-size:11px;';
       timeEl.textContent = timeStr;
-      item.appendChild(nameEl);
-      item.appendChild(timeEl);
+      rightCol.appendChild(timeEl);
+      item.appendChild(rightCol);
+      
       listEl.appendChild(item);
-      // الاسم الحيّ بالأيدي: مفتاح عضو ← الملف الشخصي، واسم قديم ← حُلّه إلى أدي ثم اعرض اسمه الحالي
-      const applyLive = (p) => {
-        if (p && p.fullName && nameEl.isConnected) nameEl.textContent = p.fullName + (p.username ? ` (@${p.username})` : '');
-      };
-      if (isIdKey) {
-        loadAuthorProfile(vKey).then(applyLive).catch(() => {});
-      } else if (!isGuestLabel) {
-        resolveAuthorIdByName(vKey).then(id => (id ? loadAuthorProfile(id) : null)).then(applyLive).catch(() => {});
+      
+      // إمكانية النقر والانتقال للملف الشخصي للأعضاء المسجلين
+      if (!isGuest) {
+        let targetUserId = keyStr;
+        let targetName = nameEl.textContent;
+        
+        item.style.cursor = 'pointer';
+        item.title = 'انقر لفتح الملف الشخصي';
+        item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.08)'; };
+        item.onmouseleave = () => { item.style.background = 'rgba(255,255,255,0.03)'; };
+        
+        item.onclick = (ev) => {
+          ev.stopPropagation();
+          closeModal('viewers-modal');
+          if (typeof accOpenProfile === 'function') {
+            accOpenProfile(targetUserId, targetName);
+          }
+        };
+        
+        // دالة تطبيق البيانات الحية فور توفرها (حسابات عادية وتلكرام)
+        const applyProfile = (p) => {
+          if (!p || !nameEl.isConnected) return;
+          const fn = p.fullName || p.name || '';
+          if (fn) {
+            nameEl.textContent = fn;
+            targetName = fn;
+          }
+          const un = p.username || p.tgUsername || '';
+          if (un) {
+            subEl.textContent = '@' + un;
+            if (!subEl.parentNode) textCol.appendChild(subEl);
+          } else if (p.userId || p.tgId) {
+            subEl.textContent = '#' + (p.userId || p.tgId);
+            if (!subEl.parentNode) textCol.appendChild(subEl);
+          }
+          // شارة مستخدم تلكرام
+          if (p.authProvider === 'telegram' || p.tgId || /^\d{8,12}$/.test(keyStr)) {
+            if (!nameEl.querySelector('.tg-badge')) {
+              const tgBadge = document.createElement('span');
+              tgBadge.className = 'tg-badge';
+              tgBadge.style.cssText = 'display:inline-flex; align-items:center; gap:2px; padding:1px 6px; font-size:9.5px; border-radius:6px; background:rgba(0,136,204,0.18); color:#29b6f6; font-weight:normal; margin-right:6px; vertical-align:middle;';
+              tgBadge.innerHTML = '✈️ تلكرام';
+              nameEl.appendChild(tgBadge);
+            }
+          }
+          if (p.photoURL) {
+            avatarImg.src = p.photoURL;
+            avatarImg.onload = () => {
+              avatarImg.style.display = 'block';
+              avatarIcon.style.display = 'none';
+            };
+          }
+          targetUserId = p.userId || p.tgId || p._id || p.uid || targetUserId;
+          rememberIdName(targetUserId, un, fn, p.photoURL || '');
+        };
+        
+        // جلب الملف الشخصي بالمعرّف، أو حلّه بالاسم إن كان مفتاحاً قديماً
+        loadAuthorProfile(keyStr).then(p => {
+          if (p) {
+            applyProfile(p);
+          } else if (!isNumericId) {
+            resolveAuthorIdByName(keyStr)
+              .then(id => (id ? loadAuthorProfile(id) : null))
+              .then(applyProfile)
+              .catch(() => {});
+          }
+        }).catch(() => {});
       }
     });
   }
@@ -5708,10 +5880,33 @@ window.showReadByModal = function(e, readByJson) {
     listEl.innerHTML = '<div class="day-empty">لم يقرأها أحد بعد.</div>';
   } else {
     readBy.forEach(name => {
+      const kStr = String(name == null ? '' : name).trim();
+      const isGuest = /^زائر\s*\(/i.test(kStr) || kStr.toLowerCase() === 'guest' || (/^\d{4}$/.test(kStr) && !/^[1-9]\d{2}$/.test(kStr));
       const item = document.createElement('div');
-      item.className = 'notif-item'; // إعادة استخدام نفس التنسيق
-      item.innerHTML = `<span style="font-weight:bold">${sanitizeText(identityLabel(name))}</span>`; // يوزر/أيدي/اسم قديم
+      item.className = 'notif-item';
+      item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:8px 12px; margin-bottom:4px; border-radius:10px; background:rgba(255,255,255,0.03); cursor:' + (isGuest ? 'default' : 'pointer') + ';';
+      const nameEl = document.createElement('span');
+      nameEl.style.fontWeight = 'bold';
+      nameEl.textContent = sanitizeText(identityLabel(kStr));
+      item.appendChild(nameEl);
       listEl.appendChild(item);
+      
+      if (!isGuest) {
+        let tid = kStr, tname = nameEl.textContent;
+        item.onclick = () => {
+          closeModal('read-by-modal');
+          if (typeof accOpenProfile === 'function') accOpenProfile(tid, tname);
+        };
+        loadAuthorProfile(kStr).then(p => {
+          if (p && nameEl.isConnected) {
+            if (p.fullName) {
+              nameEl.textContent = p.fullName + (p.username ? ' (@' + p.username + ')' : '');
+              tname = p.fullName;
+            }
+            tid = p.userId || p._id || tid;
+          }
+        }).catch(() => {});
+      }
     });
   }
   openModal('read-by-modal');
@@ -6277,6 +6472,16 @@ async function tgMiniAppLogin() {
     const cred = await signInWithCustomToken(fireAuth, j.customToken);
     window.__signing = false;
     await loadProfileAndApply(j.username, cred.user.uid);
+    // حفظ صورة وبيانات تلكرام محلياً وتحديث المشاهدة كعضو حقيقي
+    if (j.photoURL) {
+      localStorage.setItem('accAvatar', j.photoURL);
+      if (currentUser) currentUser.icon = j.photoURL;
+    }
+    const tUserId = j.userId || cred.user.uid;
+    rememberIdName(tUserId, j.username, j.fullName, j.photoURL || '');
+    if (typeof openDayId !== 'undefined' && openDayId) {
+      incrementView(openDayId).catch(() => {});
+    }
     setTimeout(() => showToast('✅', 'مرحباً', j.created ? (j.fullName + ' — تم إنشاء حسابك من تلكرام') : j.fullName), 1500);
   } catch (e) {
     console.warn('Telegram login failed', e && (e.code || e.message));
@@ -9156,6 +9361,7 @@ async function accSaveUsername() {
 }
 // تسجيل الخروج (يُستخدم من الهيدر ومن صفحة الحساب)
 async function accDoLogout() {
+  try { await updateMyPresence(false, true); } catch (e) {}
   try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) sessionStorage.setItem('tgLoggedOut', '1'); } catch (e) {}
   clearSession();
   updateHeaderUI();
@@ -9509,7 +9715,7 @@ function renderReports() {
           ${r.body ? `<div class="report-body">${sanitizeText(r.body)}</div>` : ''}
           ${safeReportAttachments(r)}
           <div class="report-foot">
-            <span class="report-author">${reportAuthorHtml(r)}</span>
+            <span class="report-author" onclick="openReportAuthorProfile(event, '${encodeURIComponent(String(r.authorId || ''))}', '${encodeURIComponent(String(r.author || ''))}')" title="عرض الملف الشخصي">${reportAuthorHtml(r)}</span>
             <span class="report-foot-actions">
               <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" data-rc-coll="reports" style="display:none">0</span></button>
               ${(currentUser?.isAdmin || (userHasPerm(currentUser, 'report') && isOwnAuthor(r.authorId))) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
@@ -10377,6 +10583,36 @@ function loadPubAttachmentsForEdit(post) {
   }
 }
 
+// ── فتح الملف الشخصي لناشر البلاغ عند النقر على اسمه أو صورته ──
+window.openReportAuthorProfile = function(event, authorId, authorName) {
+  if (event && event.stopPropagation) event.stopPropagation();
+  let aid = String(decodeURIComponent(authorId || '')).trim();
+  const aname = String(decodeURIComponent(authorName || '')).trim();
+  
+  // إذا لم يكن المعرف مسجلاً بالبلاغ، نقرأ المعرف الحي الذي تم ترقيته في الـ DOM
+  if (!aid && event && event.currentTarget) {
+    const slot = event.currentTarget.querySelector('.avatar-slot');
+    if (slot && slot.dataset.authorId) aid = slot.dataset.authorId.trim();
+  }
+
+  if (aid) {
+    if (typeof accOpenProfile === 'function') accOpenProfile(aid, aname);
+  } else if (aname && aname !== 'الإدارة') {
+    if (typeof resolveAuthorIdByName === 'function') {
+      resolveAuthorIdByName(aname).then(id => {
+        if (id && typeof accOpenProfile === 'function') accOpenProfile(id, aname);
+        else if (typeof accOpenProfile === 'function') accOpenProfile(aname, aname);
+      }).catch(() => {
+        if (typeof accOpenProfile === 'function') accOpenProfile(aname, aname);
+      });
+    } else if (typeof accOpenProfile === 'function') {
+      accOpenProfile(aname, aname);
+    }
+  } else {
+    showToast('ℹ️', 'الملف الشخصي', 'لا يوجد ملف شخصي لهذا الناشر');
+  }
+};
+
 // ── صورة الملف الشخصي للمُنشئ (بديل كلمة «بواسطة») ──
 function reportAuthorHtml(r) {
   const name = sanitizeText(r.author || 'الإدارة');
@@ -10393,36 +10629,124 @@ function reportAuthorHtml(r) {
 }
 
 // ── شارة التوثيق: المالك (id=666) أو من تُمنحهم صلاحية «التوثيق» ──
-const _verifiedIds = new Set(); // معرّفات الموثّقين — تُبنى من users.perms.verify
+// تحميل فوري من الكاش المحلي حتى لا تختفي الشارة عند إعادة تحميل الصفحة أو انقطاع النت
+const _verifiedIds = new Set((function() {
+  try { return JSON.parse(localStorage.getItem('alfa_verified_ids') || '[]'); } catch (e) { return []; }
+})());
+
+function markUserAsVerified(id, username, fullName) {
+  if (id != null && id !== '') _verifiedIds.add(String(id));
+  if (username) _verifiedIds.add(String(username).toLowerCase());
+  if (fullName) _verifiedIds.add(String(fullName));
+  try { localStorage.setItem('alfa_verified_ids', JSON.stringify([..._verifiedIds])); } catch (e) {}
+  if (id) {
+    try {
+      const m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}');
+      if (m[id]) { m[id].v = 1; localStorage.setItem('alfa_id_names', JSON.stringify(m)); }
+    } catch (e) {}
+  }
+}
+
+function unmarkUserAsVerified(id, username, fullName) {
+  if (id != null && id !== '') _verifiedIds.delete(String(id));
+  if (username) _verifiedIds.delete(String(username).toLowerCase());
+  if (fullName) _verifiedIds.delete(String(fullName));
+  try { localStorage.setItem('alfa_verified_ids', JSON.stringify([..._verifiedIds])); } catch (e) {}
+  if (id) {
+    try {
+      const m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}');
+      if (m[id]) { delete m[id].v; localStorage.setItem('alfa_id_names', JSON.stringify(m)); }
+    } catch (e) {}
+  }
+}
+
+// حفظ قائمة الموثقين في مستند عام config/verified ليقرأها الجميع بدون قيود استعلام
+async function syncVerifiedConfigDoc() {
+  try {
+    const ids = [..._verifiedIds];
+    await setDoc(doc(db, 'config', 'verified'), { ids, updatedAt: Date.now() }, { merge: true });
+  } catch (e) {}
+}
+
 async function loadVerifiedIds() {
+  // 1) قراءة من مستند config/verified العام المتاح لجميع الزوار بدون قيود
+  try {
+    const cSnap = await getDoc(doc(db, 'config', 'verified'));
+    if (cSnap.exists() && Array.isArray(cSnap.data().ids)) {
+      cSnap.data().ids.forEach(id => { if (id) _verifiedIds.add(String(id)); });
+    }
+  } catch (e) {}
+
+  // 2) استعلام مباشر بحقل perms.verify في Firestore (لأصحاب الصلاحية)
   try {
     const snap = await getDocs(query(collection(db, 'users'), where('perms.verify', '==', true)));
-    const ids = [];
-    snap.forEach(d => { const u = d.data() || {}; if (u.userId != null && u.userId !== '') ids.push(String(u.userId)); });
-    _verifiedIds.clear();
-    ids.forEach(id => _verifiedIds.add(id));
-  } catch (e) { /* قواعد مانعة أو انقطاع — تبقى شارة المالك فقط */ }
+    snap.forEach(d => {
+      const u = d.data() || {};
+      if (u.userId != null && u.userId !== '') _verifiedIds.add(String(u.userId));
+      _verifiedIds.add(String(d.id));
+      if (u.username) _verifiedIds.add(String(u.username).toLowerCase());
+      if (u.fullName) _verifiedIds.add(String(u.fullName));
+    });
+  } catch (e) {}
+
+  // 3) استعلام عبر الـ Worker بصلاحيات Firebase Admin
+  if (typeof TG_WORKER_URL === 'string' && TG_WORKER_URL) {
+    try {
+      const wr = await fetch(TG_WORKER_URL + '/verified-users');
+      const wj = await wr.json().catch(() => ({}));
+      if (wr.ok && wj.ok && Array.isArray(wj.ids)) {
+        wj.ids.forEach(id => { if (id) _verifiedIds.add(String(id)); });
+      }
+    } catch (e) {}
+  }
+
+  // حفظ دائم في localStorage
+  try { localStorage.setItem('alfa_verified_ids', JSON.stringify([..._verifiedIds])); } catch (e) {}
 }
+
 function verifiedBadgeHTML(authorId, authorName) {
-  const id = (authorId != null && authorId !== '') ? String(authorId) : '';
-  if (id && (id === String(OWNER_USER_ID) || _verifiedIds.has(id))) {
+  const id = (authorId != null && authorId !== '') ? String(authorId).trim() : '';
+  const name = String(authorName == null ? '' : authorName).trim();
+  
+  // 1) المالك (666 أو baqer) موثق دائماً
+  if (id === String(OWNER_USER_ID) || id === AUTH_OWNER || name === AUTH_OWNER) {
     return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
   }
-  // توافق مع منشورات/رسائل قديمة كُتبت قبل وجود الأيدي (المالك باليوزر baqer أو باسمه الكامل)
   const ownerName = getOwnerFullName();
-  if (id === AUTH_OWNER || String(authorName == null ? '' : authorName) === AUTH_OWNER) {
+  if (ownerName && name === ownerName) {
     return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
   }
-  if (ownerName && String(authorName == null ? '' : authorName) === ownerName) {
-    return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
-  }
-  // توافق مع الحساب الحالي المُسجل دخولاً (المالك) حتى لو يُنشر باسمه الحي
   try {
     const cur = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : {};
     if (id && id === String(cur.userId || cur._id || '') && amIsOwner()) {
       return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
     }
   } catch (e) {}
+
+  // 2) فحص معرف المستخدم (userId أو docId)
+  if (id && _verifiedIds.has(id)) {
+    return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+  }
+  // 3) فحص اسم المستخدم (اليوزر)
+  if (id && _verifiedIds.has(id.toLowerCase())) {
+    return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+  }
+  // 4) فحص الاسم الكامل
+  if (name && _verifiedIds.has(name)) {
+    return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+  }
+
+  // 5) فحص الكاش المحلي alfa_id_names
+  if (id) {
+    try {
+      const m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}');
+      if (m[id] && m[id].v) {
+        _verifiedIds.add(id);
+        return '<span class="verified-badge" title="حساب موثّق" aria-label="موثّق"></span>';
+      }
+    } catch (e) {}
+  }
+
   return '';
 }
 
@@ -10452,10 +10776,10 @@ const _authorProfileCache = new Map(); // key → { t, p: Promise<profile|null> 
 let _usersPhotoMap = null;             // الاسم الكامل → رابط الصورة (قراءة دفعة واحدة)
 const _pollVoterProfileCache = new Map(); // مفتاح المصوت → { photo, name } — كاش صور/أسماء المصوتين في الاستفتاء (متزامن أثناء الرسم)
 
-// جلب ملف حيّ بأي مفتاح هوية (أيدي/يوزر/يوزر سابق) — يبقى نفس الشخص مهما تغيّر اسمه
+// جلب ملف حيّ بأي مفتاح هوية (أيدي/يوزر/يوزر سابق/UID) — يبقى نفس الشخص مهما تغيّر اسمه
 async function _fetchAuthorProfile(key) {
   try {
-    const k = String(key == null ? '' : key);
+    const k = String(key == null ? '' : key).trim();
     if (!k) return null;
     let data = null, id = '';
     try {
@@ -10464,12 +10788,71 @@ async function _fetchAuthorProfile(key) {
     } catch (e) {}
     if (!data) {
       // مرجع قديم بصيغة يوزر (بعد ترحيل المستند إلى مسار المعرّف الرقمي)
-      const q = await getDocs(query(collection(db, 'users'), where('username', '==', k.toLowerCase()), limit(1)));
-      if (!q.empty) { data = q.docs[0].data(); id = q.docs[0].id; }
+      try {
+        const q = await getDocs(query(collection(db, 'users'), where('username', '==', k.toLowerCase()), limit(1)));
+        if (!q.empty) { data = q.docs[0].data(); id = q.docs[0].id; }
+      } catch (e) {}
+    }
+    // معرّف رقمي بحقل userId إذا كان اسم المستند uid أو مختلفاً
+    if (!data && /^\d+$/.test(k)) {
+      try {
+        const q1 = await getDocs(query(collection(db, 'users'), where('userId', '==', Number(k)), limit(1)));
+        if (!q1.empty) { data = q1.docs[0].data(); id = q1.docs[0].id; }
+      } catch (e) {}
+      if (!data) {
+        try {
+          const q2 = await getDocs(query(collection(db, 'users'), where('userId', '==', k), limit(1)));
+          if (!q2.empty) { data = q2.docs[0].data(); id = q2.docs[0].id; }
+        } catch (e) {}
+      }
+      // فحص حقل tgId لمستخدمي التلكرام
+      if (!data) {
+        try {
+          const qtg1 = await getDocs(query(collection(db, 'users'), where('tgId', '==', Number(k)), limit(1)));
+          if (!qtg1.empty) { data = qtg1.docs[0].data(); id = qtg1.docs[0].id; }
+        } catch (e) {}
+      }
+      if (!data) {
+        try {
+          const qtg2 = await getDocs(query(collection(db, 'users'), where('tgId', '==', k), limit(1)));
+          if (!qtg2.empty) { data = qtg2.docs[0].data(); id = qtg2.docs[0].id; }
+        } catch (e) {}
+      }
+    }
+    // فحص حقل tgUsername لمستخدمي تلكرام
+    if (!data && k.length > 2) {
+      const cleanU = k.replace(/^@/, '').toLowerCase();
+      try {
+        const qtgU = await getDocs(query(collection(db, 'users'), where('tgUsername', '==', cleanU), limit(1)));
+        if (!qtgU.empty) { data = qtgU.docs[0].data(); id = qtgU.docs[0].id; }
+      } catch (e) {}
+    }
+    // معرّف حساب Firebase Auth UID
+    if (!data && k.length >= 20) {
+      try {
+        const qUid = await getDocs(query(collection(db, 'users'), where('uid', '==', k), limit(1)));
+        if (!qUid.empty) { data = qUid.docs[0].data(); id = qUid.docs[0].id; }
+      } catch (e) {}
+    }
+    // مسار احتياطي عبر Worker (يضمن جلب بيانات وصور مسجلي تلكرام بصلاحية Admin ومباشرة من API تلكرام)
+    if (!data && typeof TG_WORKER_URL === 'string' && TG_WORKER_URL) {
+      try {
+        const r = await fetch(TG_WORKER_URL + '/user-profile?id=' + encodeURIComponent(k));
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.ok && j.user) {
+          data = j.user;
+          id = String(j.user.userId || k);
+        }
+      } catch (e) {}
     }
     if (!data) return null;
     const p = Object.assign({}, data, { _id: id });
-    if (p.userId && p.username) rememberIdName(p.userId, p.username, p.fullName || '');
+    const pId = p.userId || p.tgId || id;
+    const pUser = p.username || p.tgUsername || '';
+    const pName = p.fullName || '';
+    const pPhoto = p.photoURL || '';
+    if (pId && (pUser || pName)) rememberIdName(pId, pUser, pName, pPhoto);
+    if (p.perms && p.perms.verify) markUserAsVerified(pId, pUser, pName);
     return p;
   } catch (e) { return null; }
 }
@@ -10593,6 +10976,18 @@ function enhanceAuthorNames(root = document) {
         const pid = String(p.userId || p._id || el.dataset.authorId || '');
         const holder = el.parentElement;
         if (!holder) return;
+        // تحديث صورة المؤلف في .avatar-slot إن توفرت
+        if (p.photoURL) {
+          let img = el.querySelector('.avatar-photo');
+          if (!img) {
+            img = document.createElement('img');
+            img.className = 'avatar-photo';
+            img.loading = 'lazy';
+            img.onerror = function() { this.remove(); };
+            el.appendChild(img);
+          }
+          if (img.src !== p.photoURL) img.src = p.photoURL;
+        }
         const rn = holder.querySelector('.report-author-text');
         if (rn && rn.textContent !== p.fullName) rn.textContent = p.fullName;
         // مزامنة شارة التوثيق/الدكتور بجانب اسم كاتب البلاغ مع الاسم الحيّ
@@ -10871,11 +11266,19 @@ function typingIdentityKey() {
   } catch (e) { return 'guest'; }
 }
 // اسم قابل للعرض لمفتاح هوية: معرّف الزائر/العضو أو اليوزر أو الاسم القديم
+// اسم قابل للعرض لمفتاح هوية: معرّف الزائر/العضو أو اليوزر أو الاسم القديم
 function identityLabel(key) {
-  const k = String(key == null ? '' : key);
+  const k = String(key == null ? '' : key).trim();
   if (!k) return '';
-  if (/^\d{4}$/.test(k)) return 'زائر ' + k;
-  if (/^\d{3,6}$/.test(k)) { // معرّف عضو ثابت (يشمل معرّف المالك 666)
+  if (/^زائر\s*\(/i.test(k)) return k;
+  if (/^\d{4}$/.test(k)) {
+    let m = {};
+    try { m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}'); } catch (e) { m = {}; }
+    const entry = m[k];
+    if (entry && (entry.n || entry.u)) return entry.n || entry.u;
+    return 'زائر ' + k;
+  }
+  if (/^\d{3,15}$/.test(k)) { // معرّف عضو ثابت (يشمل معرّف المالك 666 وتلكرام 9-10 أرقام)
     let m = {};
     try { m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}'); } catch (e) { m = {}; }
     const entry = m[k];
@@ -10885,21 +11288,22 @@ function identityLabel(key) {
   }
   return k; // يوزر أو اسم كامل (بيانات قديمة) — يُعرض كما هو
 }
-// حفظ ربط (أيدي ← يوزر + اسم كامل) لعرض الأسماء/اليوزرات القديمة بصيغة مفهومة
-function rememberIdName(id, username, fullName) {
+// حفظ ربط (أيدي ← يوزر + اسم كامل + صورة) لعرض الأسماء والصور فوراً
+function rememberIdName(id, username, fullName, photoURL) {
   try {
     const i = String(id == null ? '' : id).trim();
-    if (!/^\d{3,6}$/.test(i)) return;
+    if (!/^\d{3,15}$/.test(i)) return;
     const u = String(username == null ? '' : username).trim();
     const n = String(fullName == null ? '' : fullName).trim();
-    if (!u && !n) return;
+    const p = String(photoURL == null ? '' : photoURL).trim();
+    if (!u && !n && !p) return;
     const m = JSON.parse(localStorage.getItem('alfa_id_names') || '{}');
     const cur = m[i] || {};
-    if (cur.u === u && cur.n === n) return;
-    m[i] = { u: u || cur.u || '', n: n || cur.n || '' };
-    // حجم معقول: نحتفظ بآخر 300 حساب فقط
+    if (cur.u === u && cur.n === n && (cur.p === p || !p)) return;
+    m[i] = { u: u || cur.u || '', n: n || cur.n || '', p: p || cur.p || '' };
+    // حجم معقول: نحتفظ بآخر 500 حساب
     const ks = Object.keys(m);
-    if (ks.length > 300) ks.slice(0, ks.length - 300).forEach(k => { if (k !== i) delete m[k]; });
+    if (ks.length > 500) ks.slice(0, ks.length - 500).forEach(k => { if (k !== i) delete m[k]; });
     localStorage.setItem('alfa_id_names', JSON.stringify(m));
   } catch (e) {}
 }
@@ -10972,7 +11376,7 @@ function pollVoterLabel(key) {
   const live = _pollVoterProfileCache.get(k);                             // الاسم الحيّ من الملف الشخصي (يُحمَّل أدناه)
   if (live && live.name) return sanitizeText(live.name);
   if (/^\d{4}$/.test(k)) return `زائر ${sanitizeText(k)}`;                 // معرّف زائر (4 أرقام)
-  if (/^\d{3,6}$/.test(k)) return sanitizeText(identityLabel(k));          // معرّف عضو ثابت (الأيدي)
+  if (/^\d{3,15}$/.test(k)) return sanitizeText(identityLabel(k));          // معرّف عضو ثابت (الأيدي)
   if (/^[a-z0-9._\-]{3,30}$/.test(k)) return sanitizeText(k);            // يوزر (بيانات قديمة) — بدون @
   return sanitizeText(k);                                                  // اسم كامل (بيانات قديمة)
 }
@@ -11466,7 +11870,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
       showToast('✅', 'تم التعديل', 'حُدِّث البلاغ لجميع المستخدمين فوراً');
     } else {
       // نشر بلاغ جديد
-      const newReportRef = await addDoc(collection(db, 'reports'), {
+      await addDoc(collection(db, 'reports'), {
         type, title, body,
         images: imageUrls,
         files: fileItems,
@@ -11478,7 +11882,6 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
         authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
         createdAt: Date.now()
       });
-      tgSync('/publish', newReportRef.id, 'report'); // إرسال البلاغ لتلكرام (القناة + المشتركين)
       pubProgressDone(); // العدّاد يبلغ 100
       setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
       showToast('✅', 'تم النشر', 'ظهر البلاغ لجميع المستخدمين فوراً');
@@ -11505,7 +11908,6 @@ window.deleteReport = async function(id) {
   if (!okDel) return;
   try {
     await deleteDoc(doc(db, 'reports', id));
-    tgSync('/delete', String(id), 'report'); // حذف البلاغ من تلكرام أيضاً
     showToast('🗑️', 'حذف', 'تم حذف البلاغ');
   } catch (e) {
     showToast('❌', 'خطأ', 'فشل حذف البلاغ');
@@ -11666,15 +12068,176 @@ function amSyncOwnerUI() {
   if (b) b.style.display = (amIsOwner() || selfCan('support')) ? 'flex' : 'none';
   if (!amIsOwner() && !selfCan('support')) haClose();
 }
-// تسجيل «آخر نشاط» للحساب الحالي — مرة كل ٣٠ دقيقة كحد أقصى (يُستخدم لعدّ الأعضاء النشطين)
+// ═══════════════ نظام التواجد والنشاط المباشر (متصل الآن / آخر ظهور) ═══════════════
+function getMyUserDocId() {
+  if (accProfile && accProfile._id) return String(accProfile._id);
+  const uid = localStorage.getItem('userId') || (currentUser && currentUser.userId);
+  if (uid) return String(uid);
+  const docId = localStorage.getItem('alfa_doc_id');
+  if (docId) return String(docId);
+  const uname = (currentUser && (currentUser.code || currentUser.name)) || localStorage.getItem('username');
+  return uname ? String(uname) : '';
+}
+
+let _presenceTimer = null;
+let _presenceInterval = null;
+let _lastPresenceUpdate = 0;
+let _presenceInited = false;
+
+// إرسال نبض حالة الاتصال للمستخدم الحالي إلى Firestore
+async function updateMyPresence(online = true, force = false) {
+  try {
+    const docId = getMyUserDocId();
+    if (!docId) return;
+    const now = Date.now();
+    if (!force && online && (now - _lastPresenceUpdate < 30 * 1000)) return;
+    _lastPresenceUpdate = now;
+    const payload = {
+      isOnline: !!online,
+      lastActiveAt: new Date()
+    };
+    try {
+      await updateDoc(doc(db, 'users', String(docId)), payload);
+    } catch (err) {
+      try {
+        await setDoc(doc(db, 'users', String(docId)), payload, { merge: true });
+      } catch (e) {}
+    }
+  } catch (e) {}
+}
+
+// صياغة آخر ظهور بدقة وجمالية بالعربية
+function formatLastSeen(v) {
+  const ms = amMs(v);
+  if (!ms) return 'غير متصل';
+  const diffSec = Math.max(1, Math.floor((Date.now() - ms) / 1000));
+  if (diffSec < 45) return 'منذ لحظات';
+  const m = Math.floor(diffSec / 60);
+  if (m < 60) {
+    if (m === 1) return 'منذ دقيقة';
+    if (m === 2) return 'منذ دقيقتين';
+    if (m >= 3 && m <= 10) return 'منذ ' + m + ' دقائق';
+    return 'منذ ' + m + ' دقيقة';
+  }
+  const h = Math.floor(m / 60);
+  if (h < 24) {
+    if (h === 1) return 'منذ ساعة';
+    if (h === 2) return 'منذ ساعتين';
+    if (h >= 3 && h <= 10) return 'منذ ' + h + ' ساعات';
+    return 'منذ ' + h + ' ساعة';
+  }
+  const d = Math.floor(h / 24);
+  const dateObj = new Date(ms);
+  const timeStr = dateObj.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+  if (d === 1) return 'أمس الساعة ' + timeStr;
+  if (d === 2) return 'منذ يومين';
+  if (d >= 3 && d <= 10) return 'منذ ' + d + ' أيام';
+  if (d < 30) return 'منذ ' + d + ' يوماً';
+  const mo = Math.floor(d / 30);
+  if (mo === 1) return 'منذ شهر';
+  if (mo === 2) return 'منذ شهرين';
+  if (mo <= 10) return 'منذ ' + mo + ' أشهر';
+  if (mo < 12) return 'منذ ' + mo + ' شهراً';
+  const y = Math.floor(mo / 12);
+  if (y === 1) return 'منذ سنة';
+  if (y === 2) return 'منذ سنتين';
+  return 'منذ ' + y + ' سنوات';
+}
+
+// هل هذا العضو متصل الآن في الفاكلاس؟
+function isUserOnline(u) {
+  if (!u) return false;
+  const myDocId = getMyUserDocId();
+  const uId = String(u._id || u.userId || '');
+  if (myDocId && (uId === myDocId || String(u.userId || '') === String(currentUser?.userId || ''))) {
+    return document.visibilityState === 'visible';
+  }
+  if (u.isOnline === false) return false;
+  const ms = amMs(u.lastActiveAt);
+  if (!ms) return false;
+  const diffSec = (Date.now() - ms) / 1000;
+  return diffSec <= 100;
+}
+
+// تهيئة مراقبة التواجد والنبض الدوري
+function initPresenceTracking() {
+  if (_presenceInited) return;
+  _presenceInited = true;
+
+  if (getMyUserDocId()) {
+    updateMyPresence(true, true);
+  }
+
+  // نبض دوري كل 45 ثانية طالما الصفحة مرئية
+  if (_presenceTimer) clearInterval(_presenceTimer);
+  _presenceTimer = setInterval(() => {
+    if (document.visibilityState === 'visible' && getMyUserDocId()) {
+      updateMyPresence(true);
+    }
+  }, 45 * 1000);
+
+  // تحديث فوري عند مغادرة الصفحة أو العودة إليها
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      updateMyPresence(false, true);
+    } else if (document.visibilityState === 'visible') {
+      updateMyPresence(true, true);
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    updateMyPresence(false, true);
+  });
+  window.addEventListener('beforeunload', () => {
+    updateMyPresence(false, true);
+  });
+
+  // تحديث النشاط عند التفاعل (لمس، نقر، كتابة)
+  const onActivity = () => {
+    if (document.visibilityState === 'visible' && getMyUserDocId()) {
+      if (Date.now() - _lastPresenceUpdate >= 30 * 1000) {
+        updateMyPresence(true);
+      }
+    }
+  };
+  ['pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+    window.addEventListener(evt, onActivity, { passive: true });
+  });
+
+  // تحديث مرئي مستمر للقوائم المفتوحة (إدارة الأعضاء ودعم الطلاب) كل 20 ثانية
+  if (_presenceInterval) clearInterval(_presenceInterval);
+  _presenceInterval = setInterval(() => {
+    try {
+      const amModal = document.getElementById('am-modal');
+      const amView = document.getElementById('am-list-view');
+      if (amModal && amModal.classList.contains('open') && amView && amView.style.display !== 'none' && amUsers.length) {
+        amRenderList();
+      }
+      const saModal = document.getElementById('support-admin-modal');
+      const saView = document.getElementById('sa-list-view');
+      if (saModal && saModal.classList.contains('open') && saView && saView.style.display !== 'none' && amUsers.length) {
+        saRenderList();
+      }
+      const saChatView = document.getElementById('sa-chat-view');
+      if (saModal && saModal.classList.contains('open') && saChatView && saChatView.style.display !== 'none' && saCurrent && saCurrent.u) {
+        const u = saCurrent.u;
+        const subEl = document.getElementById('sa-chat-sub');
+        if (subEl) {
+          const online = isUserOnline(u);
+          subEl.innerHTML = online
+            ? '<span style="color:#10b981;font-weight:700"><span class="am-status-dot pulse"></span> متصل الآن بالفاكلاس</span> · @' + amEsc(u.username || saCurrent.id)
+            : 'آخر ظهور: ' + formatLastSeen(u.lastActiveAt) + ' · @' + amEsc(u.username || saCurrent.id);
+        }
+      }
+    } catch (e) {}
+  }, 20 * 1000);
+}
+
+// تسجيل نشاط المستخدم الفوري وتحديث الحضور
 function touchActiveMember(docId) {
   try {
-    if (!docId) return;
-    const last = Number(localStorage.getItem('alfa_active_sync') || 0);
-    if (Date.now() - last < 30 * 60 * 1000) return;
-    localStorage.setItem('alfa_active_sync', String(Date.now()));
-    // updateDoc بدل setDoc(merge): لا تُنشئ مستنداً ناقصاً لو كان الملف قد حُذف — آخر نشاط للحسابات الحقيقية فقط
-    updateDoc(doc(db, 'users', String(docId)), { lastActiveAt: new Date() }).catch(() => {});
+    if (docId) localStorage.setItem('alfa_doc_id', String(docId));
+    updateMyPresence(true, true);
   } catch (e) {}
 }
 // تحويل أي صيغة تاريخ (Date / Firestore Timestamp / رقم) إلى ملّي ثانية
@@ -11764,19 +12327,23 @@ function haClose() {
 }
 window.haClose = haClose;
 async function haLoadStats() {
-  const t = document.getElementById('ha-total'), a = document.getElementById('ha-active'), at = document.getElementById('ha-at');
+  const t = document.getElementById('ha-total'), a = document.getElementById('ha-active'), o = document.getElementById('ha-online'), at = document.getElementById('ha-at');
   if (t) t.textContent = '…';
   if (a) a.textContent = '…';
+  if (o) o.textContent = '…';
   try {
     await amFetchUsers(true);
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const active = amUsers.filter(u => { const ms = amMs(u.lastActiveAt); return ms && ms >= weekAgo; }).length;
+    const online = amUsers.filter(isUserOnline).length;
     if (t) t.textContent = amUsers.length;
     if (a) a.textContent = active;
+    if (o) o.textContent = online;
     if (at) at.textContent = new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
   } catch (e) {
     if (t) t.textContent = '—';
     if (a) a.textContent = '—';
+    if (o) o.textContent = '—';
     showToast('⚠️', 'إدارة الأعضاء', (e && e.code === 'permission-denied') ? 'قواعد Firestore تمنع قراءة قائمة الأعضاء' : 'تعذّر جلب الإحصاءات');
   }
 }
@@ -11808,26 +12375,46 @@ function amRenderList() {
   const q = String((qEl && qEl.value) || '').trim().toLowerCase();
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const activeCount = amUsers.filter(u => { const ms = amMs(u.lastActiveAt); return ms && ms >= weekAgo; }).length;
-  const ct = document.getElementById('am-count-total'), ca = document.getElementById('am-count-active');
+  const onlineCount = amUsers.filter(isUserOnline).length;
+  const ct = document.getElementById('am-count-total'),
+        ca = document.getElementById('am-count-active'),
+        co = document.getElementById('am-count-online');
   if (ct) ct.textContent = amUsers.length;
   if (ca) ca.textContent = activeCount;
+  if (co) co.textContent = onlineCount;
   const list = amUsers
     .filter(u => !q || String(u.fullName || '').toLowerCase().includes(q) || String(u.username || '').toLowerCase().includes(q) || String(u.userId || '').includes(q))
-    .sort((x, y) => amMs(y.createdAt) - amMs(x.createdAt));
+    .sort((x, y) => {
+      const ox = isUserOnline(x) ? 1 : 0;
+      const oy = isUserOnline(y) ? 1 : 0;
+      if (ox !== oy) return oy - ox; // المتصلون أولاً
+      const tx = amMs(x.lastActiveAt) || amMs(x.createdAt);
+      const ty = amMs(y.lastActiveAt) || amMs(y.createdAt);
+      return ty - tx;
+    });
   if (!list.length) { box.innerHTML = '<div class="am-empty">لا يوجد أعضاء مطابقون</div>'; return; }
   box.innerHTML = list.map(u => {
     const letter = amEsc(String(u.fullName || u.username || '؟').trim().charAt(0) || '؟');
     const photo = u.photoURL ? '<img src="' + amEsc(u.photoURL) + '" alt="" loading="lazy" onerror="this.remove()">' : '';
-    const isActive = amMs(u.lastActiveAt) >= weekAgo;
+    const online = isUserOnline(u);
     const idAttr = encodeURIComponent(String(u._id));
+    const statusPill = online
+      ? '<span class="am-status-pill online"><span class="am-status-dot pulse"></span>نشط الآن</span>'
+      : '<span class="am-status-pill offline">آخر ظهور: ' + formatLastSeen(u.lastActiveAt) + '</span>';
     return '<div class="am-row" onclick="amEdit(decodeURIComponent(\'' + idAttr + '\'))">' +
-      '<span class="am-avatar"><i>' + letter + '</i>' + photo + '</span>' +
+      '<div class="am-avatar-wrap">' +
+        '<span class="am-avatar"><i>' + letter + '</i>' + photo + '</span>' +
+        (online ? '<span class="am-avatar-dot pulse" title="متصل الآن"></span>' : '') +
+      '</div>' +
       '<div class="am-info">' +
         '<b>' + amEsc(u.fullName || 'بدون اسم') + '</b>' +
         (u.username
           ? '<span dir="ltr">@' + amEsc(u.username) + '</span>'
           : '<span class="am-nouser" dir="ltr">⚠ بلا يوزر — @' + amEsc(u._id) + ' (اضغط للإصلاح)</span>') +
-        '<small>' + amRoleLabel(u.role) + ' · انضم ' + amFmtDate(u.createdAt) + (isActive ? ' · <em class="am-on">نشط</em>' : '') + '</small>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;">' +
+          '<small>' + amRoleLabel(u.role) + '</small>' +
+          statusPill +
+        '</div>' +
       '</div>' +
       '<div class="am-id" dir="ltr">#' + amEsc(String(u.userId == null ? '—' : u.userId)) + '</div>' +
       '<span class="am-go">✏️</span>' +
@@ -11878,8 +12465,12 @@ window.amEdit = function (id) {
   const phFile = document.getElementById('am-photo-file');
   if (phFile) phFile.value = '';
   const meta = document.getElementById('am-meta');
+  const online = isUserOnline(u);
   if (meta) meta.innerHTML = 'المعرّف: <b dir="ltr">#' + amEsc(String(u.userId == null ? '—' : u.userId)) + '</b> · البريد: <b dir="ltr">' + amEsc(u.emailPrefix || '—') + '</b><br>' +
-    'انضم: <b>' + amFmtDate(u.createdAt) + '</b> · آخر نشاط: <b>' + amFmtDate(u.lastActiveAt) + '</b>';
+    'الحالة: ' + (online
+      ? '<b style="color:#10b981"><span class="am-status-dot pulse"></span> متصل الآن بالفاكلاس</b>'
+      : '<b>آخر ظهور: ' + formatLastSeen(u.lastActiveAt) + '</b>') + '<br>' +
+    'انضم: <b>' + amFmtDate(u.createdAt) + '</b>';
   const err = document.getElementById('am-err');
   if (err) { err.textContent = ''; err.style.display = 'none'; }
   const lv = document.getElementById('am-list-view'), ev = document.getElementById('am-edit-view');
@@ -11911,20 +12502,7 @@ let amDelArmed = false, amDelTimer = null; // زر حذف العضو: ضغطة �
 
 // «منذ كذا» بالعربية — تُستخدم لآخر دخول كل عضو
 function supTimeAgo(v) {
-  const ms = amMs(v);
-  if (!ms) return 'غير معروف';
-  const s = Math.max(1, Math.floor((Date.now() - ms) / 1000));
-  if (s < 60) return 'الآن';
-  const pick = (n, one, two, few, many) => n === 1 ? one : n === 2 ? two : (n >= 3 && n <= 10) ? few.replace('%', n) : many.replace('%', n);
-  const m = Math.floor(s / 60);
-  if (m < 60) return 'منذ ' + pick(m, 'دقيقة', 'دقيقتين', '% دقائق', '% دقيقة');
-  const h = Math.floor(m / 60);
-  if (h < 24) return 'منذ ' + pick(h, 'ساعة', 'ساعتين', '% ساعات', '% ساعة');
-  const d = Math.floor(h / 24);
-  if (d < 30) return 'منذ ' + pick(d, 'يوم', 'يومين', '% أيام', '% يوم');
-  const mo = Math.floor(d / 30);
-  if (mo < 12) return 'منذ ' + pick(mo, 'شهر', 'شهرين', '% أشهر', '% شهر');
-  return 'منذ ' + pick(Math.floor(mo / 12), 'سنة', 'سنتين', '% سنوات', '% سنة');
+  return formatLastSeen(v);
 }
 // إشعارات الدعم داخل خانة الإشعارات (نفس نظام الإشعارات الحالي: id مميّز + عدّاد غير المقروء)
 function supportNotifUpsert(chatId, text, time) {
@@ -12212,10 +12790,11 @@ function saRenderList() {
   if (!list) return;
   const rows = amUsers.map(u => {
     const c = saChats.get(String(u._id)) || null;
-    return { u, c, unread: c ? (Number(c.adminUnread) || 0) : 0 };
+    return { u, c, unread: c ? (Number(c.adminUnread) || 0) : 0, online: isUserOnline(u) };
   });
   rows.sort((a, b) => {
     if (a.unread !== b.unread) return b.unread - a.unread;        // رسائل غير مقروءة أولاً
+    if (a.online !== b.online) return (b.online ? 1 : 0) - (a.online ? 1 : 0); // المتصلون بالفاكلاس أولاً
     const ta = a.c ? amMs(a.c.lastAt) : 0, tb = b.c ? amMs(b.c.lastAt) : 0;
     if (ta !== tb) return tb - ta;                                 // آخر رسالة أولاً
     return amMs(b.u.lastActiveAt) - amMs(a.u.lastActiveAt);        // ثم آخر دخول
@@ -12223,15 +12802,25 @@ function saRenderList() {
   if (!rows.length) { list.innerHTML = '<div class="am-empty">لا يوجد أعضاء</div>'; return; }
   list.innerHTML = rows.map(r => {
     const u = r.u;
+    const online = r.online;
     const letter = amEsc(String(u.fullName || u.username || '؟').trim().charAt(0) || '؟');
     const photo = u.photoURL ? '<img src="' + amEsc(u.photoURL) + '" alt="" loading="lazy" onerror="this.remove()">' : '';
     const preview = r.c && r.c.lastText ? '<small>' + (r.c.lastFrom === 'admin' ? 'أنت: ' : '') + amEsc(String(r.c.lastText).slice(0, 42)) + '</small>' : '';
     const badge = r.unread ? '<span class="sa-badge">' + (r.unread > 9 ? '9+' : r.unread) + '</span>' : '';
+    const statusPill = online
+      ? '<span class="am-status-pill online"><span class="am-status-dot pulse"></span>متصل الآن بالفاكلاس</span>'
+      : '<span class="am-status-pill offline">آخر ظهور: ' + formatLastSeen(u.lastActiveAt) + '</span>';
     return '<div class="am-row" onclick="saOpenChat(decodeURIComponent(\'' + encodeURIComponent(String(u._id)) + '\'))">' +
-      '<span class="am-avatar"><i>' + letter + '</i>' + photo + '</span>' +
+      '<div class="am-avatar-wrap">' +
+        '<span class="am-avatar"><i>' + letter + '</i>' + photo + '</span>' +
+        (online ? '<span class="am-avatar-dot pulse" title="متصل الآن"></span>' : '') +
+      '</div>' +
       '<div class="am-info">' +
         '<b>' + amEsc(u.fullName || 'بدون اسم') + '</b>' +
-        '<small>آخر دخول: ' + supTimeAgo(u.lastActiveAt) + ' · <span dir="ltr">@' + amEsc(u.username || u._id) + '</span></small>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0;">' +
+          statusPill +
+          '<span dir="ltr" style="font-size:11px;color:var(--text-muted)">@' + amEsc(u.username || u._id) + '</span>' +
+        '</div>' +
         preview +
       '</div>' + badge + '<span class="am-go">💬</span></div>';
   }).join('');
@@ -12259,9 +12848,14 @@ window.saOpenChat = function (id) {
   const u = amUsers.find(x => String(x._id) === chatId);
   if (!u) return;
   saCurrent = { id: chatId, u };
+  const online = isUserOnline(u);
   const nameEl = document.getElementById('sa-chat-name'), subEl = document.getElementById('sa-chat-sub');
   if (nameEl) nameEl.textContent = u.fullName || u.username || 'عضو';
-  if (subEl) subEl.textContent = 'آخر دخول: ' + supTimeAgo(u.lastActiveAt) + ' · @' + (u.username || chatId);
+  if (subEl) {
+    subEl.innerHTML = online
+      ? '<span style="color:#10b981;font-weight:700"><span class="am-status-dot pulse"></span> متصل الآن بالفاكلاس</span> · @' + amEsc(u.username || chatId)
+      : 'آخر ظهور: ' + formatLastSeen(u.lastActiveAt) + ' · @' + amEsc(u.username || chatId);
+  }
   const msgs = document.getElementById('sa-msgs');
   if (msgs) msgs.innerHTML = '<div class="am-empty">جارٍ التحميل…</div>';
   const inp = document.getElementById('sa-input'); if (inp) inp.value = '';
@@ -12592,6 +13186,13 @@ window.amSaveUser = async function () {
       updates.takenUsernames = arrayUnion.apply(null, hist);
     }
     await setDoc(doc(db, 'users', String(u._id)), updates, { merge: true });
+    // تحديث ومزامنة حالة التوثيق فورياً محلياً وفي السحاب
+    if (perms.verify) {
+      markUserAsVerified(u.userId || u._id, user, name);
+    } else {
+      unmarkUserAsVerified(u.userId || u._id, user, name);
+    }
+    syncVerifiedConfigDoc();
     invalidateAuthorProfiles(); // أي تعديل (اسم/يوزر) يُبطل كاش الأسماء الحية
     if (amPhotoChanged) { invalidateAuthorPhotos(u._id); setTimeout(refreshAllAuthorAvatars, 400); } // تحديث فوري لكل الصور المعروضة
     else { setTimeout(() => { try { enhanceAuthorNames(document); } catch (e) {} }, 400); }
@@ -14374,13 +14975,12 @@ function init() {
   // Hide loading screen (التطبيق عمل بنجاح، لذا نلغي شبكة الأمان)
   clearTimeout(window.__loadingWatchdog);
   setTimeout(() => {
-    // داخل تلكرام ننتظر اكتمال الدخول التلقائي (حد أقصى 12 ثانية) قبل إخفاء شاشة التحميل
-    const hide = () => { if (window.__hideLoadingScreen) window.__hideLoadingScreen(); };
-    if (window.__tgLoginPromise) Promise.race([window.__tgLoginPromise, new Promise(r => setTimeout(r, 12000))]).then(hide, hide);
-    else hide();
+    if (window.__hideLoadingScreen) window.__hideLoadingScreen();
   }, 1200);
 
   loadSession();
+  loadVerifiedIds(); // تحميل وتحديث شارات التوثيق فور إقلاع التطبيق
+  initPresenceTracking(); // تشغيل تتبع حالة الحضور والاتصال (نشط الآن / آخر ظهور)
   
   document.getElementById('publish-box').addEventListener('input', saveDraft);
   document.getElementById('publish-box').addEventListener('change', saveDraft);

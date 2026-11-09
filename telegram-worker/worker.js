@@ -36,6 +36,8 @@ export default {
       if (url.pathname === '/webhook'  && req.method === 'POST') return await webhook(req, env);
       if (url.pathname === '/register' && req.method === 'GET')  return await register(url, env);
       if (url.pathname === '/tg-auth'  && req.method === 'POST') return reply(await tgAuth(req, env), 200, cors);
+      if (url.pathname === '/user-profile' && req.method === 'GET') return reply(await getUserProfile(url, env), 200, cors);
+      if (url.pathname === '/verified-users' && req.method === 'GET') return reply(await getVerifiedUsers(env), 200, cors);
       if (url.pathname === '/publish'  && req.method === 'POST') return reply(await publish(req, env), 200, cors);
       if (url.pathname === '/delete'   && req.method === 'POST') return reply(await remove(req, env), 200, cors);
 
@@ -500,19 +502,192 @@ async function tgAuth(req, env) {
     throw new HttpError(409, 'id_conflict');
   }
 
-  if (!created && !d.photoURL && photo) {
+  const photoToUse = photo || d.photoURL || '';
+  if (!created && photo && photo !== d.photoURL) {
     await fetch(`${FS}/users/${uid}?updateMask.fieldPaths=photoURL`, {
       method: 'PATCH', headers: auth(token), body: JSON.stringify({ fields: { photoURL: S(photo) } }),
     }).catch(() => {});
   }
 
   return {
-    customToken: await firebaseCustomToken(env, uid),
-    username:    d.username,
-    fullName:    d.fullName || d.username,
-    userId:      id,
+    customToken:  await firebaseCustomToken(env, uid),
+    username:     d.username,
+    fullName:     d.fullName || d.username,
+    userId:       id,
+    photoURL:     photoToUse,
+    authProvider: 'telegram',
     created,
   };
+}
+
+// ── استعلام موثوق عن بيانات المستخدم (يدعم حسابات تلكرام والحسابات العادية) ──
+async function getUserProfile(url, env) {
+  const id = (url.searchParams.get('id') || url.searchParams.get('userId') || '').trim();
+  if (!id) throw new HttpError(400, 'id_required');
+  const token = await googleToken(env);
+  
+  // 1) محاولة القراءة المباشرة من مسار المستند /users/${id}
+  let cur = await fsGetUser(token, id);
+  
+  // 2) إذا لم يوجد، نبحث بحقل userId
+  if (cur.status === 404 && /^\d+$/.test(id)) {
+    const qRes = await fetch(`${FS}:runQuery`, {
+      method: 'POST',
+      headers: auth(token),
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'users' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'userId' },
+              op: 'EQUAL',
+              value: { integerValue: id }
+            }
+          },
+          limit: 1
+        }
+      })
+    }).catch(() => null);
+    if (qRes && qRes.ok) {
+      const rows = await qRes.json().catch(() => []);
+      if (Array.isArray(rows) && rows.length > 0 && rows[0].document) {
+        cur = { status: 200, data: decodeFields(rows[0].document.fields || {}) };
+      }
+    }
+  }
+
+  // 3) إذا لم يوجد، نبحث بحقل username
+  if (cur.status === 404) {
+    const qU = await fetch(`${FS}:runQuery`, {
+      method: 'POST',
+      headers: auth(token),
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'users' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'username' },
+              op: 'EQUAL',
+              value: { stringValue: id.toLowerCase() }
+            }
+          },
+          limit: 1
+        }
+      })
+    }).catch(() => null);
+    if (qU && qU.ok) {
+      const rows = await qU.json().catch(() => []);
+      if (Array.isArray(rows) && rows.length > 0 && rows[0].document) {
+        cur = { status: 200, data: decodeFields(rows[0].document.fields || {}) };
+      }
+    }
+  }
+
+  // إذا وجدنا المستند في فايربيس
+  if (cur.status === 200) {
+    const d = cur.data;
+    let photo = d.photoURL || '';
+    const tgId = d.tgId || (/^\d{8,12}$/.test(id) ? id : null);
+    
+    // إذا كان حساب تلكرام وتنقصه الصورة، نحاول جلبها من Telegram Bot API
+    if (!photo && tgId && env.BOT_TOKEN) {
+      try {
+        const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getUserProfilePhotos?user_id=${tgId}&limit=1`);
+        const tgJson = await tgRes.json().catch(() => ({}));
+        if (tgJson.ok && tgJson.result && tgJson.result.photos && tgJson.result.photos[0] && tgJson.result.photos[0][0]) {
+          const fileId = tgJson.result.photos[0][0].file_id;
+          const fRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getFile?file_id=${fileId}`);
+          const fJson = await fRes.json().catch(() => ({}));
+          if (fJson.ok && fJson.result && fJson.result.file_path) {
+            photo = `https://api.telegram.org/file/bot${env.BOT_TOKEN}/${fJson.result.file_path}`;
+            // حفظ الصورة في Firestore لتقليل استهلاك Telegram API مستقبلاً
+            fetch(`${FS}/users/${d.uid || id}?updateMask.fieldPaths=photoURL`, {
+              method: 'PATCH', headers: auth(token), body: JSON.stringify({ fields: { photoURL: S(photo) } }),
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    }
+
+    return {
+      ok: true,
+      user: {
+        userId: d.userId || d.tgId || id,
+        username: d.username || d.tgUsername || '',
+        fullName: d.fullName || d.username || ('عضو #' + id),
+        photoURL: photo,
+        authProvider: d.authProvider || (d.tgId ? 'telegram' : 'local'),
+        role: d.role || 'student',
+        shift: d.shift || '',
+        section: d.section || ''
+      }
+    };
+  }
+
+  // إذا لم نجد مستند في Firestore لكن المعرف رقمي تلكرام محتمل
+  if (/^\d{8,12}$/.test(id) && env.BOT_TOKEN) {
+    try {
+      const chatRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getChat?chat_id=${id}`);
+      const chatJson = await chatRes.json().catch(() => ({}));
+      if (chatJson.ok && chatJson.result) {
+        const c = chatJson.result;
+        const fn = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.username || ('طالب تلكرام #' + id);
+        return {
+          ok: true,
+          user: {
+            userId: id,
+            username: c.username || '',
+            fullName: fn,
+            photoURL: '',
+            authProvider: 'telegram',
+            role: 'student'
+          }
+        };
+      }
+    } catch (e) {}
+  }
+
+  throw new HttpError(404, 'user_not_found');
+}
+
+// ── جلب قائمة معرّفات الموثقين بصلاحية Admin لتفادي أي قيود حماية على فايربيس ──
+async function getVerifiedUsers(env) {
+  const token = await googleToken(env);
+  const qRes = await fetch(`${FS}:runQuery`, {
+    method: 'POST',
+    headers: auth(token),
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: 'users' }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: 'perms.verify' },
+            op: 'EQUAL',
+            value: { booleanValue: true }
+          }
+        }
+      }
+    })
+  }).catch(() => null);
+
+  const ids = [];
+  if (qRes && qRes.ok) {
+    const rows = await qRes.json().catch(() => []);
+    if (Array.isArray(rows)) {
+      rows.forEach(r => {
+        if (r.document) {
+          const docId = r.document.name.split('/').pop();
+          if (docId) ids.push(docId);
+          const fields = decodeFields(r.document.fields || {});
+          if (fields.userId != null) ids.push(String(fields.userId));
+          if (fields.username) ids.push(String(fields.username).toLowerCase());
+          if (fields.tgId != null) ids.push(String(fields.tgId));
+          if (fields.fullName) ids.push(String(fields.fullName));
+        }
+      });
+    }
+  }
+  return { ok: true, ids: [...new Set(ids)] };
 }
 
 // ── قراءة المنشور من Firestore بصلاحيات موثوقة (Admin Token أولاً لتفادي أي رفض) ──

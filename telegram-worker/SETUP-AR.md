@@ -171,3 +171,17 @@ https://alfaclass-bot.اسمك.workers.dev/status
 سيرد عليك ببيانات JSON تحتوي على:
 - `subscribers_count`: عدد المشتركين والكروبات والقنوات المربوطة حالياً.
 - `channel_configured`: هل القناة الرئيسية معرّفة أم لا.
+- `baghdad_time`: التوقيت الحالي المعتمد في بغداد وتاريخ الغد.
+
+---
+
+## 9) روابط الفحص اليدوي السريع
+
+- **تجربة إرسال تحاضير الغد يدوياً:**
+  ```text
+  https://alfaclass-bot.اسمك.workers.dev/trigger-scheduled
+  ```
+- **استعلام عن بيانات أي مستخدم أو طالب تيليجرام مع صورته:**
+  ```text
+  https://alfaclass-bot.اسمك.workers.dev/user-profile?id=المعرف_أو_رقم_التلكرام
+  ```
