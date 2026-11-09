@@ -39,14 +39,28 @@ export default {
       if (url.pathname === '/publish'  && req.method === 'POST') return reply(await publish(req, env), 200, cors);
       if (url.pathname === '/delete'   && req.method === 'POST') return reply(await remove(req, env), 200, cors);
 
+      // فحص وإرسال تحاضير الغد (تلقائياً أو يدوياً)
+      if (url.pathname === '/check-scheduled' || url.pathname === '/trigger-scheduled') {
+        const force = url.searchParams.get('force') === '1' || url.pathname === '/trigger-scheduled';
+        const res = await checkAndSendTomorrowPreps(env, { force });
+        return reply(res, 200, cors);
+      }
+
       // فحص الحالة وعدد المشتركين (GET /)
       if (url.pathname === '/' || url.pathname === '/status') {
         const subs = await listSubs(env);
+        const baghdad = getBaghdadInfo();
+        const sentKey = `scheduled_sent:${baghdad.tomorrowStr}`;
+        const alreadySent = env.KV ? await env.KV.get(sentKey) : null;
+
         return reply({
           ok: true,
           name: 'alfaclass-bot',
           subscribers_count: subs.length,
           channel_configured: !!env.CHANNEL_ID,
+          baghdad_time: `${baghdad.currentHour}:${String(baghdad.baghdadNow.getUTCMinutes()).padStart(2, '0')}`,
+          tomorrow_target: baghdad.tomorrowStr,
+          tomorrow_scheduled_sent: !!alreadySent,
         }, 200, cors);
       }
 
@@ -60,7 +74,7 @@ export default {
 
   // النشر المجدول التلقائي (Cron Trigger)
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(scheduledPublish(env));
+    ctx.waitUntil(checkAndSendTomorrowPreps(env, { isCron: true }));
   },
 };
 
@@ -884,6 +898,8 @@ async function publish(req, env) {
     await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
     if (job.done) {
       await env.KV.put(`pub:${kid}`, '1', { expirationTtl: 30 * DAY });
+      // إذا كان النشر بعد 9:00 مساءً، تأكد من إرسال رسالة تحاضير الغد المجمعة إن لم تكن قد أُرسلت
+      checkAndSendTomorrowPreps(env).catch(() => {});
     }
   }
 
@@ -922,135 +938,244 @@ async function remove(req, env) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  النشر المجدول التلقائي (Cron Trigger — 9:00 PM بتوقيت بغداد / 18:00 UTC)
+//  حساب توقيت بغداد وتاريخ الغد
 // ══════════════════════════════════════════════════════════════════════════════
 
-async function scheduledPublish(env) {
-  try {
-    console.log('[Scheduled] بدء جلب تحاضير يوم غد للنشر المجدول...');
+function getBaghdadInfo() {
+  // توقيت بغداد = UTC + 3 ساعات (ثابت على مدار السنة بدون توقيت صيفي)
+  const baghdadNow  = new Date(Date.now() + (3 * 3600 * 1000));
+  const currentHour = baghdadNow.getUTCHours(); // من 0 إلى 23
 
-    // حساب تاريخ الغد (YYYY-MM-DD)
-    const tomorrow    = new Date();
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    const dateLabel   = `${AR_DAYS[tomorrow.getUTCDay()]} ${tomorrow.getUTCDate()} / ${tomorrow.getUTCMonth() + 1}`;
+  // تاريخ الغد بتوقيت بغداد
+  const tomorrow    = new Date(baghdadNow.getTime() + (24 * 3600 * 1000));
+  const y           = tomorrow.getUTCFullYear();
+  const m           = String(tomorrow.getUTCMonth() + 1).padStart(2, '0');
+  const d           = String(tomorrow.getUTCDate()).padStart(2, '0');
+  const tomorrowStr = `${y}-${m}-${d}`;
+  const dateLabel   = `${AR_DAYS[tomorrow.getUTCDay()]} ${tomorrow.getUTCDate()} / ${tomorrow.getUTCMonth() + 1}`;
 
-    const token = await googleToken(env);
+  return { baghdadNow, currentHour, tomorrowStr, dateLabel, tomorrowDayOfWeek: tomorrow.getUTCDay() };
+}
 
-    // جلب تحاضير الغد من مجموعة posts التي تحمل dayId الغد (بدون orderBy لتجنب الحاجة لفهرس مركب)
-    const queryBody = {
+// ── جلب تحاضير يوم محدد من Firestore ──
+async function fetchPrepsForDay(token, dayId) {
+  // 1) استعلام بحقل dayId (المعتمد بالموقع)
+  const queryBody = {
+    structuredQuery: {
+      from:  [{ collectionId: 'posts' }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: 'dayId' },
+          op:    'EQUAL',
+          value: { stringValue: dayId },
+        },
+      },
+      limit: 50,
+    },
+  };
+
+  const r = await fetch(`${FS}:runQuery`, {
+    method:  'POST',
+    headers: auth(token),
+    body:    JSON.stringify(queryBody),
+  });
+  const results = await r.json().catch(() => []);
+
+  let preps = Array.isArray(results)
+    ? results.filter((x) => x && x.document && x.document.fields).map((x) => decodeFields(x.document.fields))
+    : [];
+
+  // 2) احتياطي: إذا لم يجد بحقل dayId، يفحص حقل date
+  if (!preps.length) {
+    const fallbackQuery = {
       structuredQuery: {
-        from:    [{ collectionId: 'posts' }],
-        where:   {
+        from:  [{ collectionId: 'posts' }],
+        where: {
           fieldFilter: {
-            field: { fieldPath: 'dayId' },
+            field: { fieldPath: 'date' },
             op:    'EQUAL',
-            value: { stringValue: tomorrowStr },
+            value: { stringValue: dayId },
           },
         },
-        limit:   50,
+        limit: 50,
       },
     };
-
-    const r = await fetch(`${FS}:runQuery`, {
+    const r2 = await fetch(`${FS}:runQuery`, {
       method:  'POST',
       headers: auth(token),
-      body:    JSON.stringify(queryBody),
+      body:    JSON.stringify(fallbackQuery),
     });
-    const results = await r.json().catch(() => []);
+    const results2 = await r2.json().catch(() => []);
+    if (Array.isArray(results2)) {
+      preps = results2.filter((x) => x && x.document && x.document.fields).map((x) => decodeFields(x.document.fields));
+    }
+  }
 
-    if (!Array.isArray(results)) {
-      console.error('[Scheduled] استجابة غير صالحة من Firestore:', JSON.stringify(results));
-      return;
+  // ترتيب التحاضير محلياً حسب اسم المادة
+  preps.sort((a, b) => String(a.subject || '').localeCompare(String(b.subject || ''), 'ar'));
+  return preps;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  التحقق الذكي والإرسال المجدول لتحاضير الغد
+//  - يتحقق هل أُرسلت الرسالة سابقاً لليوم المطلوب؟ إذا أُرسلت يتخطى (إلا إذا force=true)
+//  - إذا لم تُرسل ووجد تحاضير: يرسلها فوراً للقناة والمشتركين ويحفظ علامة الإرسال في KV
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function checkAndSendTomorrowPreps(env, options = {}) {
+  const force  = !!options.force;
+  const isCron = !!options.isCron;
+  const info   = getBaghdadInfo();
+  const sentKey = `scheduled_sent:${info.tomorrowStr}`;
+
+  console.log(`[ScheduledCheck] وقت بغداد: ${info.currentHour}:${String(info.baghdadNow.getUTCMinutes()).padStart(2, '0')} | تاريخ الغد: ${info.tomorrowStr} | force: ${force}`);
+
+  // إذا لم يكن طلباً إجبارياً ولم يكن كرون: نتحقق أن الوقت بعد 9:00 مساءً (الساعة 21 فأكثر أو الفجر حتى 5)
+  if (!force && !isCron) {
+    const isEveningTime = info.currentHour >= 21 || info.currentHour <= 4;
+    if (!isEveningTime) {
+      return {
+        ok:           true,
+        sent:         false,
+        reason:       'not_evening_yet',
+        current_hour: info.currentHour,
+        message:      'موعد إرسال تحاضير الغد يبدأ من الساعة 9:00 مساءً بتوقيت بغداد',
+      };
+    }
+  }
+
+  // التحقق: هل أُرسلت الرسالة سابقاً ليوم الغد؟
+  const alreadySent = env.KV ? await env.KV.get(sentKey) : null;
+  if (alreadySent && !force) {
+    console.log(`[ScheduledCheck] تم إرسال تحاضير الغد سابقاً (${info.tomorrowStr})، تم التخطي.`);
+    return {
+      ok:           true,
+      sent:         false,
+      already_sent: true,
+      target_date:  info.tomorrowStr,
+      message:      'تم إرسال رسالة تحاضير الغد سابقاً لهذا اليوم بنجاح',
+    };
+  }
+
+  // جلب توكن الأدمن من Firebase Service Account
+  let token;
+  try {
+    token = await googleToken(env);
+  } catch (err) {
+    console.error('[ScheduledCheck] فشل جلب توكن Firebase:', err.message);
+    return { ok: false, error: 'google_token_failed: ' + err.message };
+  }
+
+  // جلب تحاضير الغد
+  const preps = await fetchPrepsForDay(token, info.tomorrowStr);
+
+  if (!preps.length) {
+    console.log(`[ScheduledCheck] لا توجد تحاضير مسجلة ليوم الغد (${info.tomorrowStr}). لن يتم الإرسال حتى تتوفر تحاضير.`);
+    return {
+      ok:          true,
+      sent:        false,
+      reason:      'no_preps_found',
+      target_date: info.tomorrowStr,
+      date_label:  info.dateLabel,
+      message:     `لا توجد تحاضير مسجلة ليوم الغد (${info.tomorrowStr}) حتى الآن. سيتم الإرسال فور تسجيل أول تحضير بعد الساعة 9:00 مساءً.`,
+    };
+  }
+
+  // ── صياغة رسالة المجدول بالترتيب الدقيق للأسطر والتباعد ──
+  // <u>تحاضير يوم غد الثلاثاء 5 / 6 عدنا</u>
+  // [سطر فارغ]
+  // 📚 تقرير — الحكومية
+  // ملاحظات (اقتباس)
+  // [سطر فارغ]
+  // 📚 ميد — المحاسبة المتوسطة
+  // ملاحظات (اقتباس)
+  // [سطر فارغ]
+  // ألفاكلاس (رابط)
+  const prepItems = [];
+
+  for (const p of preps) {
+    const type    = esc(String(p.type    || '').trim().slice(0, 60));
+    const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
+    const note    = esc(String(p.note    || '').trim().slice(0, 400));
+
+    let itemTitle = '';
+    if (type && subject) {
+      itemTitle = `${type} — ${subject}`;
+    } else {
+      itemTitle = type || subject || 'تحضير';
     }
 
-    const preps = results
-      .filter((x) => x && x.document && x.document.fields)
-      .map((x) => decodeFields(x.document.fields));
-
-    // ترتيب التحاضير محلياً حسب اسم المادة
-    preps.sort((a, b) => String(a.subject || '').localeCompare(String(b.subject || ''), 'ar'));
-
-    if (!preps.length) {
-      console.log(`[Scheduled] لا توجد تحاضير مسجلة ليوم الغد (${tomorrowStr}).`);
-      return;
+    if (note) {
+      prepItems.push(`📚 ${itemTitle}\n<blockquote>${note}</blockquote>`);
+    } else {
+      prepItems.push(`📚 ${itemTitle}`);
     }
+  }
 
-    // ── صياغة رسالة المجدول بالترتيب والتباعد الدقيق للأسطر ──
-    // النمط:
-    // <u>تحاضير يوم غد الثلاثاء 5 / 6 عدنا</u>
-    // [سطر فارغ]
-    // 📚 تقرير — الحكومية
-    // ملاحظات (اقتباس مباشرة تحتها)
-    // [سطر فارغ]
-    // 📚 ميد — المحاسبة المتوسطة
-    // ملاحظات (اقتباس)
-    // [سطر فارغ]
-    // ألفاكلاس (رابط)
-    const prepItems = [];
+  const messageBlocks = [];
+  messageBlocks.push(`<u>تحاضير يوم غد ${info.dateLabel} عدنا</u>`);
+  if (prepItems.length) {
+    messageBlocks.push(prepItems.join('\n\n'));
+  }
+  messageBlocks.push(`<a href="${esc(SITE_URL)}">ألفاكلاس</a>`);
 
-    for (const p of preps) {
-      const type    = esc(String(p.type    || '').trim().slice(0, 60));
-      const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
-      const note    = esc(String(p.note    || '').trim().slice(0, 300));
+  let scheduledText = messageBlocks.join('\n\n');
+  if (scheduledText.length > 3800) scheduledText = scheduledText.slice(0, 3800) + '…';
 
-      let itemTitle = '';
-      if (type && subject) {
-        itemTitle = `${type} — ${subject}`;
-      } else {
-        itemTitle = type || subject || 'تحضير';
-      }
+  const st = { retries: 0 };
+  let channelSuccess = false;
 
-      if (note) {
-        prepItems.push(`📚 ${itemTitle}\n<blockquote>${note}</blockquote>`);
-      } else {
-        prepItems.push(`📚 ${itemTitle}`);
-      }
-    }
-
-    const messageBlocks = [];
-    messageBlocks.push(`<u>تحاضير يوم غد ${dateLabel} عدنا</u>`);
-    if (prepItems.length) {
-      messageBlocks.push(prepItems.join('\n\n'));
-    }
-    messageBlocks.push(`<a href="${esc(SITE_URL)}">ألفاكلاس</a>`);
-
-    let scheduledText = messageBlocks.join('\n\n');
-    if (scheduledText.length > 3800) scheduledText = scheduledText.slice(0, 3800) + '…';
-
-    const st = { retries: 0 };
-
-    // 1) إرسال للقناة الرئيسية
-    if (env.CHANNEL_ID) {
-      await tg(env, st, 'sendMessage', {
+  // 1) إرسال للقناة الرئيسية
+  if (env.CHANNEL_ID) {
+    try {
+      const chRes = await tg(env, st, 'sendMessage', {
         chat_id:    env.CHANNEL_ID,
         text:       scheduledText,
         parse_mode: 'HTML',
       });
+      channelSuccess = chRes.ok;
+      console.log(`[ScheduledCheck] إرسال للقناة ${env.CHANNEL_ID}:`, chRes.ok ? '✅' : chRes.description);
+    } catch (e) {
+      console.warn('[ScheduledCheck] خطأ إرسال القناة:', e.message);
     }
-
-    // 2) إرسال لجميع المشتركين والكروبات والقنوات
-    const subs = await listSubs(env);
-    console.log(`[Scheduled] إرسال لـ ${subs.length} مشترك/كروب/قناة...`);
-
-    for (let i = 0; i < subs.length; i += 10) {
-      const group = subs.slice(i, i + 10);
-      await Promise.all(group.map((chatId) =>
-        tg(env, st, 'sendMessage', {
-          chat_id:    chatId,
-          text:       scheduledText,
-          parse_mode: 'HTML',
-        }).then(async (res) => {
-          if (isGone(res) && env.KV) {
-            await env.KV.delete(`sub:${chatId}`);
-          }
-        }).catch(() => {})
-      ));
-      if (i + 10 < subs.length) await sleep(400);
-    }
-
-    console.log('[Scheduled] تم اكتمال النشر المجدول بنجاح.');
-  } catch (e) {
-    console.error('[Scheduled] خطأ أثناء النشر المجدول:', e && e.message);
   }
+
+  // 2) إرسال لجميع المشتركين والكروبات والقنوات في KV
+  const subs = await listSubs(env);
+  console.log(`[ScheduledCheck] جاري الإرسال لـ ${subs.length} مشترك/كروب/قناة...`);
+
+  let sentCount = 0;
+  for (let i = 0; i < subs.length; i += 10) {
+    const group = subs.slice(i, i + 10);
+    await Promise.all(group.map((chatId) =>
+      tg(env, st, 'sendMessage', {
+        chat_id:    chatId,
+        text:       scheduledText,
+        parse_mode: 'HTML',
+      }).then(async (res) => {
+        if (res.ok) sentCount++;
+        if (isGone(res) && env.KV) {
+          await env.KV.delete(`sub:${chatId}`);
+        }
+      }).catch(() => {})
+    ));
+    if (i + 10 < subs.length) await sleep(400);
+  }
+
+  // حفظ علامة الإرسال في KV لمدة 48 ساعة حتى لا تتكرر
+  if (env.KV) {
+    await env.KV.put(sentKey, '1', { expirationTtl: 86400 * 2 });
+  }
+
+  console.log(`[ScheduledCheck] ✅ تم الإرسال بنجاح! ${preps.length} تحضير تم إرساله لـ ${sentCount} مشترك.`);
+
+  return {
+    ok:               true,
+    sent:             true,
+    target_date:      info.tomorrowStr,
+    date_label:       info.dateLabel,
+    preps_count:      preps.length,
+    subscribers_sent: sentCount,
+    channel_success:  channelSuccess,
+  };
 }

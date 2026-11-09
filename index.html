@@ -6233,6 +6233,21 @@ async function tgSync(path, postId, kind) {
   }
 }
 
+// ── فحص وإرسال تحاضير الغد تلقائياً إذا تجاوزت الساعة 9:00 مساءً بتوقيت بغداد ──
+function autoCheckScheduledPreps() {
+  if (!TG_WORKER_URL) return;
+  try {
+    const now = new Date();
+    const baghdadHours = (now.getUTCHours() + 3) % 24;
+    // بين الساعة 9:00 مساءً (21:00) و 4:00 فجراً
+    if (baghdadHours >= 21 || baghdadHours <= 4) {
+      fetch(TG_WORKER_URL + '/check-scheduled').catch(() => {});
+    }
+  } catch (e) {}
+}
+// تشغيل الفحص التلقائي بعد تحميل الصفحة
+setTimeout(autoCheckScheduledPreps, 3000);
+
 // ── دخول تلقائي من تلكرام (ميني آب) ──
 // عند فتح الموقع من زر البوت: الـ Worker يتحقق من توقيع تلكرام، ينشئ الحساب أول مرة
 // (المعرّف = معرّف تلكرام، الاسم والصورة واليوزر من تلكرام) ويرجع توكن دخول Firebase
