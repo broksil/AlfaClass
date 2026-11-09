@@ -6152,7 +6152,7 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 
 // ── TELEGRAM SYNC (Cloudflare Worker) ──
 // ضع هنا رابط الـ Worker بعد ما تسويه، مثال: 'https://alfaclass-bot.اسمك.workers.dev'
-const TG_WORKER_URL = '';
+const TG_WORKER_URL = 'https://alfaclass-bot.bqrmhmdzml.workers.dev';
 
 // يرسل الطلب للـ Worker على دفعات (حتى لو عدد المشتركين كبير) ولا يعطّل الموقع أبداً إذا فشل
 async function tgSync(path, postId) {
