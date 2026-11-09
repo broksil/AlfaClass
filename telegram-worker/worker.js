@@ -544,7 +544,7 @@ function decodeValue(v) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  تنسيق رسائل تلكرام (HTML) المطابق تماماً للنماذج المطلوبة
+//  تنسيق رسائل تلكرام (HTML) — مطابقة تامة للأسطر والتباعد والنماذج المطلوبة
 // ══════════════════════════════════════════════════════════════════════════════
 
 function arabicDateFromDayId(dayId) {
@@ -558,70 +558,114 @@ function arabicDateFromDayId(dayId) {
 }
 
 // ── القسم الأول: التحاضير اليومية ──
-// العنوان: <u>يوم [اسم اليوم] [التاريخ] عدنا</u>
-// المحتوى: 📚 [المادة] — [نوع التحضير]
-// الملاحظات: <blockquote>" [نص الملاحظة] "</blockquote>
-// الرابط: ألفاكلاس برابط عميق للمنشور
+// النمط:
+// يوم الثلاثاء 6 / 5 عدنا (تسطير)
+// [سطر فارغ]
+// 📚 فاينل — الخطر
+// [سطر فارغ]
+// الملاحظات (اقتباس)
+// ألفاكلاس (مباشرة تحت الاقتباس بدون سطر فارغ، رابط للمنشور)
 function buildPrepMessage(p, postId) {
   const postUrl = `${SITE_URL}#post-${postId}`;
   const dateStr = arabicDateFromDayId(p.dayId || p.date || '');
 
-  const subject = esc(String(p.subject || p.title || '').slice(0, 100));
-  const type    = esc(String(p.type    || '').slice(0, 60));
-  const note    = esc(String(p.note    || '').slice(0, 800));
+  const type    = esc(String(p.type    || '').trim().slice(0, 60));
+  const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
+  const note    = esc(String(p.note    || '').trim().slice(0, 800));
 
-  const lines = [];
-  lines.push(`<u>يوم ${dateStr} عدنا</u>`);
-  if (subject || type) lines.push(`📚 ${subject}${subject && type ? ' — ' : ''}${type}`);
-  if (note)            lines.push(`<blockquote>" ${note} "</blockquote>`);
-  lines.push(`<a href="${esc(postUrl)}">ألفاكلاس</a>`);
+  let itemTitle = '';
+  if (type && subject) {
+    itemTitle = `${type} — ${subject}`;
+  } else {
+    itemTitle = type || subject || 'تحضير';
+  }
 
-  return lines.join('\n');
+  const parts = [];
+  parts.push(`<u>يوم ${dateStr} عدنا</u>`);
+  parts.push(`📚 ${itemTitle}`);
+
+  if (note) {
+    parts.push(`<blockquote>${note}</blockquote>\n<a href="${esc(postUrl)}">ألفاكلاس</a>`);
+  } else {
+    parts.push(`<a href="${esc(postUrl)}">ألفاكلاس</a>`);
+  }
+
+  return parts.join('\n\n');
 }
 
 // ── القسم الثاني: البلاغات العامة ──
-// العنوان: <u>📢 [عنوان البلاغ]</u>
-// التفاصيل: <blockquote>" [التفاصيل] "</blockquote>
-// الرابط: ألفاكلاس
+// النمط:
+// <u>📣  تجربه</u> (عنوان البلاغ مسطر)
+// [سطر فارغ]
+// التفاصيل (اقتباس)
+// ألفاكلاس (مباشرة تحت الاقتباس، رابط المنشور)
 function buildReportMessage(p, postId) {
   const postUrl = `${SITE_URL}#report-${postId}`;
-  const title   = esc(String(p.title || p.subject || '').slice(0, 150));
-  const body    = esc(String(p.body  || p.note    || '').slice(0, 800));
+  const title   = esc(String(p.title || p.subject || 'بلاغ').trim().slice(0, 150));
+  const body    = esc(String(p.body  || p.note    || '').trim().slice(0, 800));
 
-  const lines = [];
-  lines.push(`<u>📢 ${title}</u>`);
-  if (body) lines.push(`<blockquote>" ${body} "</blockquote>`);
-  lines.push(`<a href="${esc(postUrl)}">ألفاكلاس</a>`);
+  const parts = [];
+  parts.push(`<u>📣  ${title}</u>`);
 
-  return lines.join('\n');
+  if (body) {
+    parts.push(`<blockquote>${body}</blockquote>\n<a href="${esc(postUrl)}">ألفاكلاس</a>`);
+  } else {
+    parts.push(`<a href="${esc(postUrl)}">ألفاكلاس</a>`);
+  }
+
+  return parts.join('\n\n');
 }
 
 // ── القسم الثالث: بلاغات الأساتذة / كلاس روم ──
-// العنوان: 📚 [اسم المادة] ثم سطر جديد [المرحلة / الدراسة - الجروب]
-// المحتوى: <blockquote>" ... "</blockquote>
-// الفوتر: 👩🏫 [اسم الأستاذ]
-// الرابط: انقر على التفاصيل
+// النمط:
+// 📚 المحاسبة الحكومية
+// المرحلة الثانية / مسائي - أ - (رمز)
+// [سطر فارغ]
+// التفاصيل (اقتباس)
+// [سطر فارغ]
+// 🧑🏻‍🏫 بتول يونس (اسم الأستاذ)
+// [سطر فارغ]
+// انقر على التفاصيل (رابط الكلاس روم للمنشور)
 function buildClassroomMessage(p, postId) {
   const targetUrl = isHttp(p.classroomUrl || p.detailsLink || p.link)
     ? (p.classroomUrl || p.detailsLink || p.link)
     : `${SITE_URL}#post-${postId}`;
 
-  const subject = esc(String(p.subject || p.subjectName || p.title || '').slice(0, 100));
-  const grade   = esc(String(p.grade   || p.stage       || p.level || '').slice(0, 60));
-  const study   = esc(String(p.study   || '').slice(0, 60));
-  const group   = esc(String(p.group   || p.section     || '').slice(0, 30));
-  const details = esc(String(p.note    || p.messageContent || p.body || p.details || '').slice(0, 800));
-  const teacher = esc(String(p.author  || p.teacherName || p.teacher || '').slice(0, 60));
+  const subject = esc(String(p.subject || p.subjectName || p.title || '').trim().slice(0, 100));
+  const grade   = esc(String(p.grade   || p.stage       || p.level || '').trim().slice(0, 60));
+  const study   = esc(String(p.study   || '').trim().slice(0, 60));
+  const group   = esc(String(p.group   || p.section     || '').trim().slice(0, 30));
+  const code    = esc(String(p.code    || '').trim().slice(0, 30));
+  const details = esc(String(p.note    || p.messageContent || p.body || p.details || '').trim().slice(0, 800));
+  const teacher = esc(String(p.author  || p.teacherName || p.teacher || '').trim().slice(0, 60));
 
-  const lines = [];
-  if (subject) lines.push(`📚 ${subject}`);
-  const gradeInfo = [grade, study, group].filter(Boolean).join(' / ');
-  if (gradeInfo)  lines.push(gradeInfo);
-  if (details)    lines.push(`<blockquote>" ${details} "</blockquote>`);
-  if (teacher)    lines.push(`👩🏫 ${teacher}`);
-  lines.push(`<a href="${esc(targetUrl)}">انقر على التفاصيل</a>`);
+  // سطر المادة + سطر المرحلة مباشرة تحته بدون سطر فارغ
+  const headerLines = [];
+  if (subject) headerLines.push(`📚 ${subject}`);
 
-  return lines.join('\n');
+  const infoParts = [];
+  if (grade) infoParts.push(grade);
+  if (study) infoParts.push(study);
+  if (group) infoParts.push(group.startsWith('-') ? group : `- ${group} -`);
+  if (code)  infoParts.push(`(${code})`);
+
+  const gradeInfo = infoParts.join(' / ');
+  if (gradeInfo) headerLines.push(gradeInfo);
+
+  const sections = [];
+  sections.push(headerLines.join('\n'));
+
+  if (details) {
+    sections.push(`<blockquote>${details}</blockquote>`);
+  }
+
+  if (teacher) {
+    sections.push(`🧑🏻‍🏫 ${teacher}`);
+  }
+
+  sections.push(`<a href="${esc(targetUrl)}">انقر على التفاصيل</a>`);
+
+  return sections.join('\n\n');
 }
 
 // بناء مواصفات المنشور كاملة
@@ -639,7 +683,7 @@ function buildSpec(p, kind, postId) {
   for (const f of files)  extras.push(`📎 <a href="${esc(f.url)}">${esc(f.name || 'ملف')}</a>`);
   if (isHttp(p.voiceUrl)) extras.push(`🎤 <a href="${esc(p.voiceUrl)}">تسجيل صوتي</a>`);
   if (p.poll)             extras.push('📊 فيه استفتاء، شارك من الموقع');
-  if (extras.length)      text += '\n' + extras.join('\n');
+  if (extras.length)      text += '\n\n' + extras.join('\n');
 
   if (text.length > 3800) text = text.slice(0, 3800) + '…';
 
@@ -893,7 +937,7 @@ async function scheduledPublish(env) {
 
     const token = await googleToken(env);
 
-    // جلب تحاضير الغد من مجموعة posts التي تحمل dayId الغد
+    // جلب تحاضير الغد من مجموعة posts التي تحمل dayId الغد (بدون orderBy لتجنب الحاجة لفهرس مركب)
     const queryBody = {
       structuredQuery: {
         from:    [{ collectionId: 'posts' }],
@@ -904,7 +948,6 @@ async function scheduledPublish(env) {
             value: { stringValue: tomorrowStr },
           },
         },
-        orderBy: [{ field: { fieldPath: 'subject' }, direction: 'ASCENDING' }],
         limit:   50,
       },
     };
@@ -925,31 +968,54 @@ async function scheduledPublish(env) {
       .filter((x) => x && x.document && x.document.fields)
       .map((x) => decodeFields(x.document.fields));
 
+    // ترتيب التحاضير محلياً حسب اسم المادة
+    preps.sort((a, b) => String(a.subject || '').localeCompare(String(b.subject || ''), 'ar'));
+
     if (!preps.length) {
       console.log(`[Scheduled] لا توجد تحاضير مسجلة ليوم الغد (${tomorrowStr}).`);
       return;
     }
 
-    // صياغة رسالة المجدول
-    const lines = [];
-    lines.push(`<u>تحاضير يوم غد ${dateLabel} عدنا</u>`);
+    // ── صياغة رسالة المجدول بالترتيب والتباعد الدقيق للأسطر ──
+    // النمط:
+    // <u>تحاضير يوم غد الثلاثاء 5 / 6 عدنا</u>
+    // [سطر فارغ]
+    // 📚 تقرير — الحكومية
+    // ملاحظات (اقتباس مباشرة تحتها)
+    // [سطر فارغ]
+    // 📚 ميد — المحاسبة المتوسطة
+    // ملاحظات (اقتباس)
+    // [سطر فارغ]
+    // ألفاكلاس (رابط)
+    const prepItems = [];
 
     for (const p of preps) {
-      const subject = esc(String(p.subject || p.title || '').slice(0, 100));
-      const type    = esc(String(p.type    || '').slice(0, 60));
-      const note    = esc(String(p.note    || '').slice(0, 300));
+      const type    = esc(String(p.type    || '').trim().slice(0, 60));
+      const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
+      const note    = esc(String(p.note    || '').trim().slice(0, 300));
 
-      if (subject || type) {
-        lines.push(`\n📚 ${subject}${subject && type ? ' — ' : ''}${type}`);
+      let itemTitle = '';
+      if (type && subject) {
+        itemTitle = `${type} — ${subject}`;
+      } else {
+        itemTitle = type || subject || 'تحضير';
       }
+
       if (note) {
-        lines.push(`<blockquote>" ${note} "</blockquote>`);
+        prepItems.push(`📚 ${itemTitle}\n<blockquote>${note}</blockquote>`);
+      } else {
+        prepItems.push(`📚 ${itemTitle}`);
       }
     }
 
-    lines.push(`\n<a href="${esc(SITE_URL)}">ألفاكلاس</a>`);
+    const messageBlocks = [];
+    messageBlocks.push(`<u>تحاضير يوم غد ${dateLabel} عدنا</u>`);
+    if (prepItems.length) {
+      messageBlocks.push(prepItems.join('\n\n'));
+    }
+    messageBlocks.push(`<a href="${esc(SITE_URL)}">ألفاكلاس</a>`);
 
-    let scheduledText = lines.join('\n');
+    let scheduledText = messageBlocks.join('\n\n');
     if (scheduledText.length > 3800) scheduledText = scheduledText.slice(0, 3800) + '…';
 
     const st = { retries: 0 };
