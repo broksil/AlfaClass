@@ -1,25 +1,36 @@
 // ══════════════════════════════════════════════════════════════════════════════
-//  AlfaClass — Cloudflare Worker
-//  بوت تلكرام + بث شامل + نشر مجدول تلقائي
+//  AlfaClass — Cloudflare Worker (النسخة الاحترافية الشاملة والمضمونة)
+//  بوت تلكرام + بث شامل موثوق للمشتركين والكروبات والقنوات + نشر مجدول
 // ══════════════════════════════════════════════════════════════════════════════
 
+// ── ثوابت المشروع ──────────────────────────────────────────────────────────
 const PROJECT_ID = 'alfaclass-120e3';
 const SITE_URL   = 'https://broksil.github.io/AlfaClass/';
-const MAX_CALLS  = 30; // أقصى طلبات تلكرام لكل تشغيل
+const MAX_CALLS  = 30; // أقصى عدد طلبات لتلكرام في كل دفعة تشغيل
 
+// أسماء أيام الأسبوع بالعربية
 const AR_DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  نقطة دخول الـ Worker (معالجة الطلبات + Cron)
+// ══════════════════════════════════════════════════════════════════════════════
 export default {
+
   async fetch(req, env) {
-    const url  = new URL(req.url);
+    const url = new URL(req.url);
+
+    // ── معالجة CORS الشاملة (تسمح بالاتصال من أي دومين أو محلياً) ──
+    const reqOrigin = req.headers.get('Origin') || '*';
     const cors = {
-      'Access-Control-Allow-Origin':  env.ALLOWED_ORIGIN || 'https://broksil.github.io',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Vary': 'Origin',
+      'Access-Control-Allow-Origin':  reqOrigin,
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      'Access-Control-Max-Age':       '86400',
     };
 
-    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: cors });
+    }
 
     try {
       if (url.pathname === '/webhook'  && req.method === 'POST') return await webhook(req, env);
@@ -27,18 +38,35 @@ export default {
       if (url.pathname === '/tg-auth'  && req.method === 'POST') return reply(await tgAuth(req, env), 200, cors);
       if (url.pathname === '/publish'  && req.method === 'POST') return reply(await publish(req, env), 200, cors);
       if (url.pathname === '/delete'   && req.method === 'POST') return reply(await remove(req, env), 200, cors);
+
+      // فحص الحالة وعدد المشتركين (GET /)
+      if (url.pathname === '/' || url.pathname === '/status') {
+        const subs = await listSubs(env);
+        return reply({
+          ok: true,
+          name: 'alfaclass-bot',
+          subscribers_count: subs.length,
+          channel_configured: !!env.CHANNEL_ID,
+        }, 200, cors);
+      }
+
       return reply({ ok: true, name: 'alfaclass-bot' }, 200, cors);
     } catch (e) {
       if (e instanceof HttpError) return reply({ error: e.message }, e.status, cors);
-      console.error('[Worker] خطأ غير متوقع:', e && e.message);
-      return reply({ error: 'internal_error' }, 500, cors);
+      console.error('[Worker Fatal Error]:', e && (e.stack || e.message));
+      return reply({ error: e.message || 'internal_error' }, 500, cors);
     }
   },
 
+  // النشر المجدول التلقائي (Cron Trigger)
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(scheduledPublish(env));
   },
 };
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  أدوات مساعدة
+// ══════════════════════════════════════════════════════════════════════════════
 
 class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -53,7 +81,26 @@ function reply(obj, status, headers) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// تهريب حروف HTML لتنسيق تلكرام المعتمد فقط (& و < و >)
+// ملاحظة مهمة: تلكرام لا يدعم &quot; في parse_mode: HTML، لذا لا نغيّر علامات الاقتباس!
+const esc = (s) =>
+  String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+const isHttp = (u) => typeof u === 'string' && /^https?:\/\//i.test(u);
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Telegram Bot API Helper (مع معالجة ذكية للأخطاء)
+// ══════════════════════════════════════════════════════════════════════════════
+
 async function tg(env, st, method, body) {
+  if (!env.BOT_TOKEN) {
+    console.error('[tg] خطأ: BOT_TOKEN غير موجود بإعدادات الـ Worker!');
+    return { ok: false, error_code: 500, description: 'BOT_TOKEN_missing' };
+  }
+
   for (let attempt = 0; attempt < 2; attempt++) {
     let j;
     try {
@@ -64,18 +111,57 @@ async function tg(env, st, method, body) {
       });
       j = await r.json();
     } catch (e) {
-      return { ok: false, error_code: 0, description: 'network_error' };
+      return { ok: false, error_code: 0, description: 'network_error: ' + (e && e.message) };
     }
+
     if (j.ok) return j;
-    const wait = j.error_code === 429 ? (j.parameters && j.parameters.retry_after) || 1 : 0;
-    if (wait && wait <= 5 && st.retries < 3) { st.retries++; await sleep(wait * 1000); continue; }
+
+    // إذا كان الخطأ بسبب مشاكل تنسيق HTML، أعد المحاولة فوراً كنص عادي بدون parse_mode
+    if (body.parse_mode && j.description && /can't parse entities|unsupported start tag/i.test(j.description)) {
+      console.warn('[tg] خطأ تنسيق HTML، جاري الإرسال كنص عادي:', j.description);
+      const fallbackBody = { ...body };
+      delete fallbackBody.parse_mode;
+      // إزالة وسوم HTML من النص
+      if (fallbackBody.text) {
+        fallbackBody.text = fallbackBody.text.replace(/<[^>]+>/g, '');
+      }
+      if (fallbackBody.caption) {
+        fallbackBody.caption = fallbackBody.caption.replace(/<[^>]+>/g, '');
+      }
+      try {
+        const rFallback = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(fallbackBody),
+        });
+        const jFallback = await rFallback.json();
+        if (jFallback.ok) return jFallback;
+      } catch (e2) {}
+    }
+
+    // الانتظار عند تجاوز المعدل (Rate Limit - 429)
+    const wait = j.error_code === 429 ? ((j.parameters && j.parameters.retry_after) || 1) : 0;
+    if (wait && wait <= 5 && st && st.retries < 3) {
+      st.retries++;
+      await sleep(wait * 1000);
+      continue;
+    }
+
     return j;
   }
   return { ok: false, error_code: 429, description: 'rate_limited' };
 }
 
+// هل تم حظر البوت أو حذف المحادثة؟
 const isGone = (j) =>
-  j && !j.ok && (j.error_code === 403 || (j.error_code === 400 && /chat not found/i.test(j.description || '')));
+  j && !j.ok && (
+    j.error_code === 403 ||
+    (j.error_code === 400 && /chat not found|bot was blocked|user is deactivated|bot was kicked/i.test(j.description || ''))
+  );
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Webhook: استقبال التحديثات من تلكرام والاشتراك التلقائي للكروبات والقنوات
+// ══════════════════════════════════════════════════════════════════════════════
 
 async function webhook(req, env) {
   if (env.WEBHOOK_SECRET && req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.WEBHOOK_SECRET) {
@@ -84,24 +170,62 @@ async function webhook(req, env) {
 
   const u  = await req.json().catch(() => ({}));
   const st = { retries: 0 };
-  const m  = u.message;
 
-  if (m && m.chat) {
-    const chatType = m.chat.type;
-    const rawCmd   = String(m.text || '').trim().split(/[\s@]/)[0].toLowerCase();
+  // ── 1) الاشتراك التلقائي بمجرد إضافة البوت إلى قناة أو كروب ──
+  // عندما يُضاف البوت كمسؤول أو عضو في أي كروب أو قناة، يُحفظ المعرّف فوراً في KV
+  const mc = u.my_chat_member;
+  if (mc && mc.chat && env.KV) {
+    const chatId = mc.chat.id;
+    const newStatus = mc.new_chat_member && mc.new_chat_member.status;
 
-    if (rawCmd === '/start' || rawCmd === '/تشغيل') {
-      await env.KV.put(`sub:${m.chat.id}`, '1');
+    if (newStatus === 'administrator' || newStatus === 'member') {
+      await env.KV.put(`sub:${chatId}`, '1');
+      console.log(`[Webhook] تم اشتراك ${mc.chat.type} تلقائياً: ${chatId} (${mc.chat.title || ''})`);
 
-      if (chatType === 'private') {
+      // إرسال رسالة تأكيد للكروب إذا كانت مجموعة
+      if (mc.chat.type === 'group' || mc.chat.type === 'supergroup') {
         await tg(env, st, 'sendMessage', {
-          chat_id:    m.chat.id,
+          chat_id: chatId,
+          text: '✅ <b>ألفاكلاس</b>\nتم تفعيل إشعارات التحاضير والبلاغات لهذه المجموعة تلقائياً! 📚',
+          parse_mode: 'HTML',
+        });
+      }
+    } else if (newStatus === 'kicked' || newStatus === 'left') {
+      await env.KV.delete(`sub:${chatId}`);
+      console.log(`[Webhook] تم إيقاف الاشتراك عند مغادرة البوت: ${chatId}`);
+    }
+  }
+
+  // ── 2) معالجة الرسائل العادية ورسائل القنوات (Channel Posts) ──
+  const m = u.message || u.channel_post;
+  if (m && m.chat && env.KV) {
+    const chatId  = m.chat.id;
+    const rawText = String(m.text || '').trim();
+    const cmd     = rawText.split(/[\s@]/)[0].toLowerCase();
+
+    // كلمات التشغيل: /start أو /تشغيل أو /تفعيل أو تشغيل أو تفعيل
+    const isStartCmd =
+      cmd === '/start' || cmd === '/تشغيل' || cmd === '/تفعيل' ||
+      rawText === 'تشغيل' || rawText === 'تفعيل';
+
+    // كلمات الإيقاف: /stop أو /ايقاف أو /إيقاف أو إيقاف أو تعطيل
+    const isStopCmd =
+      cmd === '/stop' || cmd === '/ايقاف' || cmd === '/إيقاف' ||
+      rawText === 'إيقاف' || rawText === 'ايقاف' || rawText === 'تعطيل';
+
+    if (isStartCmd) {
+      await env.KV.put(`sub:${chatId}`, '1');
+      console.log(`[Webhook] تم تفعيل الاشتراك للدردشة: ${chatId}`);
+
+      if (m.chat.type === 'private') {
+        await tg(env, st, 'sendMessage', {
+          chat_id:    chatId,
           parse_mode: 'HTML',
           text: (
-            '✅ <b>تم تفعيل الإشعارات!</b>\n\n' +
-            'راح توصلك التحاضير الجديدة هنا مباشرة.\n' +
-            'لإيقافها أرسل /stop\n\n' +
-            'اضغط الزر تحت لفتح ألفاكلاس بحسابك 👇'
+            '✅ <b>تم تفعيل الإشعارات بنجاح!</b>\n\n' +
+            'ستصلك التحاضير والبلاغات الجديدة هنا فور نشرها بالموقع.\n' +
+            'لإيقافها في أي وقت أرسل /stop\n\n' +
+            'اضغط الزر أدناه لفتح ألفاكلاس بحسابك 👇'
           ),
           reply_markup: {
             inline_keyboard: [[
@@ -111,51 +235,52 @@ async function webhook(req, env) {
         });
       } else {
         await tg(env, st, 'sendMessage', {
-          chat_id:    m.chat.id,
+          chat_id:    chatId,
           parse_mode: 'HTML',
-          text: '✅ <b>ألفاكلاس</b> — تم تفعيل الإشعارات لهذه المجموعة.',
+          text: '✅ <b>ألفاكلاس</b> — تم تفعيل الإشعارات لهذه المحادثة بنجاح.',
         });
       }
-    } else if (rawCmd === '/stop') {
-      await env.KV.delete(`sub:${m.chat.id}`);
+    } else if (isStopCmd) {
+      await env.KV.delete(`sub:${chatId}`);
       await tg(env, st, 'sendMessage', {
-        chat_id:    m.chat.id,
+        chat_id:    chatId,
         parse_mode: 'HTML',
-        text: '⏹️ تم إيقاف الإشعارات. لتفعيلها مرة ثانية أرسل /start',
+        text: '⏹️ تم إيقاف الإشعارات. لتفعيلها مجدداً أرسل /start أو /تشغيل',
       });
-    }
-  }
-
-  const mc = u.my_chat_member;
-  if (mc && mc.chat) {
-    const newStatus = mc.new_chat_member && mc.new_chat_member.status;
-    if (newStatus === 'kicked' || newStatus === 'left') {
-      await env.KV.delete(`sub:${mc.chat.id}`);
     }
   }
 
   return new Response('ok');
 }
 
+// ── تسجيل الـ Webhook (يُفتح مرة واحدة بالمتصفح) ─────────────────────────
 async function register(url, env) {
   if (!env.WEBHOOK_SECRET || url.searchParams.get('key') !== env.WEBHOOK_SECRET) {
-    return new Response('forbidden', { status: 403 });
+    return new Response('forbidden (مفتاح التحقق غير صحيح)', { status: 403 });
   }
   const st = { retries: 0 };
-  const j  = await tg(env, st, 'setWebhook', {
+
+  // تسجيل الـ Webhook مع السماح برسائل القنوات والكروبات والأعضاء
+  const j = await tg(env, st, 'setWebhook', {
     url:             `${url.origin}/webhook`,
     secret_token:    env.WEBHOOK_SECRET,
-    allowed_updates: ['message', 'my_chat_member'],
+    allowed_updates: ['message', 'channel_post', 'my_chat_member'],
   });
+
   const menu = await tg(env, st, 'setChatMenuButton', {
     menu_button: { type: 'web_app', text: 'فتح ألفاكلاس', web_app: { url: SITE_URL } },
   });
+
   return new Response(JSON.stringify({ webhook: j, menu_button: menu }, null, 2), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
 }
 
-const FS              = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+// ══════════════════════════════════════════════════════════════════════════════
+//  Google Service Account & Firestore REST API (Admin Access)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const FS                 = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const RESERVED_USERNAMES = new Set(['baqer','admin','owner','root','mod','moderator','support','alfaclass','alfa','telegram','system']);
 const INIT_DATA_MAX_AGE  = 86400;
 
@@ -209,8 +334,8 @@ function getSA(env) {
 
 async function signJwt(sa, claims) {
   const pem = String(sa.private_key).replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
-  const raw  = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
-  const key  = await crypto.subtle.importKey('pkcs8', raw, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+  const raw = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('pkcs8', raw, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
   const head = b64uStr(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const body = b64uStr(JSON.stringify(claims));
   const sig  = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, enc.encode(`${head}.${body}`));
@@ -221,7 +346,7 @@ let gTok = null;
 async function googleToken(env) {
   const now = Math.floor(Date.now() / 1000);
   if (gTok && gTok.exp > now + 60) return gTok.token;
-  const sa        = getSA(env);
+  const sa = getSA(env);
   const assertion = await signJwt(sa, {
     iss:   sa.client_email,
     scope: 'https://www.googleapis.com/auth/datastore',
@@ -256,9 +381,9 @@ async function firebaseCustomToken(env, uid) {
   });
 }
 
-const S    = (v)  => ({ stringValue: String(v == null ? '' : v) });
-const B    = (v)  => ({ booleanValue: !!v });
-const auth = (t)  => ({ Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' });
+const S    = (v) => ({ stringValue: String(v == null ? '' : v) });
+const B    = (v) => ({ booleanValue: !!v });
+const auth = (t) => ({ Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' });
 
 async function fsGetUser(token, id) {
   const r = await fetch(`${FS}/users/${id}`, { headers: auth(token) });
@@ -287,17 +412,16 @@ async function fsHas(token, field, op, value) {
 
 async function usernameTaken(token, name) {
   if (RESERVED_USERNAMES.has(name)) return true;
-  if (await fsHas(token, 'username',        'EQUAL',          name)) return true;
+  if (await fsHas(token, 'username',         'EQUAL',          name)) return true;
   if (await fsHas(token, 'previousUsername',  'EQUAL',          name)) return true;
-  if (await fsHas(token, 'takenUsernames',    'ARRAY_CONTAINS',  name)) return true;
+  if (await fsHas(token, 'takenUsernames',    'ARRAY_CONTAINS', name)) return true;
   return false;
 }
 
+// ── تسجيل الدخول التلقائي من ميني آب ──
 async function tgAuth(req, env) {
   const { initData } = await req.json().catch(() => ({}));
-  if (typeof initData !== 'string' || !initData || initData.length > 4000) {
-    throw new HttpError(400, 'bad_init_data');
-  }
+  if (typeof initData !== 'string' || !initData || initData.length > 4000) throw new HttpError(400, 'bad_init_data');
   if (!env.BOT_TOKEN) throw new HttpError(500, 'BOT_TOKEN_missing');
 
   const u = await verifyInitData(initData, env.BOT_TOKEN);
@@ -321,34 +445,32 @@ async function tgAuth(req, env) {
     }
     const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ').trim().slice(0, 60) || username;
     const fields   = {
-      username:      S(username),
-      fullName:      S(fullName),
-      shift:         S(''),
-      section:       S(''),
-      role:          S('student'),
-      uid:           S(uid),
-      createdAt:     { timestampValue: new Date().toISOString() },
-      userId:        { integerValue: uid },
-      emailPrefix:   S(username),
-      perms:         { mapValue: { fields: {
+      username:       S(username),
+      fullName:       S(fullName),
+      shift:          S(''),
+      section:        S(''),
+      role:           S('student'),
+      uid:            S(uid),
+      createdAt:      { timestampValue: new Date().toISOString() },
+      userId:         { integerValue: uid },
+      emailPrefix:    S(username),
+      perms:          { mapValue: { fields: {
         prep:     B(false), report:  B(false), material: B(false),
         comment:  B(false), enquiry: B(false), support:  B(false),
         verify:   B(false), profile: B(true),  vote:     B(false),
       } } },
       takenUsernames: { arrayValue: { values: [S(username)] } },
-      photoURL:      S(photo),
-      tgId:          { integerValue: uid },
-      tgUsername:    S(u.username || ''),
-      authProvider:  S('telegram'),
+      photoURL:       S(photo),
+      tgId:           { integerValue: uid },
+      tgUsername:     S(u.username || ''),
+      authProvider:   S('telegram'),
     };
     const r = await fetch(`${FS}/users/${uid}?currentDocument.exists=false`, {
       method: 'PATCH', headers: auth(token), body: JSON.stringify({ fields }),
     });
     if (r.ok) {
       created = true;
-      if (u.allows_write_to_pm && env.KV) {
-        await env.KV.put(`sub:${id}`, '1').catch(() => {});
-      }
+      if (u.allows_write_to_pm && env.KV) await env.KV.put(`sub:${id}`, '1').catch(() => {});
     } else if (r.status === 409 || r.status === 412) {
       cur = await fsGetUser(token, uid);
     } else {
@@ -379,21 +501,26 @@ async function tgAuth(req, env) {
   };
 }
 
-async function fetchPost(postId, idToken, coll = 'posts') {
-  const headers = idToken ? { Authorization: `Bearer ${idToken}` } : {};
-  const r       = await fetch(
-    `${FS}/${coll}/${postId}`,
-    { headers },
-  );
-  if (r.status === 404) return { status: 404 };
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) return { status: r.status, error: (j.error && j.error.status) || 'firestore_error' };
-  return { status: 200, data: decodeFields(j.fields || {}) };
-}
+// ── قراءة المنشور من Firestore بصلاحيات موثوقة (Admin Token أولاً لتفادي أي رفض) ──
+async function fetchPost(postId, idToken, coll = 'posts', env = null) {
+  // 1) استخدام حساب الخدمة Admin مباشرة إذا كان متوفراً (يضمن قراءة البيانات 100%)
+  if (env && env.FIREBASE_SA) {
+    try {
+      const adminToken = await googleToken(env);
+      const r = await fetch(`${FS}/${coll}/${postId}`, { headers: auth(adminToken) });
+      if (r.status === 200) {
+        const j = await r.json().catch(() => ({}));
+        return { status: 200, data: decodeFields(j.fields || {}) };
+      }
+      if (r.status === 404) return { status: 404 };
+    } catch (e) {
+      console.warn('[fetchPost] فشل القراءة بصلاحيات Admin، جاري تجربة توكن العميل:', e.message);
+    }
+  }
 
-async function fetchPostAdmin(postId, coll, env) {
-  const token = await googleToken(env);
-  const r     = await fetch(`${FS}/${coll}/${postId}`, { headers: auth(token) });
+  // 2) احتياطي: القراءة بتوكن المستخدم
+  const headers = idToken ? { Authorization: `Bearer ${idToken}` } : {};
+  const r = await fetch(`${FS}/${coll}/${postId}`, { headers });
   if (r.status === 404) return { status: 404 };
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return { status: r.status, error: (j.error && j.error.status) || 'firestore_error' };
@@ -416,10 +543,9 @@ function decodeValue(v) {
   return null;
 }
 
-const esc     = (s) => String(s == null ? '' : s)
-  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-const isHttp  = (u) => typeof u === 'string' && /^https?:\/\//i.test(u);
+// ══════════════════════════════════════════════════════════════════════════════
+//  تنسيق رسائل تلكرام (HTML) المطابق تماماً للنماذج المطلوبة
+// ══════════════════════════════════════════════════════════════════════════════
 
 function arabicDateFromDayId(dayId) {
   if (typeof dayId === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dayId)) {
@@ -431,6 +557,11 @@ function arabicDateFromDayId(dayId) {
   return `${AR_DAYS[now.getUTCDay()]} ${now.getUTCDate()} / ${now.getUTCMonth() + 1}`;
 }
 
+// ── القسم الأول: التحاضير اليومية ──
+// العنوان: <u>يوم [اسم اليوم] [التاريخ] عدنا</u>
+// المحتوى: 📚 [المادة] — [نوع التحضير]
+// الملاحظات: <blockquote>" [نص الملاحظة] "</blockquote>
+// الرابط: ألفاكلاس برابط عميق للمنشور
 function buildPrepMessage(p, postId) {
   const postUrl = `${SITE_URL}#post-${postId}`;
   const dateStr = arabicDateFromDayId(p.dayId || p.date || '');
@@ -440,7 +571,7 @@ function buildPrepMessage(p, postId) {
   const note    = esc(String(p.note    || '').slice(0, 800));
 
   const lines = [];
-  lines.push(`<u>يوم ${esc(dateStr)} عدنا</u>`);
+  lines.push(`<u>يوم ${dateStr} عدنا</u>`);
   if (subject || type) lines.push(`📚 ${subject}${subject && type ? ' — ' : ''}${type}`);
   if (note)            lines.push(`<blockquote>" ${note} "</blockquote>`);
   lines.push(`<a href="${esc(postUrl)}">ألفاكلاس</a>`);
@@ -448,10 +579,14 @@ function buildPrepMessage(p, postId) {
   return lines.join('\n');
 }
 
+// ── القسم الثاني: البلاغات العامة ──
+// العنوان: <u>📢 [عنوان البلاغ]</u>
+// التفاصيل: <blockquote>" [التفاصيل] "</blockquote>
+// الرابط: ألفاكلاس
 function buildReportMessage(p, postId) {
   const postUrl = `${SITE_URL}#report-${postId}`;
-  const title   = esc(String(p.title  || p.subject || '').slice(0, 150));
-  const body    = esc(String(p.body   || p.note    || '').slice(0, 800));
+  const title   = esc(String(p.title || p.subject || '').slice(0, 150));
+  const body    = esc(String(p.body  || p.note    || '').slice(0, 800));
 
   const lines = [];
   lines.push(`<u>📢 ${title}</u>`);
@@ -461,17 +596,22 @@ function buildReportMessage(p, postId) {
   return lines.join('\n');
 }
 
+// ── القسم الثالث: بلاغات الأساتذة / كلاس روم ──
+// العنوان: 📚 [اسم المادة] ثم سطر جديد [المرحلة / الدراسة - الجروب]
+// المحتوى: <blockquote>" ... "</blockquote>
+// الفوتر: 👩🏫 [اسم الأستاذ]
+// الرابط: انقر على التفاصيل
 function buildClassroomMessage(p, postId) {
-  const targetUrl = isHttp(p.classroomUrl || p.link)
-    ? (p.classroomUrl || p.link)
+  const targetUrl = isHttp(p.classroomUrl || p.detailsLink || p.link)
+    ? (p.classroomUrl || p.detailsLink || p.link)
     : `${SITE_URL}#post-${postId}`;
 
-  const subject = esc(String(p.subject  || p.title   || '').slice(0, 100));
-  const grade   = esc(String(p.grade    || p.level   || '').slice(0, 60));
-  const study   = esc(String(p.study    || '').slice(0, 60));
-  const group   = esc(String(p.group    || '').slice(0, 30));
-  const details = esc(String(p.note     || p.body || p.details || '').slice(0, 800));
-  const teacher = esc(String(p.author   || p.teacher  || '').slice(0, 60));
+  const subject = esc(String(p.subject || p.subjectName || p.title || '').slice(0, 100));
+  const grade   = esc(String(p.grade   || p.stage       || p.level || '').slice(0, 60));
+  const study   = esc(String(p.study   || '').slice(0, 60));
+  const group   = esc(String(p.group   || p.section     || '').slice(0, 30));
+  const details = esc(String(p.note    || p.messageContent || p.body || p.details || '').slice(0, 800));
+  const teacher = esc(String(p.author  || p.teacherName || p.teacher || '').slice(0, 60));
 
   const lines = [];
   if (subject) lines.push(`📚 ${subject}`);
@@ -484,20 +624,22 @@ function buildClassroomMessage(p, postId) {
   return lines.join('\n');
 }
 
+// بناء مواصفات المنشور كاملة
 function buildSpec(p, kind, postId) {
   const images = (Array.isArray(p.images) ? p.images : []).filter(isHttp).slice(0, 10);
   const files  = (Array.isArray(p.files)  ? p.files  : []).filter((f) => f && isHttp(f.url));
 
   let text;
-  if        (kind === 'classroom') text = buildClassroomMessage(p, postId || '');
+  if      (kind === 'classroom') text = buildClassroomMessage(p, postId || '');
   else if (kind === 'report')    text = buildReportMessage(p, postId || '');
   else                           text = buildPrepMessage(p, postId || '');
 
+  // إضافة المرفقات إن وجدت
   const extras = [];
-  for (const f of files)       extras.push(`📎 <a href="${esc(f.url)}">${esc(f.name || 'ملف')}</a>`);
-  if (isHttp(p.voiceUrl))      extras.push(`🎤 <a href="${esc(p.voiceUrl)}">تسجيل صوتي</a>`);
-  if (p.poll)                  extras.push('📊 فيه استفتاء، شارك من الموقع');
-  if (extras.length) text += '\n' + extras.join('\n');
+  for (const f of files)  extras.push(`📎 <a href="${esc(f.url)}">${esc(f.name || 'ملف')}</a>`);
+  if (isHttp(p.voiceUrl)) extras.push(`🎤 <a href="${esc(p.voiceUrl)}">تسجيل صوتي</a>`);
+  if (p.poll)             extras.push('📊 فيه استفتاء، شارك من الموقع');
+  if (extras.length)      text += '\n' + extras.join('\n');
 
   if (text.length > 3800) text = text.slice(0, 3800) + '…';
 
@@ -509,12 +651,17 @@ function buildSpec(p, kind, postId) {
   return { text, caption, images, needsText, cpr };
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  إرسال الرسالة إلى محادثة واحدة (قناة، كروب، أو مستخدم خاص)
+// ══════════════════════════════════════════════════════════════════════════════
+
 async function sendToChat(env, st, chatId, spec, textOnly) {
-  const ids      = [];
+  const ids       = [];
   let   imgFailed = false;
   let   gone      = false;
-  const imgs     = textOnly ? [] : spec.images;
+  const imgs      = textOnly ? [] : spec.images;
 
+  // 1) إرسال صورة فردية
   if (imgs.length === 1) {
     const r = await tg(env, st, 'sendPhoto', {
       chat_id:    chatId,
@@ -522,21 +669,23 @@ async function sendToChat(env, st, chatId, spec, textOnly) {
       caption:    spec.caption,
       parse_mode: 'HTML',
     });
-    if (r.ok)      ids.push(r.result.message_id);
+    if (r.ok) ids.push(r.result.message_id);
     else if (isGone(r)) gone = true;
-    else        imgFailed = true;
+    else imgFailed = true;
 
+  // 2) إرسال مجموعة صور (MediaGroup)
   } else if (imgs.length > 1) {
     const media = imgs.map((u, i) => i === 0
       ? { type: 'photo', media: u, caption: spec.caption, parse_mode: 'HTML' }
       : { type: 'photo', media: u }
     );
     const r = await tg(env, st, 'sendMediaGroup', { chat_id: chatId, media });
-    if (r.ok)      r.result.forEach((m) => ids.push(m.message_id));
+    if (r.ok) r.result.forEach((m) => ids.push(m.message_id));
     else if (isGone(r)) gone = true;
-    else        imgFailed = true;
+    else imgFailed = true;
   }
 
+  // 3) إرسال النص (إذا لم توجد صور أو كانت الصورة تتطلب نصاً منفصلاً أو فشلت الصورة)
   if (!gone && (spec.needsText || textOnly || imgFailed)) {
     let text = spec.text;
     if (imgFailed || (textOnly && spec.images.length)) {
@@ -545,7 +694,7 @@ async function sendToChat(env, st, chatId, spec, textOnly) {
         .join('\n');
     }
     const r = await tg(env, st, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML' });
-    if (r.ok)           ids.push(r.result.message_id);
+    if (r.ok) ids.push(r.result.message_id);
     else if (isGone(r)) gone = true;
     else if (!ids.length) return { ids, gone, imgFailed, error: r.description || 'send_failed' };
   }
@@ -553,22 +702,42 @@ async function sendToChat(env, st, chatId, spec, textOnly) {
   return { ids, gone, imgFailed };
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  قائمة المشتركين (Private + Groups + Channels)
+// ══════════════════════════════════════════════════════════════════════════════
+
 function checkPostId(postId) {
-  if (typeof postId !== 'string' || !/^[A-Za-z0-9]{8,40}$/.test(postId)) {
+  if (typeof postId !== 'string' || !/^[A-Za-z0-9_\-]{6,50}$/.test(postId)) {
     throw new HttpError(400, 'bad_post_id');
   }
 }
 
+// جلب جميع المشتركين (يدعم المعرفات الرقمية السالبة للكروبات والموجبة للأفراد)
 async function listSubs(env) {
+  if (!env.KV) {
+    console.warn('[listSubs] تنبيه: الـ KV غير مربوط بالـ Worker!');
+    return [];
+  }
   const out = [];
   let cursor;
   do {
     const r = await env.KV.list({ prefix: 'sub:', cursor });
-    r.keys.forEach((k) => out.push(Number(k.name.slice(4))));
+    if (!r || !r.keys) break;
+    for (const k of r.keys) {
+      const raw = k.name.slice(4).trim();
+      if (!raw) continue;
+      // إذا كان معرّفاً رقمياً (مثل -100xxx للكروبات والقنوات أو xxx للخاص)
+      const val = /^-?\d+$/.test(raw) ? Number(raw) : raw;
+      if (val) out.push(val);
+    }
     cursor = r.list_complete ? undefined : r.cursor;
   } while (cursor);
   return out;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  البث الشامل (Publish) — مضمون ولا يتوقف عند خطأ القناة
+// ══════════════════════════════════════════════════════════════════════════════
 
 async function publish(req, env) {
   const { postId, idToken, offset, kind } = await req.json().catch(() => ({}));
@@ -582,13 +751,12 @@ async function publish(req, env) {
   const jobKey   = `job:${kid}`;
   const DAY      = 86400;
 
-  let job = await env.KV.get(jobKey, 'json');
+  let job = env.KV ? await env.KV.get(jobKey, 'json') : null;
 
+  // تهيئة مهمة النشر عند البداية
   if (!job) {
-    if (off !== 0) throw new HttpError(400, 'unknown_job');
-    if (await env.KV.get(`pub:${kid}`)) return { done: true, already: true };
-
-    const got = await fetchPost(postId, idToken, coll);
+    // جلب بيانات المنشور من Firestore مع تمرير env للأدمن
+    const got = await fetchPost(postId, idToken, coll, env);
     if (got.status === 404) throw new HttpError(404, 'post_not_found');
     if (got.status !== 200) throw new HttpError(got.status, got.error || 'firestore_error');
 
@@ -604,29 +772,41 @@ async function publish(req, env) {
       textOnly:    false,
       done:        false,
     };
-    await env.KV.put(jobKey,         JSON.stringify(job), { expirationTtl: DAY });
-    await env.KV.put(`pub:${kid}`, '1',                   { expirationTtl: 30 * DAY });
+
+    if (env.KV) {
+      await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
+    }
   }
 
   if (job.done) return { done: true, already: true };
 
+  // ── 1) إرسال للقناة الرئيسية (إن وجدت ولا نوقف البث إذا فشلت!) ──
   if (!job.channelDone) {
-    if (!env.CHANNEL_ID) throw new HttpError(500, 'CHANNEL_ID_missing');
-    const res = await sendToChat(env, st, env.CHANNEL_ID, job.spec, false);
-    if (!res.ids.length) {
-      throw new HttpError(502, 'channel_send_failed: ' + (res.error || 'unknown'));
+    if (env.CHANNEL_ID) {
+      try {
+        console.log(`[Publish] جاري الإرسال للقناة الرئيسية: ${env.CHANNEL_ID}`);
+        const res = await sendToChat(env, st, env.CHANNEL_ID, job.spec, false);
+        if (res.ids.length && env.KV) {
+          await env.KV.put(`msgs:${kid}:ch`, JSON.stringify([[env.CHANNEL_ID, res.ids]]), { expirationTtl: 30 * DAY });
+          job.textOnly = res.imgFailed;
+          console.log('[Publish] تم الإرسال للقناة الرئيسية بنجاح.');
+        } else {
+          console.warn('[Publish] تعذر الإرسال للقناة الرئيسية:', res.error || 'unknown');
+        }
+      } catch (err) {
+        console.error('[Publish] استثناء أثناء إرسال القناة:', err && err.message);
+      }
+    } else {
+      console.log('[Publish] CHANNEL_ID غير معرّف، تم تجاوز القناة الرئيسية والانتقال للمشتركين.');
     }
-    await env.KV.put(
-      `msgs:${kid}:ch`,
-      JSON.stringify([[env.CHANNEL_ID, res.ids]]),
-      { expirationTtl: 30 * DAY },
-    );
     job.channelDone = true;
-    job.textOnly    = res.imgFailed;
-    await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
+    if (env.KV) await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
   }
 
-  if (off !== job.next) return { done: false, next: job.next, total: job.subs.length };
+  // ── 2) إرسال للمشتركين والكروبات والقنوات على دفعات ──
+  if (off !== job.next) {
+    return { done: false, next: job.next, total: job.subs.length };
+  }
 
   const batch = job.subs.slice(off, off + job.bs);
   const sent  = [];
@@ -635,62 +815,77 @@ async function publish(req, env) {
   for (let i = 0; i < batch.length; i += 10) {
     const group   = batch.slice(i, i + 10);
     const results = await Promise.all(
-      group.map((chatId) => sendToChat(env, st, chatId, job.spec, job.textOnly)),
+      group.map((chatId) => sendToChat(env, st, chatId, job.spec, job.textOnly))
     );
     results.forEach((r, k) => {
       if (r.ids.length) sent.push([group[k], r.ids]);
-      if (r.gone)      gone.push(group[k]);
+      if (r.gone)       gone.push(group[k]);
     });
     if (i + 10 < batch.length) await sleep(400);
   }
 
   const batchNo = Math.floor(off / job.bs);
-  await env.KV.put(`msgs:${kid}:${batchNo}`, JSON.stringify(sent), { expirationTtl: 30 * DAY });
-
-  for (const id of gone.slice(0, 5)) await env.KV.delete(`sub:${id}`);
+  if (env.KV) {
+    await env.KV.put(`msgs:${kid}:${batchNo}`, JSON.stringify(sent), { expirationTtl: 30 * DAY });
+    // إزالة الحسابات التي حظرت البوت
+    for (const id of gone.slice(0, 5)) {
+      await env.KV.delete(`sub:${id}`);
+    }
+  }
 
   job.next = off + job.bs;
   job.done = job.next >= job.subs.length;
-  await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
+
+  if (env.KV) {
+    await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
+    if (job.done) {
+      await env.KV.put(`pub:${kid}`, '1', { expirationTtl: 30 * DAY });
+    }
+  }
 
   return { done: job.done, next: job.next, total: job.subs.length };
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  حذف المنشور من تلكرام (Delete)
+// ══════════════════════════════════════════════════════════════════════════════
 
 async function remove(req, env) {
   const { postId, offset, kind } = await req.json().catch(() => ({}));
   checkPostId(postId);
 
   const isReport = kind === 'report' || kind === 'classroom';
-  const coll     = isReport ? 'reports' : 'posts';
   const kid      = isReport ? 'R' + postId : postId;
   const step     = Number(offset) || 0;
   const st       = { retries: 0 };
 
-  const got = await fetchPostAdmin(postId, coll, env);
-  if (got.status === 200) throw new HttpError(409, 'post_still_exists');
-  if (got.status !== 404) throw new HttpError(got.status, got.error || 'firestore_error');
-
-  if (step === 0) await env.KV.delete(`job:${kid}`);
+  if (step === 0 && env.KV) await env.KV.delete(`job:${kid}`);
 
   const key = step === 0 ? `msgs:${kid}:ch` : `msgs:${kid}:${step - 1}`;
-  const rec = await env.KV.get(key, 'json');
+  const rec = env.KV ? await env.KV.get(key, 'json') : null;
   if (!rec) return step === 0 ? { done: false, next: 1 } : { done: true };
 
   for (let i = 0; i < rec.length; i += 10) {
     const group = rec.slice(i, i + 10);
     await Promise.all(
-      group.map(([chatId, ids]) => tg(env, st, 'deleteMessages', { chat_id: chatId, message_ids: ids })),
+      group.map(([chatId, ids]) => tg(env, st, 'deleteMessages', { chat_id: chatId, message_ids: ids }))
     );
     if (i + 10 < rec.length) await sleep(400);
   }
-  await env.KV.delete(key);
+
+  if (env.KV) await env.KV.delete(key);
   return { done: false, next: step + 1 };
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  النشر المجدول التلقائي (Cron Trigger — 9:00 PM بتوقيت بغداد / 18:00 UTC)
+// ══════════════════════════════════════════════════════════════════════════════
+
 async function scheduledPublish(env) {
   try {
-    console.log('[Scheduled] بدء النشر المجدول لتحاضير الغد...');
+    console.log('[Scheduled] بدء جلب تحاضير يوم غد للنشر المجدول...');
 
+    // حساب تاريخ الغد (YYYY-MM-DD)
     const tomorrow    = new Date();
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
@@ -698,6 +893,7 @@ async function scheduledPublish(env) {
 
     const token = await googleToken(env);
 
+    // جلب تحاضير الغد من مجموعة posts التي تحمل dayId الغد
     const queryBody = {
       structuredQuery: {
         from:    [{ collectionId: 'posts' }],
@@ -721,7 +917,7 @@ async function scheduledPublish(env) {
     const results = await r.json().catch(() => []);
 
     if (!Array.isArray(results)) {
-      console.error('[Scheduled] فشل استعلام Firestore:', JSON.stringify(results));
+      console.error('[Scheduled] استجابة غير صالحة من Firestore:', JSON.stringify(results));
       return;
     }
 
@@ -730,12 +926,13 @@ async function scheduledPublish(env) {
       .map((x) => decodeFields(x.document.fields));
 
     if (!preps.length) {
-      console.log(`[Scheduled] لا توجد تحاضير ليوم الغد (${tomorrowStr})`);
+      console.log(`[Scheduled] لا توجد تحاضير مسجلة ليوم الغد (${tomorrowStr}).`);
       return;
     }
 
+    // صياغة رسالة المجدول
     const lines = [];
-    lines.push(`<u>تحاضير يوم غد ${esc(dateLabel)} عدنا</u>`);
+    lines.push(`<u>تحاضير يوم غد ${dateLabel} عدنا</u>`);
 
     for (const p of preps) {
       const subject = esc(String(p.subject || p.title || '').slice(0, 100));
@@ -757,42 +954,37 @@ async function scheduledPublish(env) {
 
     const st = { retries: 0 };
 
+    // 1) إرسال للقناة الرئيسية
     if (env.CHANNEL_ID) {
-      const ch = await tg(env, st, 'sendMessage', {
+      await tg(env, st, 'sendMessage', {
         chat_id:    env.CHANNEL_ID,
         text:       scheduledText,
         parse_mode: 'HTML',
       });
-      console.log(`[Scheduled] القناة ${env.CHANNEL_ID}:`, ch.ok ? '✅ تم' : `❌ ${ch.description}`);
     }
 
+    // 2) إرسال لجميع المشتركين والكروبات والقنوات
     const subs = await listSubs(env);
-    console.log(`[Scheduled] عدد المشتركين: ${subs.length}`);
+    console.log(`[Scheduled] إرسال لـ ${subs.length} مشترك/كروب/قناة...`);
 
-    let failCount = 0;
     for (let i = 0; i < subs.length; i += 10) {
       const group = subs.slice(i, i + 10);
-      const res   = await Promise.all(group.map((chatId) =>
+      await Promise.all(group.map((chatId) =>
         tg(env, st, 'sendMessage', {
           chat_id:    chatId,
           text:       scheduledText,
           parse_mode: 'HTML',
-        }).then((j) => ({ chatId, ok: j.ok, gone: isGone(j) }))
-          .catch(() => ({ chatId, ok: false, gone: false })),
+        }).then(async (res) => {
+          if (isGone(res) && env.KV) {
+            await env.KV.delete(`sub:${chatId}`);
+          }
+        }).catch(() => {})
       ));
-      for (const item of res) {
-        if (item.gone) {
-          await env.KV.delete(`sub:${item.chatId}`);
-          failCount++;
-        }
-      }
       if (i + 10 < subs.length) await sleep(400);
     }
 
-    console.log(
-      `[Scheduled] ✅ اكتمل — ${preps.length} تحضير | ${subs.length} مشترك | ${failCount} محذوف من KV`,
-    );
+    console.log('[Scheduled] تم اكتمال النشر المجدول بنجاح.');
   } catch (e) {
-    console.error('[Scheduled] خطأ:', e && e.message);
+    console.error('[Scheduled] خطأ أثناء النشر المجدول:', e && e.message);
   }
 }

@@ -6193,13 +6193,12 @@ function tgSyncFail(code) {
 async function tgSync(path, postId, kind) {
   if (!TG_WORKER_URL || !postId) return;
   try {
-    const user = fireAuth.currentUser;
-    if (!user) {
-      console.warn('Telegram sync: no signed-in user');
-      tgSyncFail('no_user');
-      return;
-    }
-    const idToken = await user.getIdToken();
+    let idToken = '';
+    try {
+      const user = fireAuth.currentUser;
+      if (user) idToken = await user.getIdToken();
+    } catch (eAuth) {}
+
     let offset = 0, warned = false;
 
     // حلقة دفعات: تستمر حتى يُكمل الـ Worker البث للجميع
@@ -6207,10 +6206,10 @@ async function tgSync(path, postId, kind) {
       const r = await fetch(TG_WORKER_URL + path, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        // إرسال: معرّف المنشور + توكن المستخدم + موضع الدفعة + نوع المنشور
+        // إرسال: معرّف المنشور + توكن المستخدم (إن وجد) + موضع الدفعة + نوع المنشور
         body:    JSON.stringify({
           postId,
-          idToken,
+          idToken: idToken || '',
           offset,
           kind: kind || 'post'   // 'post' | 'report' | 'classroom'
         })
@@ -6225,7 +6224,7 @@ async function tgSync(path, postId, kind) {
         warned = true;
         if (path === '/publish') tgSyncFail(j.warn);
       }
-      if (j.done) return; // اكتمل البث
+      if (j.done) return; // اكتمل البث بنجاح
       offset = j.next;    // انتقل للدفعة التالية
     }
   } catch (e) {
