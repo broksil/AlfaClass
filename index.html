@@ -6167,7 +6167,13 @@ const TG_WORKER_URL = 'https://alfaclass-bot.bqrmhmdzml.workers.dev';
 function tgSyncFail(code) {
   const c = String(code || '');
   let msg = 'تعذّر إرسال المنشور لتلكرام (' + (c || 'خطأ') + ')';
-  if (/channel_send_failed/.test(c)) msg = 'البوت ما يگدر ينشر بالقناة: تأكد انه مسؤول بالقناة وأن CHANNEL_ID صحيح (' + c.replace('channel_send_failed: ', '') + ')';
+  if (/channel_send_failed/.test(c)) {
+    const d = c.replace('channel_send_failed: ', '');
+    msg = 'وصل للمشتركين لكن ما وصل للقناة. ' + (
+      /chat not found/i.test(d) ? 'CHANNEL_ID غلط (القناة غير موجودة بهذا الاسم/الرقم).' :
+      /not a member|kicked|Forbidden/i.test(d) ? 'البوت مو مضاف أو مو مسؤول بالقناة.' :
+      /not enough rights|administrator/i.test(d) ? 'البوت ما عنده صلاحية نشر الرسائل.' : 'السبب: ' + d);
+  }
   else if (c === 'CHANNEL_ID_missing') msg = 'CHANNEL_ID غير مضاف بإعدادات الـ Worker';
   else if (/PERMISSION_DENIED|UNAUTHENTICATED/.test(c)) msg = 'الـ Worker ما گدر يقرأ المنشور من Firestore (قواعد الأمان)';
   else if (c === 'internal_error') msg = 'خطأ داخلي بالـ Worker: راجع Logs بـ Cloudflare (غالباً KV أو BOT_TOKEN)';
@@ -6180,7 +6186,7 @@ async function tgSync(path, postId, kind) {
     const user = fireAuth.currentUser;
     if (!user) { console.warn('Telegram sync: no signed-in user'); tgSyncFail('no_user'); return; }
     const idToken = await user.getIdToken();
-    let offset = 0;
+    let offset = 0, warned = false;
     for (let i = 0; i < 80; i++) {
       const r = await fetch(TG_WORKER_URL + path, {
         method: 'POST',
@@ -6189,6 +6195,7 @@ async function tgSync(path, postId, kind) {
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j.error) { console.warn('Telegram sync', path, r.status, j.error); if (path === '/publish') tgSyncFail(j.error || ('http_' + r.status)); return; }
+      if (j.warn && !warned) { warned = true; if (path === '/publish') tgSyncFail(j.warn); }
       if (j.done) return;
       offset = j.next;
     }
