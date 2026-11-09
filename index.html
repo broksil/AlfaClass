@@ -6004,7 +6004,8 @@ async function processPublish(data, isBackgroundSync = false, onProgress = null)
     await updateDoc(doc(db, 'posts', editId), postData);
     if (!isBackgroundSync) showToast('✅','تعديل','تم تعديل المنشور بنجاح');
   } else {
-    await addDoc(collection(db, 'posts'), postData);
+    const newPostRef = await addDoc(collection(db, 'posts'), postData);
+    tgSync('/publish', newPostRef.id); // إرسال المنشور لتلكرام (القناة + المشتركين)
     if (!isBackgroundSync) {
       showToast('✅','نشر','تم نشر التحضير بنجاح');
       clearDraft();
@@ -6149,6 +6150,34 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     });
 });
 
+// ── TELEGRAM SYNC (Cloudflare Worker) ──
+// ضع هنا رابط الـ Worker بعد ما تسويه، مثال: 'https://alfaclass-bot.اسمك.workers.dev'
+const TG_WORKER_URL = '';
+
+// يرسل الطلب للـ Worker على دفعات (حتى لو عدد المشتركين كبير) ولا يعطّل الموقع أبداً إذا فشل
+async function tgSync(path, postId) {
+  if (!TG_WORKER_URL || !postId) return;
+  try {
+    const user = fireAuth.currentUser;
+    if (!user) return;
+    const idToken = await user.getIdToken();
+    let offset = 0;
+    for (let i = 0; i < 80; i++) {
+      const r = await fetch(TG_WORKER_URL + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, idToken, offset })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.error) { console.warn('Telegram sync', path, r.status, j.error); return; }
+      if (j.done) return;
+      offset = j.next;
+    }
+  } catch (e) {
+    console.warn('Telegram sync failed', e && e.message);
+  }
+}
+
 // ── DELETE ──
 window.deletePost = async function(postId, mediaUrls) {
   // التحقق من الصلاحية + الملكية: صاحب صلاحية prep يحذف منشوراته فقط
@@ -6163,6 +6192,7 @@ window.deletePost = async function(postId, mediaUrls) {
   if (!okDel) return;
   try {
     await deleteDoc(doc(db, 'posts', postId));
+    tgSync('/delete', postId); // حذف المنشور من تلكرام أيضاً
     showToast('🗑️','حذف','تم حذف المنشور');
   } catch(e) {
     showToast('❌','خطأ','فشل الحذف');
