@@ -9,6 +9,8 @@
 <meta name="google-site-verification" content="JhgaPzeHK7LxgNwh_sOUL9eyO087c2Em0I0LD0UteKk" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#0a0a1a">
+<!-- تلكرام ميني آب: يعطي الموقع بيانات المستخدم عند الفتح من البوت -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <meta name="description" content="ألفاكلاس — منصة تعليمية شاملة للطلاب: ملازم وملخصات ونماذج أسئلة وحلول الواجبات لكل المواد، منشورات يومية، إعلانات الأساتذات وتليغات الممثل، بلاغات وتعليقات، ملف شخصي واستفسارات ودعم فني.">
 <!-- ═══ معاينة غنية عند مشاركة الرابط (Open Graph + Twitter Cards) — تليكرام/واتساب/X ═══ -->
 <meta property="og:type" content="website">
@@ -4270,7 +4272,7 @@ import {
   updateDoc, doc, deleteDoc, where, getDocs, setDoc, increment, getDoc, enableIndexedDbPersistence, arrayUnion, arrayRemove, getCountFromServer, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthChanged, signOut as firebaseSignOut, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthChanged, signOut as firebaseSignOut, updatePassword, deleteUser, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // ── FIREBASE INIT ──
 const firebaseConfig = {
@@ -4916,6 +4918,12 @@ onFirebaseAuthChanged(fireAuth, (u) => {
   if (u && !window.__signing && localStorage.getItem('isLoggedIn') !== 'true') {
     const name = (u.email || '').split('@')[0];
     if (name) loadProfileAndApply(name, u.uid).catch(() => {});
+    else if (/^\d+$/.test(u.uid)) {
+      // حساب تلكرام (بلا بريد): معرّف الحساب = معرّف تلكرام = مفتاح المستند
+      getDoc(doc(db, 'users', u.uid)).then(sn => {
+        if (sn.exists() && sn.data().username) loadProfileAndApply(sn.data().username, u.uid).catch(() => {});
+      }).catch(() => {});
+    }
   }
 });
 
@@ -6155,28 +6163,79 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
 const TG_WORKER_URL = 'https://alfaclass-bot.bqrmhmdzml.workers.dev';
 
 // يرسل الطلب للـ Worker على دفعات (حتى لو عدد المشتركين كبير) ولا يعطّل الموقع أبداً إذا فشل
-async function tgSync(path, postId) {
+// رسائل واضحة لأي فشل (حتى تعرف السبب فوراً بدل ما يضيع بالـ Console)
+function tgSyncFail(code) {
+  const c = String(code || '');
+  let msg = 'تعذّر إرسال المنشور لتلكرام (' + (c || 'خطأ') + ')';
+  if (/channel_send_failed/.test(c)) msg = 'البوت ما يگدر ينشر بالقناة: تأكد انه مسؤول بالقناة وأن CHANNEL_ID صحيح (' + c.replace('channel_send_failed: ', '') + ')';
+  else if (c === 'CHANNEL_ID_missing') msg = 'CHANNEL_ID غير مضاف بإعدادات الـ Worker';
+  else if (/PERMISSION_DENIED|UNAUTHENTICATED/.test(c)) msg = 'الـ Worker ما گدر يقرأ المنشور من Firestore (قواعد الأمان)';
+  else if (c === 'internal_error') msg = 'خطأ داخلي بالـ Worker: راجع Logs بـ Cloudflare (غالباً KV أو BOT_TOKEN)';
+  try { showToast('⚠️', 'تلكرام', msg); } catch (e) {}
+}
+// kind = 'report' للبلاغات، وإلا تحضير
+async function tgSync(path, postId, kind) {
   if (!TG_WORKER_URL || !postId) return;
   try {
     const user = fireAuth.currentUser;
-    if (!user) return;
+    if (!user) { console.warn('Telegram sync: no signed-in user'); tgSyncFail('no_user'); return; }
     const idToken = await user.getIdToken();
     let offset = 0;
     for (let i = 0; i < 80; i++) {
       const r = await fetch(TG_WORKER_URL + path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, idToken, offset })
+        body: JSON.stringify({ postId, idToken, offset, kind: kind || 'post' })
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok || j.error) { console.warn('Telegram sync', path, r.status, j.error); return; }
+      if (!r.ok || j.error) { console.warn('Telegram sync', path, r.status, j.error); if (path === '/publish') tgSyncFail(j.error || ('http_' + r.status)); return; }
       if (j.done) return;
       offset = j.next;
     }
   } catch (e) {
     console.warn('Telegram sync failed', e && e.message);
+    if (path === '/publish') tgSyncFail('network');
   }
 }
+
+// ── دخول تلقائي من تلكرام (ميني آب) ──
+// عند فتح الموقع من زر البوت: الـ Worker يتحقق من توقيع تلكرام، ينشئ الحساب أول مرة
+// (المعرّف = معرّف تلكرام، الاسم والصورة واليوزر من تلكرام) ويرجع توكن دخول Firebase
+async function tgMiniAppLogin() {
+  const tw = window.Telegram && window.Telegram.WebApp;
+  if (!tw || !tw.initData || !TG_WORKER_URL) return; // الموقع مفتوح من متصفح عادي: الدخول بالطريقة القديمة
+  try { tw.ready(); tw.expand(); } catch (e) {}
+  if (sessionStorage.getItem('tgLoggedOut') === '1') return; // ضغط تسجيل خروج بهذه الجلسة
+  let tgUser = null;
+  try { tgUser = tw.initDataUnsafe && tw.initDataUnsafe.user; } catch (e) {}
+  try { await fireAuth.authStateReady(); } catch (e) {}
+  const cur = fireAuth.currentUser;
+  if (cur && tgUser && cur.uid === String(tgUser.id) && localStorage.getItem('isLoggedIn') === 'true') return; // داخل أصلاً
+  window.__signing = true;
+  try {
+    const r = await fetch(TG_WORKER_URL + '/tg-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData: tw.initData })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.customToken) {
+      console.warn('Telegram login', r.status, j.error);
+      showToast('⚠️', 'تلكرام', j.error === 'id_conflict' ? 'هذا المعرّف مستخدم بحساب آخر، تواصل مع صاحب الموقع.' : 'تعذّر الدخول التلقائي من تلكرام، حاول مرة ثانية.');
+      return;
+    }
+    const cred = await signInWithCustomToken(fireAuth, j.customToken);
+    window.__signing = false;
+    await loadProfileAndApply(j.username, cred.user.uid);
+    setTimeout(() => showToast('✅', 'مرحباً', j.created ? (j.fullName + ' — تم إنشاء حسابك من تلكرام') : j.fullName), 1500);
+  } catch (e) {
+    console.warn('Telegram login failed', e && (e.code || e.message));
+    showToast('⚠️', 'تلكرام', 'تعذّر الدخول التلقائي من تلكرام، حاول مرة ثانية.');
+  } finally { window.__signing = false; }
+}
+// داخل تلكرام: شاشة التحميل تبقى لين يكتمل الدخول (يتحكم بها init)
+window.__tgLoginPromise = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)
+  ? tgMiniAppLogin().catch(() => {}) : null;
 
 // ── DELETE ──
 window.deletePost = async function(postId, mediaUrls) {
@@ -9047,6 +9106,7 @@ async function accSaveUsername() {
 }
 // تسجيل الخروج (يُستخدم من الهيدر ومن صفحة الحساب)
 async function accDoLogout() {
+  try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) sessionStorage.setItem('tgLoggedOut', '1'); } catch (e) {}
   clearSession();
   updateHeaderUI();
   try { await firebaseSignOut(fireAuth); } catch (e) {}
@@ -9081,6 +9141,7 @@ async function accSavePassword() {
   if (pass !== pass2) { accSetErr('acc-np-err', 'كلمتا السر غير متطابقتين.'); return; }
   const user = fireAuth.currentUser;
   if (!user) { accSetErr('acc-np-err', 'يجب تسجيل الدخول أولاً.'); return; }
+  if (!user.email) { accSetErr('acc-np-err', 'حسابك مربوط بتلكرام ويدخل تلقائياً، ما يحتاج كلمة سر.'); return; }
   const btn = accEl('acc-np-save');
   accBusy(btn, true);
   try {
@@ -11355,7 +11416,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
       showToast('✅', 'تم التعديل', 'حُدِّث البلاغ لجميع المستخدمين فوراً');
     } else {
       // نشر بلاغ جديد
-      await addDoc(collection(db, 'reports'), {
+      const newReportRef = await addDoc(collection(db, 'reports'), {
         type, title, body,
         images: imageUrls,
         files: fileItems,
@@ -11367,6 +11428,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
         authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
         createdAt: Date.now()
       });
+      tgSync('/publish', newReportRef.id, 'report'); // إرسال البلاغ لتلكرام (القناة + المشتركين)
       pubProgressDone(); // العدّاد يبلغ 100
       setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
       showToast('✅', 'تم النشر', 'ظهر البلاغ لجميع المستخدمين فوراً');
@@ -11393,6 +11455,7 @@ window.deleteReport = async function(id) {
   if (!okDel) return;
   try {
     await deleteDoc(doc(db, 'reports', id));
+    tgSync('/delete', String(id), 'report'); // حذف البلاغ من تلكرام أيضاً
     showToast('🗑️', 'حذف', 'تم حذف البلاغ');
   } catch (e) {
     showToast('❌', 'خطأ', 'فشل حذف البلاغ');
@@ -14261,7 +14324,10 @@ function init() {
   // Hide loading screen (التطبيق عمل بنجاح، لذا نلغي شبكة الأمان)
   clearTimeout(window.__loadingWatchdog);
   setTimeout(() => {
-    if (window.__hideLoadingScreen) window.__hideLoadingScreen();
+    // داخل تلكرام ننتظر اكتمال الدخول التلقائي (حد أقصى 12 ثانية) قبل إخفاء شاشة التحميل
+    const hide = () => { if (window.__hideLoadingScreen) window.__hideLoadingScreen(); };
+    if (window.__tgLoginPromise) Promise.race([window.__tgLoginPromise, new Promise(r => setTimeout(r, 12000))]).then(hide, hide);
+    else hide();
   }, 1200);
 
   loadSession();
