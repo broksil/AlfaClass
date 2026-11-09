@@ -6158,46 +6158,75 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     });
 });
 
+// ══════════════════════════════════════════════════════════════════════
 // ── TELEGRAM SYNC (Cloudflare Worker) ──
-// ضع هنا رابط الـ Worker بعد ما تسويه، مثال: 'https://alfaclass-bot.اسمك.workers.dev'
+// رابط الـ Worker — غيّره برابطك الفعلي بعد الرفع على Cloudflare
+// ══════════════════════════════════════════════════════════════════════
 const TG_WORKER_URL = 'https://alfaclass-bot.bqrmhmdzml.workers.dev';
 
-// يرسل الطلب للـ Worker على دفعات (حتى لو عدد المشتركين كبير) ولا يعطّل الموقع أبداً إذا فشل
-// رسائل واضحة لأي فشل (حتى تعرف السبب فوراً بدل ما يضيع بالـ Console)
+// ── عرض رسالة خطأ واضحة عند فشل إرسال تلكرام ──
+// kind: 'post' (تحضير) | 'report' (بلاغ عام) | 'classroom' (بلاغ أستاذ)
 function tgSyncFail(code) {
   const c = String(code || '');
   let msg = 'تعذّر إرسال المنشور لتلكرام (' + (c || 'خطأ') + ')';
   if (/channel_send_failed/.test(c)) {
     const d = c.replace('channel_send_failed: ', '');
     msg = 'وصل للمشتركين لكن ما وصل للقناة. ' + (
-      /chat not found/i.test(d) ? 'CHANNEL_ID غلط (القناة غير موجودة بهذا الاسم/الرقم).' :
-      /not a member|kicked|Forbidden/i.test(d) ? 'البوت مو مضاف أو مو مسؤول بالقناة.' :
-      /not enough rights|administrator/i.test(d) ? 'البوت ما عنده صلاحية نشر الرسائل.' : 'السبب: ' + d);
+      /chat not found/i.test(d)                           ? 'CHANNEL_ID غلط (القناة غير موجودة بهذا الاسم/الرقم).' :
+      /not a member|kicked|Forbidden/i.test(d)            ? 'البوت مو مضاف أو مو مسؤول بالقناة.' :
+      /not enough rights|administrator/i.test(d)          ? 'البوت ما عنده صلاحية نشر الرسائل.' :
+                                                            'السبب: ' + d);
+  } else if (c === 'CHANNEL_ID_missing') {
+    msg = 'CHANNEL_ID غير مضاف بإعدادات الـ Worker';
+  } else if (/PERMISSION_DENIED|UNAUTHENTICATED/.test(c)) {
+    msg = 'الـ Worker ما گدر يقرأ المنشور من Firestore (قواعد الأمان)';
+  } else if (c === 'internal_error') {
+    msg = 'خطأ داخلي بالـ Worker: راجع Logs بـ Cloudflare (غالباً KV أو BOT_TOKEN)';
   }
-  else if (c === 'CHANNEL_ID_missing') msg = 'CHANNEL_ID غير مضاف بإعدادات الـ Worker';
-  else if (/PERMISSION_DENIED|UNAUTHENTICATED/.test(c)) msg = 'الـ Worker ما گدر يقرأ المنشور من Firestore (قواعد الأمان)';
-  else if (c === 'internal_error') msg = 'خطأ داخلي بالـ Worker: راجع Logs بـ Cloudflare (غالباً KV أو BOT_TOKEN)';
   try { showToast('⚠️', 'تلكرام', msg); } catch (e) {}
 }
-// kind = 'report' للبلاغات، وإلا تحضير
+
+// ── دالة المزامنة مع تلكرام (بث شامل على دفعات) ──
+// path:   '/publish' عند النشر، '/delete' عند الحذف
+// postId: معرّف المنشور في Firestore
+// kind:   'post' (تحضير يومي) | 'report' (بلاغ عام) | 'classroom' (بلاغ أستاذ)
 async function tgSync(path, postId, kind) {
   if (!TG_WORKER_URL || !postId) return;
   try {
     const user = fireAuth.currentUser;
-    if (!user) { console.warn('Telegram sync: no signed-in user'); tgSyncFail('no_user'); return; }
+    if (!user) {
+      console.warn('Telegram sync: no signed-in user');
+      tgSyncFail('no_user');
+      return;
+    }
     const idToken = await user.getIdToken();
     let offset = 0, warned = false;
+
+    // حلقة دفعات: تستمر حتى يُكمل الـ Worker البث للجميع
     for (let i = 0; i < 80; i++) {
       const r = await fetch(TG_WORKER_URL + path, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, idToken, offset, kind: kind || 'post' })
+        // إرسال: معرّف المنشور + توكن المستخدم + موضع الدفعة + نوع المنشور
+        body:    JSON.stringify({
+          postId,
+          idToken,
+          offset,
+          kind: kind || 'post'   // 'post' | 'report' | 'classroom'
+        })
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok || j.error) { console.warn('Telegram sync', path, r.status, j.error); if (path === '/publish') tgSyncFail(j.error || ('http_' + r.status)); return; }
-      if (j.warn && !warned) { warned = true; if (path === '/publish') tgSyncFail(j.warn); }
-      if (j.done) return;
-      offset = j.next;
+      if (!r.ok || j.error) {
+        console.warn('Telegram sync', path, r.status, j.error);
+        if (path === '/publish') tgSyncFail(j.error || ('http_' + r.status));
+        return;
+      }
+      if (j.warn && !warned) {
+        warned = true;
+        if (path === '/publish') tgSyncFail(j.warn);
+      }
+      if (j.done) return; // اكتمل البث
+      offset = j.next;    // انتقل للدفعة التالية
     }
   } catch (e) {
     console.warn('Telegram sync failed', e && e.message);

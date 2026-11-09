@@ -1,0 +1,32 @@
+# ═══════════════════════════════════════════════════════════════
+#  wrangler.toml — إعدادات Cloudflare Worker لمشروع ألفاكلاس
+#
+#  كيفية الاستخدام:
+#   1. ثبّت Wrangler CLI:  npm install -g wrangler
+#   2. سجّل دخولك:         wrangler login
+#   3. ارفع الـ Worker:    wrangler deploy
+# ═══════════════════════════════════════════════════════════════
+
+name = "alfaclass-bot"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# ── Cron Triggers (النشر المجدول التلقائي) ──
+# يعمل كل يوم الساعة 18:00 UTC = 9:00 مساءً بتوقيت بغداد (UTC+3)
+[triggers]
+crons = ["0 18 * * *"]
+
+# ── KV Namespace Binding ──
+# أنشئ الـ KV Namespace من Cloudflare Dashboard → Storage & Databases → KV
+# ثم ضع الـ id الخاص بها هنا
+[[kv_namespaces]]
+binding  = "KV"
+id       = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+# preview_id = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  # اختياري للاختبار المحلي
+
+# ── متغيرات البيئة (غير السرية) ──
+# المتغيرات السرية (BOT_TOKEN, WEBHOOK_SECRET, FIREBASE_SA) تُضاف من:
+# Dashboard → Worker → Settings → Variables and Secrets
+[vars]
+CHANNEL_ID     = "@alfaclass_lectures"   # غيّر هذا ليوزر قناتك
+ALLOWED_ORIGIN = "https://broksil.github.io"
