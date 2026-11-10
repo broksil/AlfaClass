@@ -447,7 +447,7 @@ async function tgAuth(req, env) {
   const id    = u.id;
   const uid   = String(id);
   const token = await googleToken(env);
-  const photo = isHttp(u.photo_url) ? u.photo_url : '';
+  let photo = isHttp(u.photo_url) ? u.photo_url : '';
 
   // جلب وصف/نبذة المستخدم من تلكرام إن وجدت
   let tgBio = '';
@@ -458,6 +458,22 @@ async function tgAuth(req, env) {
       tgBio = String(chatJson.result.bio).trim().slice(0, 200);
     }
   } catch (e) {}
+
+  // إذا لم ترسل تلكرام الصورة في initData نجلبها عبر getUserProfilePhotos
+  if (!photo && env.BOT_TOKEN) {
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getUserProfilePhotos?user_id=${id}&limit=1`);
+      const tgJson = await tgRes.json().catch(() => ({}));
+      if (tgJson.ok && tgJson.result && tgJson.result.photos && tgJson.result.photos[0] && tgJson.result.photos[0][0]) {
+        const fileId = tgJson.result.photos[0][0].file_id;
+        const fRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getFile?file_id=${fileId}`);
+        const fJson = await fRes.json().catch(() => ({}));
+        if (fJson.ok && fJson.result && fJson.result.file_path) {
+          photo = `https://api.telegram.org/file/bot${env.BOT_TOKEN}/${fJson.result.file_path}`;
+        }
+      }
+    } catch (e) {}
+  }
 
   let cur = await fsGetUser(token, uid);
   if (cur.status !== 200 && cur.status !== 404) throw new HttpError(500, 'firestore_error');
@@ -515,17 +531,12 @@ async function tgAuth(req, env) {
   if (cur.status !== 200) throw new HttpError(500, 'firestore_error');
   const d = cur.data;
 
-  // حل مشكلة id_conflict: ربط وتحديث الحساب بسلاسة دون رمي أي تعارض
+  // حل مشكلة id_conflict والربط السلس لحسابات تلكرام دون تعديل بيانات الحساب القائم
   if (!created) {
     const updates = {};
     if (d.authProvider !== 'telegram') updates.authProvider = S('telegram');
     if (Number(d.tgId) !== id) updates.tgId = { integerValue: uid };
-    if (u.username && d.tgUsername !== u.username) updates.tgUsername = S(u.username);
-    if (photo && photo !== d.photoURL) updates.photoURL = S(photo);
-    if (tgBio && (!d.bio || d.bio.trim() === '')) {
-      updates.bio = S(tgBio);
-      d.bio = tgBio;
-    }
+    if (u.username && !d.tgUsername) updates.tgUsername = S(u.username);
     if (Object.keys(updates).length > 0) {
       const mask = Object.keys(updates).map(k => `updateMask.fieldPaths=${k}`).join('&');
       await fetch(`${FS}/users/${uid}?${mask}`, {
@@ -534,7 +545,7 @@ async function tgAuth(req, env) {
     }
   }
 
-  const photoToUse = photo || d.photoURL || '';
+  const photoToUse = d.photoURL || photo || '';
 
   return {
     customToken:  await firebaseCustomToken(env, uid),
@@ -542,7 +553,7 @@ async function tgAuth(req, env) {
     fullName:     d.fullName || d.username || ('طالب تلكرام #' + id),
     userId:       id,
     photoURL:     photoToUse,
-    bio:          d.bio || tgBio || '',
+    bio:          d.bio || '',
     authProvider: 'telegram',
     created,
   };

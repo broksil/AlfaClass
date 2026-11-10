@@ -4793,10 +4793,15 @@ async function loadProfileAndApply(name, uid) {
       loadVerifiedIds();
     } else {
       // الحساب غير موجود أو تم حذفه من السستم نهائياً:
-      // تسجيل الخروج وإلغاء الجلسة لكي يرجع المستخدم لإنشاء حساب جديد من الصفر
       clearSession();
       try { await firebaseSignOut(fireAuth); } catch (e) {}
       updateHeaderUI();
+      // إذا كنا داخل تطبيق تلكرام (Telegram WebApp)، نستدعي tgMiniAppLogin فوراً لإعادة إنشاء الحساب بأحدث بياناته
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData && !window.__tgRecreating) {
+        window.__tgRecreating = true;
+        setTimeout(() => { window.__tgRecreating = false; tgMiniAppLogin(); }, 300);
+        return;
+      }
       showToast('⚠️', 'تنبيه', 'تم حذف حسابك أو لم يعد موجوداً في السستم، يرجى إنشاء حساب جديد من جديد.');
     }
   } catch (e) {
@@ -6439,7 +6444,19 @@ async function tgMiniAppLogin() {
   try { tgUser = tw.initDataUnsafe && tw.initDataUnsafe.user; } catch (e) {}
   try { await fireAuth.authStateReady(); } catch (e) {}
   const cur = fireAuth.currentUser;
-  if (cur && tgUser && cur.uid === String(tgUser.id) && localStorage.getItem('isLoggedIn') === 'true') return; // داخل أصلاً
+  if (cur && tgUser && cur.uid === String(tgUser.id) && localStorage.getItem('isLoggedIn') === 'true') {
+    // نتحقق هل المستند ما زال موجوداً في Firestore أم تم حذفه؟
+    try {
+      const checkDoc = await getDoc(doc(db, 'users', String(tgUser.id)));
+      if (!checkDoc.exists() || checkDoc.data()?.deleteForced) {
+        // الحساب محذوف من السستم! نمسح الجلسة القديمة ونكمل لإنشاء الحساب الجديد
+        clearSession();
+        try { await firebaseSignOut(fireAuth); } catch (e) {}
+      } else {
+        return; // الحساب موجود وسليم: لا نغير أي شيء
+      }
+    } catch (e) {}
+  }
   window.__signing = true;
   try {
     const r = await fetch(TG_WORKER_URL + '/tg-auth', {
@@ -6456,16 +6473,18 @@ async function tgMiniAppLogin() {
     const cred = await signInWithCustomToken(fireAuth, j.customToken);
     window.__signing = false;
     await loadProfileAndApply(j.username, cred.user.uid);
-    // حفظ صورة وبيانات تلكرام محلياً وتحديث المشاهدة كعضو حقيقي
-    if (j.photoURL) {
-      localStorage.setItem('accAvatar', j.photoURL);
-      if (currentUser) currentUser.icon = j.photoURL;
-    }
-    if (j.bio) {
-      localStorage.setItem('accBio', j.bio);
-      if (accProfile) accProfile.bio = j.bio;
-      const bioEl = accEl('acc-bio');
-      if (bioEl) bioEl.textContent = j.bio;
+    // حفظ صورة وبيانات تلكرام فقط إذا كان الحساب جديداً أو منشأ حديثاً بعد الحذف
+    if (j.created) {
+      if (j.photoURL) {
+        localStorage.setItem('accAvatar', j.photoURL);
+        if (currentUser) currentUser.icon = j.photoURL;
+      }
+      if (j.bio) {
+        localStorage.setItem('accBio', j.bio);
+        if (accProfile) accProfile.bio = j.bio;
+        const bioEl = accEl('acc-bio');
+        if (bioEl) bioEl.textContent = j.bio;
+      }
     }
     const tUserId = j.userId || cred.user.uid;
     rememberIdName(tUserId, j.username, j.fullName, j.photoURL || '', j.bio || '');
