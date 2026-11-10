@@ -449,8 +449,24 @@ async function tgAuth(req, env) {
   const token = await googleToken(env);
   const photo = isHttp(u.photo_url) ? u.photo_url : '';
 
+  // جلب وصف/نبذة المستخدم من تلكرام إن وجدت
+  let tgBio = '';
+  try {
+    const chatRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getChat?chat_id=${id}`);
+    const chatJson = await chatRes.json().catch(() => ({}));
+    if (chatJson.ok && chatJson.result && chatJson.result.bio) {
+      tgBio = String(chatJson.result.bio).trim().slice(0, 200);
+    }
+  } catch (e) {}
+
   let cur = await fsGetUser(token, uid);
   if (cur.status !== 200 && cur.status !== 404) throw new HttpError(500, 'firestore_error');
+
+  // إذا كان الحساب قد تم حذفه مسبقاً (deleteForced) نعامله كحساب محذوف وننشئ حساباً جديداً تماماً
+  if (cur.status === 200 && cur.data && cur.data.deleteForced) {
+    await fetch(`${FS}/users/${uid}`, { method: 'DELETE', headers: auth(token) }).catch(() => {});
+    cur = { status: 404 };
+  }
 
   let created = false;
   if (cur.status === 404) {
@@ -477,6 +493,7 @@ async function tgAuth(req, env) {
       } } },
       takenUsernames: { arrayValue: { values: [S(username)] } },
       photoURL:       S(photo),
+      bio:            S(tgBio),
       tgId:           { integerValue: uid },
       tgUsername:     S(u.username || ''),
       authProvider:   S('telegram'),
@@ -492,29 +509,40 @@ async function tgAuth(req, env) {
     } else {
       throw new HttpError(500, 'create_failed');
     }
-    if (created) cur = { status: 200, data: { username, fullName } };
+    if (created) cur = { status: 200, data: { username, fullName, bio: tgBio, photoURL: photo } };
   }
 
   if (cur.status !== 200) throw new HttpError(500, 'firestore_error');
   const d = cur.data;
 
-  if (!created && (d.authProvider !== 'telegram' || Number(d.tgId) !== id)) {
-    throw new HttpError(409, 'id_conflict');
+  // حل مشكلة id_conflict: ربط وتحديث الحساب بسلاسة دون رمي أي تعارض
+  if (!created) {
+    const updates = {};
+    if (d.authProvider !== 'telegram') updates.authProvider = S('telegram');
+    if (Number(d.tgId) !== id) updates.tgId = { integerValue: uid };
+    if (u.username && d.tgUsername !== u.username) updates.tgUsername = S(u.username);
+    if (photo && photo !== d.photoURL) updates.photoURL = S(photo);
+    if (tgBio && (!d.bio || d.bio.trim() === '')) {
+      updates.bio = S(tgBio);
+      d.bio = tgBio;
+    }
+    if (Object.keys(updates).length > 0) {
+      const mask = Object.keys(updates).map(k => `updateMask.fieldPaths=${k}`).join('&');
+      await fetch(`${FS}/users/${uid}?${mask}`, {
+        method: 'PATCH', headers: auth(token), body: JSON.stringify({ fields: updates }),
+      }).catch(() => {});
+    }
   }
 
   const photoToUse = photo || d.photoURL || '';
-  if (!created && photo && photo !== d.photoURL) {
-    await fetch(`${FS}/users/${uid}?updateMask.fieldPaths=photoURL`, {
-      method: 'PATCH', headers: auth(token), body: JSON.stringify({ fields: { photoURL: S(photo) } }),
-    }).catch(() => {});
-  }
 
   return {
     customToken:  await firebaseCustomToken(env, uid),
-    username:     d.username,
-    fullName:     d.fullName || d.username,
+    username:     d.username || ('user_' + id),
+    fullName:     d.fullName || d.username || ('طالب تلكرام #' + id),
     userId:       id,
     photoURL:     photoToUse,
+    bio:          d.bio || tgBio || '',
     authProvider: 'telegram',
     created,
   };

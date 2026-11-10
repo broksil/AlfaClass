@@ -4786,38 +4786,22 @@ function applyUserProfile(profile, fallbackName, uid) {
 async function loadProfileAndApply(name, uid) {
   try {
     const found = await resolveUserDoc(name); // بالمسار أو بحقل username + ترحيل تلقائي
-    if (found) { applyUserProfile(found.data, name, uid); touchActiveMember(found.id); supportFeedInit(String(found.id)); loadVerifiedIds(); }
-    else {
-      // مصادقة ناجحة لكن بلا مستند (حساب ناقص — فشل حفظ عند الإنشاء أو مستند محذوف):
-      // نُصلحه هنا بإنشاء مستند كامل يحمل اليوزر والأيدي والصلاحيات،
-      // حتى لا يبقى الحساب «بلا يوزر» ولا يُنشأ مستند ناقص عند حفظ الملف الشخصي لاحقاً
-      const uname = String(name || '').trim().toLowerCase();
-      let docData = null, newId = null;
-      if (uname) {
-        try {
-          newId = uname === AUTH_OWNER ? OWNER_USER_ID : await _generateUniqueId();
-          docData = {
-            username: uname, fullName: uname,
-            role: uname === AUTH_OWNER ? 'owner' : 'student', shift: '', section: '',
-            uid: uid || '', createdAt: new Date(),
-            userId: newId, emailPrefix: uname, // بريد الدخول الثابت
-            perms: uname === AUTH_OWNER ? null : NEW_USER_PERMS,
-            takenUsernames: [uname]
-          };
-          await setDoc(doc(db, 'users', String(newId)), docData);
-        } catch (healErr) { docData = null; newId = null; } // قواعد Firestore أو شبكة: نكمل بجلسة مؤقتة
-      }
-      applyUserProfile(docData || { fullName: uname, username: uname, role: 'student' }, uname, uid);
-      if (docData) {
-        touchActiveMember(String(newId));
-        supportFeedInit(String(newId));
-        showToast('✅', 'تم استكمال حسابك', 'أُنشئت بيانات حسابك — أضف بياناتك الدراسية من صفحة الحساب');
-      } else {
-        showToast('⚠️', 'تنبيه', 'تعذّر العثور على بيانات حسابك — أعد المحاولة لاحقاً أو أعد إنشائه بنفس الاسم وكلمة السر');
-      }
+    if (found && !found.data?.deleteForced) {
+      applyUserProfile(found.data, name, uid);
+      touchActiveMember(found.id);
+      supportFeedInit(String(found.id));
+      loadVerifiedIds();
+    } else {
+      // الحساب غير موجود أو تم حذفه من السستم نهائياً:
+      // تسجيل الخروج وإلغاء الجلسة لكي يرجع المستخدم لإنشاء حساب جديد من الصفر
+      clearSession();
+      try { await firebaseSignOut(fireAuth); } catch (e) {}
+      updateHeaderUI();
+      showToast('⚠️', 'تنبيه', 'تم حذف حسابك أو لم يعد موجوداً في السستم، يرجى إنشاء حساب جديد من جديد.');
     }
   } catch (e) {
-    applyUserProfile({ fullName: name, username: name, role: 'student' }, name, uid);
+    clearSession();
+    updateHeaderUI();
   }
 }
 
@@ -6477,8 +6461,14 @@ async function tgMiniAppLogin() {
       localStorage.setItem('accAvatar', j.photoURL);
       if (currentUser) currentUser.icon = j.photoURL;
     }
+    if (j.bio) {
+      localStorage.setItem('accBio', j.bio);
+      if (accProfile) accProfile.bio = j.bio;
+      const bioEl = accEl('acc-bio');
+      if (bioEl) bioEl.textContent = j.bio;
+    }
     const tUserId = j.userId || cred.user.uid;
-    rememberIdName(tUserId, j.username, j.fullName, j.photoURL || '');
+    rememberIdName(tUserId, j.username, j.fullName, j.photoURL || '', j.bio || '');
     if (typeof openDayId !== 'undefined' && openDayId) {
       incrementView(openDayId).catch(() => {});
     }
@@ -8528,18 +8518,16 @@ async function accLoadProfile() {
   if (!resolved && unameKey) {
     try { resolved = await resolveUserDoc(unameKey); } catch (e) { resolved = null; }
   }
-  if (resolved) {
+  if (resolved && !resolved.data?.deleteForced) {
     data = resolved.data;
   } else {
-    // لا مستند أو فشلت القراءة: نكمل من الكاش المحلي حتى لا تضيع الاسم/الصورة عند ضعف الشبكة
-    const cached = accProfileCacheGet(unameKey);
-    if (cached && (cached.fullName || cached.photoURL)) {
-      data = Object.assign({}, cached, { username: unameKey, fullName: cached.fullName || currentUser.name });
-      resolved = { id: String(cached._id || unameKey), data };
-    } else {
-      data = { username: unameKey, fullName: currentUser.name, role: 'student', shift: localStorage.getItem('shift') || '', section: localStorage.getItem('section') || '' };
-      resolved = { id: unameKey, data };
-    }
+    // الحساب تم حذفه من السستم أو غير موجود: إنهاء الجلسة فوراً ليعيد المستخدم إنشاء حسابه من الصفر
+    accProfile = null;
+    clearSession();
+    try { await firebaseSignOut(fireAuth); } catch (e) {}
+    updateHeaderUI();
+    showToast('⚠️', 'تنبيه', 'تم حذف حسابك من السستم، يرجى إنشاء حساب جديد من الصفر.');
+    return;
   }
   // الترحيل إلى مسار المعرّف الرقمي (Firestore يعتمد على الأيدي لا اليوزرات)
   if (data.userId && !/^\d+$/.test(resolved.id)) {
@@ -12087,6 +12075,7 @@ let _presenceInited = false;
 // إرسال نبض حالة الاتصال للمستخدم الحالي إلى Firestore
 async function updateMyPresence(online = true, force = false) {
   try {
+    if (!currentUser && !localStorage.getItem('isLoggedIn')) return;
     const docId = getMyUserDocId();
     if (!docId) return;
     const now = Date.now();
@@ -12096,13 +12085,8 @@ async function updateMyPresence(online = true, force = false) {
       isOnline: !!online,
       lastActiveAt: new Date()
     };
-    try {
-      await updateDoc(doc(db, 'users', String(docId)), payload);
-    } catch (err) {
-      try {
-        await setDoc(doc(db, 'users', String(docId)), payload, { merge: true });
-      } catch (e) {}
-    }
+    // تحديث المستند الحالي فقط — لا نُنشئ مستنداً جديداً بالخطأ إذا كان الحساب محذوفاً
+    await updateDoc(doc(db, 'users', String(docId)), payload).catch(() => {});
   } catch (e) {}
 }
 
@@ -12306,7 +12290,37 @@ async function amFetchUsers(force) {
   if (!force && amUsers.length && Date.now() - amLoadedAt < 60000) return amUsers;
   const snap = await getDocs(collection(db, 'users'));
   amUsers = [];
-  snap.forEach(d => { const u = d.data() || {}; if (u.deleteForced) return; u._id = d.id; amUsers.push(u); if (u.perms && u.perms.verify && u.userId != null && u.userId !== '') _verifiedIds.add(String(u.userId)); });
+  snap.forEach(d => {
+    const u = d.data() || {};
+    // إذا كان الحساب محذوفاً إجبارياً: نحذفه نهائياً من Firestore وتجاهله
+    if (u.deleteForced) {
+      deleteDoc(doc(db, 'users', d.id)).catch(() => {});
+      return;
+    }
+
+    const hasName = !!(u.fullName && String(u.fullName).trim());
+    const hasUser = !!(u.username && String(u.username).trim());
+
+    // تنظيف الحسابات الشبحية الفارغة تماماً (بلا اسم وبلا يوزر وبلا بريد): تُحذف تلقائياً من Firestore
+    if (!hasName && !hasUser && !u.emailPrefix) {
+      deleteDoc(doc(db, 'users', d.id)).catch(() => {});
+      return;
+    }
+
+    // إصلاح تلقائي للحسابات التي ينقصها اسم أو يوزر لضمان اكتمال كل الحسابات:
+    if (!hasUser) {
+      u.username = 'user_' + (u.userId || d.id);
+      updateDoc(doc(db, 'users', d.id), { username: u.username }).catch(() => {});
+    }
+    if (!hasName) {
+      u.fullName = u.username || ('عضو #' + (u.userId || d.id));
+      updateDoc(doc(db, 'users', d.id), { fullName: u.fullName }).catch(() => {});
+    }
+
+    u._id = d.id;
+    amUsers.push(u);
+    if (u.perms && u.perms.verify && u.userId != null && u.userId !== '') _verifiedIds.add(String(u.userId));
+  });
   amLoadedAt = Date.now();
   return amUsers;
 }
@@ -12408,9 +12422,7 @@ function amRenderList() {
       '</div>' +
       '<div class="am-info">' +
         '<b>' + amEsc(u.fullName || 'بدون اسم') + '</b>' +
-        (u.username
-          ? '<span dir="ltr">@' + amEsc(u.username) + '</span>'
-          : '<span class="am-nouser" dir="ltr">⚠ بلا يوزر — @' + amEsc(u._id) + ' (اضغط للإصلاح)</span>') +
+        '<span dir="ltr">@' + amEsc(u.username || ('user_' + (u.userId || u._id))) + '</span>' +
         '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;">' +
           '<small>' + amRoleLabel(u.role) + '</small>' +
           statusPill +
@@ -12957,7 +12969,7 @@ async function amDeleteUserExec() {
   const u = amCurrent;
   if (!u) return;
   const btn = document.getElementById('am-del-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الحذف…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الحذف نهائياً من السستم…'; }
   try {
     // 1) محادثة الدعم: كل الرسائل ثم المستند
     try {
@@ -12966,24 +12978,39 @@ async function amDeleteUserExec() {
     } catch (e) {}
     try { await deleteDoc(doc(db, SUP_CHATS, String(u._id))); } catch (e) {}
     saChats.delete(String(u._id));
-    // 2) حذف فوري: كل الصلاحيات مسحوبة + علامة حذف إجباري
-    //    (الحذف الكامل — Firestore + Firebase Auth — يُنفَّذ عند أول تسجيل دخول له بالآلية الموجودة)
-    const noPerms = {};
-    AM_PERMS.forEach(p => { noPerms[p.key] = false; });
-    await setDoc(doc(db, 'users', String(u._id)), {
-      perms: noPerms,
-      deletePendingAt: Date.now(),
-      deleteForced: true,
-      deletedBy: 'owner',
-      deletedAt: new Date()
-    }, { merge: true });
-    showToast('✅', 'تم حذف الحساب', 'مُنعت كل الصلاحيات واختفى من القوائم، والحذف الكامل عند أول تسجيل دخول له');
-    // 3) تحديث القوائم وإغلاق النموذج
+
+    // 2) حذف مستند المستخدم من Firestore نهائياً بكل مساراته ومعرفاته
+    const docKeys = new Set([String(u._id)]);
+    if (u.userId) docKeys.add(String(u.userId));
+    if (u.username) docKeys.add(String(u.username).toLowerCase());
+    if (u.uid) docKeys.add(String(u.uid));
+    if (u.tgId) docKeys.add(String(u.tgId));
+
+    for (const dk of docKeys) {
+      try { await deleteDoc(doc(db, 'users', dk)); } catch (e) {}
+    }
+
+    // 3) إزالة المستخدم من الذاكرة والقائمة فوراً
+    amUsers = amUsers.filter(x => String(x._id) !== String(u._id) && String(x.userId) !== String(u.userId));
+    if (u.userId) _verifiedIds.delete(String(u.userId));
+
+    // 4) إذا كان المستخدم المحذوف هو المسجل حالياً في هذا المتصفح
+    const myId = String(currentUser?.userId || localStorage.getItem('userId') || '');
+    if (myId && (myId === String(u.userId) || myId === String(u._id))) {
+      clearSession();
+      try { await firebaseSignOut(fireAuth); } catch (e) {}
+      updateHeaderUI();
+    }
+
+    showToast('✅', 'تم حذف الحساب نهائياً', 'تم حذف العضو بالكامل من السستم وإلغاء بياناته');
+
+    // 5) تحديث القوائم وإغلاق النموذج
     amCurrent = null;
-    try { await amFetchUsers(true); amRenderList(); } catch (e) {}
+    amCloseEdit();
+    amRenderList();
     if (typeof saRenderListIfOpen === 'function') saRenderListIfOpen();
-    closeModal('am-modal');
   } catch (e) {
+    console.error('amDeleteUserExec error:', e);
     showToast('❌', 'خطأ', (e && e.code === 'permission-denied') ? 'قواعد Firestore تمنع الحذف' : 'تعذّر حذف الحساب');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🗑 حذف حساب هذا العضو'; btn.classList.remove('armed'); }
