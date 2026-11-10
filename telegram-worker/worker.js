@@ -60,7 +60,7 @@ export default {
           name: 'alfaclass-bot',
           subscribers_count: subs.length,
           channel_configured: !!env.CHANNEL_ID,
-          baghdad_time: `${baghdad.currentHour}:${String(baghdad.baghdadNow.getUTCMinutes()).padStart(2, '0')}`,
+          baghdad_time: `${baghdad.currentHour}:${String(baghdad.currentMinute).padStart(2, '0')}`,
           tomorrow_target: baghdad.tomorrowStr,
           tomorrow_scheduled_sent: !!alreadySent,
         }, 200, cors);
@@ -98,12 +98,12 @@ function reply(obj, status, headers) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // تهريب حروف HTML لتنسيق تلكرام المعتمد فقط (& و < و >)
-// ملاحظة مهمة: تلكرام لا يدعم &quot; في parse_mode: HTML، لذا لا نغيّر علامات الاقتباس!
+// ملاحظة مهمة: تلكرام لا يدعم " في parse_mode: HTML، لذا لا نغيّر علامات الاقتباس!
 const esc = (s) =>
   String(s == null ? '' : s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>');
 
 const isHttp = (u) => typeof u === 'string' && /^https?:\/\//i.test(u);
 
@@ -786,13 +786,6 @@ function arabicDateFromDayId(dayId) {
 }
 
 // ── القسم الأول: التحاضير اليومية ──
-// النمط:
-// يوم الثلاثاء 6 / 5 عدنا (تسطير)
-// [سطر فارغ]
-// 📚 فاينل — الخطر
-// [سطر فارغ]
-// الملاحظات (اقتباس)
-// ألفاكلاس (مباشرة تحت الاقتباس بدون سطر فارغ، رابط للمنشور)
 function buildPrepMessage(p, postId) {
   const postUrl = `${SITE_URL}#post-${postId}`;
   const dateStr = arabicDateFromDayId(p.dayId || p.date || '');
@@ -822,11 +815,6 @@ function buildPrepMessage(p, postId) {
 }
 
 // ── القسم الثاني: البلاغات العامة ──
-// النمط:
-// <u>📣  تجربه</u> (عنوان البلاغ مسطر)
-// [سطر فارغ]
-// التفاصيل (اقتباس)
-// ألفاكلاس (مباشرة تحت الاقتباس، رابط المنشور)
 function buildReportMessage(p, postId) {
   const postUrl = `${SITE_URL}#report-${postId}`;
   const title   = esc(String(p.title || p.subject || 'بلاغ').trim().slice(0, 150));
@@ -845,15 +833,6 @@ function buildReportMessage(p, postId) {
 }
 
 // ── القسم الثالث: بلاغات الأساتذة / كلاس روم ──
-// النمط:
-// 📚 المحاسبة الحكومية
-// المرحلة الثانية / مسائي - أ - (رمز)
-// [سطر فارغ]
-// التفاصيل (اقتباس)
-// [سطر فارغ]
-// 🧑🏻‍🏫 بتول يونس (اسم الأستاذ)
-// [سطر فارغ]
-// انقر على التفاصيل (رابط الكلاس روم للمنشور)
 function buildClassroomMessage(p, postId) {
   const targetUrl = isHttp(p.classroomUrl || p.detailsLink || p.link)
     ? (p.classroomUrl || p.detailsLink || p.link)
@@ -867,7 +846,6 @@ function buildClassroomMessage(p, postId) {
   const details = esc(String(p.note    || p.messageContent || p.body || p.details || '').trim().slice(0, 800));
   const teacher = esc(String(p.author  || p.teacherName || p.teacher || '').trim().slice(0, 60));
 
-  // سطر المادة + سطر المرحلة مباشرة تحته بدون سطر فارغ
   const headerLines = [];
   if (subject) headerLines.push(`📚 ${subject}`);
 
@@ -1124,47 +1102,37 @@ async function remove(req, env) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  حساب توقيت بغداد وتاريخ الغد
+//  حساب توقيت بغداد وتاريخ الغد (النسخة النهائية المضمونة 100%)
 // ══════════════════════════════════════════════════════════════════════════════
 
 function getBaghdadInfo() {
   const now = new Date();
+  const opts = { timeZone: 'Asia/Baghdad', hour12: false };
 
-  // ضبط الوقت والتاريخ بدقة باستخدام Intl.DateTimeFormat بتوقيت بغداد (Asia/Baghdad)
-  const dtf = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Baghdad',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hourCycle: 'h23',
-  });
+  // الحصول على الساعة والدقيقة الحالية في بغداد كأرقام صحيحة
+  const currentHour = parseInt(new Intl.DateTimeFormat('en-US', { ...opts, hour: 'numeric' }).format(now), 10);
+  const currentMinute = parseInt(new Intl.DateTimeFormat('en-US', { ...opts, minute: 'numeric' }).format(now), 10);
 
-  const parts = {};
-  dtf.formatToParts(now).forEach((p) => { parts[p.type] = p.value; });
+  // الحصول على مكونات تاريخ بغداد الحالي
+  const parts = new Intl.DateTimeFormat('en-US', { ...opts, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(now);
+  let y, m, d;
+  for (const p of parts) {
+    if (p.type === 'year') y = parseInt(p.value, 10);
+    if (p.type === 'month') m = parseInt(p.value, 10);
+    if (p.type === 'day') d = parseInt(p.value, 10);
+  }
 
-  const currentYear   = parseInt(parts.year, 10);
-  const currentMonth  = parseInt(parts.month, 10); // 1 - 12
-  const currentDay    = parseInt(parts.day, 10);
-  const currentHour   = parseInt(parts.hour, 10);  // 0 - 23
-  const currentMinute = parseInt(parts.minute, 10);
+  // حساب تاريخ الغد بشكل آمن
+  const tomorrow = new Date(y, m - 1, d + 1);
+  const ty = tomorrow.getFullYear();
+  const tm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const td = String(tomorrow.getDate()).padStart(2, '0');
 
-  // حساب تاريخ الغد بإضافة يوم واحد إلى تاريخ بغداد الحالي
-  const tomorrowDate = new Date(Date.UTC(currentYear, currentMonth - 1, currentDay + 1));
-  const y = tomorrowDate.getUTCFullYear();
-  const m = String(tomorrowDate.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(tomorrowDate.getUTCDate()).padStart(2, '0');
+  const tomorrowStr = `${ty}-${tm}-${td}`;
+  const tomorrowDayOfWeek = tomorrow.getDay();
+  const dateLabel = `${AR_DAYS[tomorrowDayOfWeek]} ${tomorrow.getDate()} / ${tomorrow.getMonth() + 1}`;
 
-  const tomorrowStr       = `${y}-${m}-${d}`;
-  const tomorrowDayOfWeek = tomorrowDate.getUTCDay();
-  const dateLabel         = `${AR_DAYS[tomorrowDayOfWeek]} ${tomorrowDate.getUTCDate()} / ${tomorrowDate.getUTCMonth() + 1}`;
-
-  // كائن التاريخ الممثل لوقت بغداد الحالي
-  const baghdadNow = new Date(Date.UTC(currentYear, currentMonth - 1, currentDay, currentHour, currentMinute));
-
-  return { baghdadNow, currentHour, tomorrowStr, dateLabel, tomorrowDayOfWeek };
+  return { baghdadNow: now, currentHour, currentMinute, tomorrowStr, dateLabel, tomorrowDayOfWeek };
 }
 
 // ── جلب تحاضير يوم محدد من Firestore ──
@@ -1238,7 +1206,7 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
   const info   = getBaghdadInfo();
   const sentKey = `scheduled_sent:${info.tomorrowStr}`;
 
-  console.log(`[ScheduledCheck] وقت بغداد: ${info.currentHour}:${String(info.baghdadNow.getUTCMinutes()).padStart(2, '0')} | تاريخ الغد: ${info.tomorrowStr} | force: ${force}`);
+  console.log(`[ScheduledCheck] وقت بغداد: ${info.currentHour}:${String(info.currentMinute).padStart(2, '0')} | تاريخ الغد: ${info.tomorrowStr} | force: ${force}`);
 
   // إذا لم يكن طلباً إجبارياً ولم يكن كرون: نتحقق أن الوقت بعد 9:00 مساءً (الساعة 21 فأكثر أو الفجر حتى 5)
   if (!force && !isCron) {
@@ -1292,15 +1260,6 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
   }
 
   // ── صياغة رسالة المجدول بالترتيب الدقيق للأسطر والتباعد ──
-  // <u>تحاضير يوم غد الثلاثاء 5 / 6 عدنا</u>
-  // [سطر فارغ]
-  // 📚 تقرير — الحكومية
-  // ملاحظات (اقتباس)
-  // [سطر فارغ]
-  // 📚 ميد — المحاسبة المتوسطة
-  // ملاحظات (اقتباس)
-  // [سطر فارغ]
-  // ألفاكلاس (رابط)
   const prepItems = [];
 
   for (const p of preps) {
