@@ -6421,10 +6421,10 @@ async function tgSync(path, postId, kind) {
 function autoCheckScheduledPreps() {
   if (!TG_WORKER_URL) return;
   try {
-    const now = new Date();
-    const baghdadHours = (now.getUTCHours() + 3) % 24;
-    // بين الساعة 9:00 مساءً (21:00) و 4:00 فجراً
-    if (baghdadHours >= 21 || baghdadHours <= 4) {
+    const dtf = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Baghdad', hour: 'numeric', hourCycle: 'h23' });
+    const baghdadHours = parseInt(dtf.format(new Date()), 10);
+    // الساعة 9:00 مساءً (21:00) وما بعدها حتى منتصف الليل فقط
+    if (baghdadHours >= 21) {
       fetch(TG_WORKER_URL + '/check-scheduled').catch(() => {});
     }
   } catch (e) {}

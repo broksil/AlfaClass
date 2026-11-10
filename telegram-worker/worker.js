@@ -1012,112 +1012,70 @@ async function listSubs(env) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function publish(req, env) {
-  const { postId, idToken, offset, kind } = await req.json().catch(() => ({}));
+  const { postId, idToken, kind } = await req.json().catch(() => ({}));
   checkPostId(postId);
 
   const isReport = kind === 'report' || kind === 'classroom';
   const coll     = isReport ? 'reports' : 'posts';
   const kid      = isReport ? 'R' + postId : postId;
-  const off      = Number(offset) || 0;
   const st       = { retries: 0 };
-  const jobKey   = `job:${kid}`;
   const DAY      = 86400;
 
-  let job = env.KV ? await env.KV.get(jobKey, 'json') : null;
+  // جلب بيانات المنشور من Firestore مع تمرير env للأدمن
+  const got = await fetchPost(postId, idToken, coll, env);
+  if (got.status === 404) throw new HttpError(404, 'post_not_found');
+  if (got.status !== 200) throw new HttpError(got.status, got.error || 'firestore_error');
 
-  // تهيئة مهمة النشر عند البداية
-  if (!job) {
-    // جلب بيانات المنشور من Firestore مع تمرير env للأدمن
-    const got = await fetchPost(postId, idToken, coll, env);
-    if (got.status === 404) throw new HttpError(404, 'post_not_found');
-    if (got.status !== 200) throw new HttpError(got.status, got.error || 'firestore_error');
+  const spec = buildSpec(got.data, kind, postId);
+  const subs = await listSubs(env);
+  let textOnly = false;
 
-    const spec = buildSpec(got.data, kind, postId);
-    const subs = await listSubs(env);
-
-    job = {
-      spec,
-      subs,
-      bs:          Math.max(1, Math.floor(MAX_CALLS / spec.cpr)),
-      next:        0,
-      channelDone: false,
-      textOnly:    false,
-      done:        false,
-    };
-
-    if (env.KV) {
-      await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
-    }
-  }
-
-  if (job.done) return { done: true, already: true };
-
-  // ── 1) إرسال للقناة الرئيسية (إن وجدت ولا نوقف البث إذا فشلت!) ──
-  if (!job.channelDone) {
-    if (env.CHANNEL_ID) {
-      try {
-        console.log(`[Publish] جاري الإرسال للقناة الرئيسية: ${env.CHANNEL_ID}`);
-        const res = await sendToChat(env, st, env.CHANNEL_ID, job.spec, false);
-        if (res.ids.length && env.KV) {
-          await env.KV.put(`msgs:${kid}:ch`, JSON.stringify([[env.CHANNEL_ID, res.ids]]), { expirationTtl: 30 * DAY });
-          job.textOnly = res.imgFailed;
-          console.log('[Publish] تم الإرسال للقناة الرئيسية بنجاح.');
-        } else {
-          console.warn('[Publish] تعذر الإرسال للقناة الرئيسية:', res.error || 'unknown');
-        }
-      } catch (err) {
-        console.error('[Publish] استثناء أثناء إرسال القناة:', err && err.message);
+  // 1) إرسال للقناة الرئيسية فوراً
+  if (env.CHANNEL_ID) {
+    try {
+      console.log(`[Publish] جاري الإرسال للقناة الرئيسية: ${env.CHANNEL_ID}`);
+      const res = await sendToChat(env, st, env.CHANNEL_ID, spec, false);
+      if (res.ids && res.ids.length && env.KV) {
+        await env.KV.put(`msgs:${kid}:ch`, JSON.stringify([[env.CHANNEL_ID, res.ids]]), { expirationTtl: 30 * DAY });
+        textOnly = res.imgFailed;
+        console.log('[Publish] تم الإرسال للقناة الرئيسية بنجاح.');
+      } else {
+        console.warn('[Publish] تعذر الإرسال للقناة الرئيسية:', res.error || 'unknown');
       }
-    } else {
-      console.log('[Publish] CHANNEL_ID غير معرّف، تم تجاوز القناة الرئيسية والانتقال للمشتركين.');
+    } catch (err) {
+      console.error('[Publish] استثناء أثناء إرسال القناة:', err && err.message);
     }
-    job.channelDone = true;
-    if (env.KV) await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
   }
 
-  // ── 2) إرسال للمشتركين والكروبات والقنوات على دفعات ──
-  if (off !== job.next) {
-    return { done: false, next: job.next, total: job.subs.length };
-  }
+  // 2) إرسال لجميع المشتركين والكروبات مباشرة وبدون أي تأخير زمني
+  const sent = [];
+  const gone = [];
 
-  const batch = job.subs.slice(off, off + job.bs);
-  const sent  = [];
-  const gone  = [];
-
-  for (let i = 0; i < batch.length; i += 10) {
-    const group   = batch.slice(i, i + 10);
+  for (let i = 0; i < subs.length; i += 10) {
+    const group   = subs.slice(i, i + 10);
     const results = await Promise.all(
-      group.map((chatId) => sendToChat(env, st, chatId, job.spec, job.textOnly))
+      group.map((chatId) => sendToChat(env, st, chatId, spec, textOnly))
     );
     results.forEach((r, k) => {
       if (r.ids.length) sent.push([group[k], r.ids]);
       if (r.gone)       gone.push(group[k]);
     });
-    if (i + 10 < batch.length) await sleep(400);
   }
 
-  const batchNo = Math.floor(off / job.bs);
   if (env.KV) {
-    await env.KV.put(`msgs:${kid}:${batchNo}`, JSON.stringify(sent), { expirationTtl: 30 * DAY });
-    // إزالة الحسابات التي حظرت البوت
+    if (sent.length) {
+      await env.KV.put(`msgs:${kid}:0`, JSON.stringify(sent), { expirationTtl: 30 * DAY });
+    }
     for (const id of gone.slice(0, 5)) {
       await env.KV.delete(`sub:${id}`);
     }
+    await env.KV.put(`pub:${kid}`, '1', { expirationTtl: 30 * DAY });
+    await env.KV.delete(`job:${kid}`).catch(() => {});
+    // فحص إرسال تحاضير الغد المجمعة إن حان وقتها
+    checkAndSendTomorrowPreps(env).catch(() => {});
   }
 
-  job.next = off + job.bs;
-  job.done = job.next >= job.subs.length;
-
-  if (env.KV) {
-    await env.KV.put(jobKey, JSON.stringify(job), { expirationTtl: DAY });
-    if (job.done) {
-      await env.KV.put(`pub:${kid}`, '1', { expirationTtl: 30 * DAY });
-      // إذا كان النشر بعد 9:00 مساءً، تأكد من إرسال رسالة تحاضير الغد المجمعة إن لم تكن قد أُرسلت
-      checkAndSendTomorrowPreps(env).catch(() => {});
-    }
-  }
-
-  return { done: job.done, next: job.next, total: job.subs.length };
+  return { done: true, total: subs.length };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1125,30 +1083,44 @@ async function publish(req, env) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function remove(req, env) {
-  const { postId, offset, kind } = await req.json().catch(() => ({}));
+  const { postId, kind } = await req.json().catch(() => ({}));
   checkPostId(postId);
 
   const isReport = kind === 'report' || kind === 'classroom';
   const kid      = isReport ? 'R' + postId : postId;
-  const step     = Number(offset) || 0;
   const st       = { retries: 0 };
 
-  if (step === 0 && env.KV) await env.KV.delete(`job:${kid}`);
-
-  const key = step === 0 ? `msgs:${kid}:ch` : `msgs:${kid}:${step - 1}`;
-  const rec = env.KV ? await env.KV.get(key, 'json') : null;
-  if (!rec) return step === 0 ? { done: false, next: 1 } : { done: true };
-
-  for (let i = 0; i < rec.length; i += 10) {
-    const group = rec.slice(i, i + 10);
-    await Promise.all(
-      group.map(([chatId, ids]) => tg(env, st, 'deleteMessages', { chat_id: chatId, message_ids: ids }))
-    );
-    if (i + 10 < rec.length) await sleep(400);
+  if (env.KV) {
+    await env.KV.delete(`job:${kid}`).catch(() => {});
+    await env.KV.delete(`pub:${kid}`).catch(() => {});
   }
 
-  if (env.KV) await env.KV.delete(key);
-  return { done: false, next: step + 1 };
+  // حذف رسائل القناة الرئيسية إن وجدت فوراً
+  const chKey = `msgs:${kid}:ch`;
+  const chRec = env.KV ? await env.KV.get(chKey, 'json') : null;
+  if (chRec && Array.isArray(chRec)) {
+    await Promise.all(
+      chRec.map(([chatId, ids]) => tg(env, st, 'deleteMessages', { chat_id: chatId, message_ids: ids }))
+    ).catch(() => {});
+    if (env.KV) await env.KV.delete(chKey).catch(() => {});
+  }
+
+  // حذف رسائل المشتركين والكروبات مباشرة في خطوة واحدة بدون تكرار أو خطوات تأخير
+  if (env.KV) {
+    for (let batchNo = 0; batchNo < 50; batchNo++) {
+      const bKey = `msgs:${kid}:${batchNo}`;
+      const rec = await env.KV.get(bKey, 'json');
+      if (!rec) break;
+      if (Array.isArray(rec) && rec.length) {
+        await Promise.all(
+          rec.map(([chatId, ids]) => tg(env, st, 'deleteMessages', { chat_id: chatId, message_ids: ids }))
+        ).catch(() => {});
+      }
+      await env.KV.delete(bKey).catch(() => {});
+    }
+  }
+
+  return { done: true, ok: true };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1156,19 +1128,43 @@ async function remove(req, env) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function getBaghdadInfo() {
-  // توقيت بغداد = UTC + 3 ساعات (ثابت على مدار السنة بدون توقيت صيفي)
-  const baghdadNow  = new Date(Date.now() + (3 * 3600 * 1000));
-  const currentHour = baghdadNow.getUTCHours(); // من 0 إلى 23
+  const now = new Date();
 
-  // تاريخ الغد بتوقيت بغداد
-  const tomorrow    = new Date(baghdadNow.getTime() + (24 * 3600 * 1000));
-  const y           = tomorrow.getUTCFullYear();
-  const m           = String(tomorrow.getUTCMonth() + 1).padStart(2, '0');
-  const d           = String(tomorrow.getUTCDate()).padStart(2, '0');
-  const tomorrowStr = `${y}-${m}-${d}`;
-  const dateLabel   = `${AR_DAYS[tomorrow.getUTCDay()]} ${tomorrow.getUTCDate()} / ${tomorrow.getUTCMonth() + 1}`;
+  // ضبط الوقت والتاريخ بدقة باستخدام Intl.DateTimeFormat بتوقيت بغداد (Asia/Baghdad)
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Baghdad',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hourCycle: 'h23',
+  });
 
-  return { baghdadNow, currentHour, tomorrowStr, dateLabel, tomorrowDayOfWeek: tomorrow.getUTCDay() };
+  const parts = {};
+  dtf.formatToParts(now).forEach((p) => { parts[p.type] = p.value; });
+
+  const currentYear   = parseInt(parts.year, 10);
+  const currentMonth  = parseInt(parts.month, 10); // 1 - 12
+  const currentDay    = parseInt(parts.day, 10);
+  const currentHour   = parseInt(parts.hour, 10);  // 0 - 23
+  const currentMinute = parseInt(parts.minute, 10);
+
+  // حساب تاريخ الغد بإضافة يوم واحد إلى تاريخ بغداد الحالي
+  const tomorrowDate = new Date(Date.UTC(currentYear, currentMonth - 1, currentDay + 1));
+  const y = tomorrowDate.getUTCFullYear();
+  const m = String(tomorrowDate.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(tomorrowDate.getUTCDate()).padStart(2, '0');
+
+  const tomorrowStr       = `${y}-${m}-${d}`;
+  const tomorrowDayOfWeek = tomorrowDate.getUTCDay();
+  const dateLabel         = `${AR_DAYS[tomorrowDayOfWeek]} ${tomorrowDate.getUTCDate()} / ${tomorrowDate.getUTCMonth() + 1}`;
+
+  // كائن التاريخ الممثل لوقت بغداد الحالي
+  const baghdadNow = new Date(Date.UTC(currentYear, currentMonth - 1, currentDay, currentHour, currentMinute));
+
+  return { baghdadNow, currentHour, tomorrowStr, dateLabel, tomorrowDayOfWeek };
 }
 
 // ── جلب تحاضير يوم محدد من Firestore ──
@@ -1373,7 +1369,6 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
         }
       }).catch(() => {})
     ));
-    if (i + 10 < subs.length) await sleep(400);
   }
 
   // حفظ علامة الإرسال في KV لمدة 48 ساعة حتى لا تتكرر
