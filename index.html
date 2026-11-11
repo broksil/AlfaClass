@@ -1748,9 +1748,10 @@
   .am-perm:active { transform: scale(0.98); }
   @media (max-width: 380px) { .am-id { display: none; } }
   /* ── صورة العضو داخل نموذج التعديل ── */
-  .am-photo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-  .am-avatar.am-avatar-lg { width: 72px; height: 72px; font-size: 28px; }
-  .am-photo-actions { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+  .am-photo-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  .am-avatar.am-avatar-lg { width: 60px; height: 60px; font-size: 24px; border-radius: 50%; overflow: hidden; background: var(--bg-card); background-size: cover; background-position: center; border: 2px solid rgba(255,255,255,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+  .am-avatar.am-avatar-lg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .am-photo-actions { display: flex; flex-direction: column; gap: 7px; align-items: center; }
   .am-photo-actions .am-back { padding: 6px 11px; font-size: 12.5px; }
   .am-photo-del { color: #f87171; border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); }
   .am-photo-hint { color: var(--text-muted); font-size: 10.5px; }
@@ -3040,9 +3041,39 @@
   #login-modal .login-close:active { transform: scale(0.90); }
   /* مهم: يجعل أنيميشن الإغلاق يتفوّق على أنيميشن الدخول ذي الأولوية الأعلى */
   #login-modal .modal-box.closing { animation: modalOut 0.25s ease forwards; }
+
+  /* ── نافذة عرض الصورة بحجم كامل ( fullscreen image viewer ) ── */
+  #img-full-modal { display: none; position: fixed; inset: 0; z-index: 999999;
+    background: rgba(0,0,0,0.92); backdrop-filter: blur(4px); }
+  #img-full-modal.open { display: flex; align-items: center; justify-content: center;
+    animation: fadeIn 0.25s ease forwards; }
+  .img-full-close { position: absolute; top: 18px; left: 18px; z-index: 10;
+    width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.6); color: #fff; font-size: 24px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: all 0.2s; }
+  .img-full-close:hover { background: rgba(255,255,255,0.2); border-color: #fff; }
+  .img-full-name { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 16px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    pointer-events: none; z-index: 10; max-width: 80%; text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .img-full-wrap { position: relative; max-width: 95vw; max-height: 85vh; display: flex;
+    align-items: center; justify-content: center; }
+  .img-full-wrap img { max-width: 100%; max-height: 85vh; object-fit: contain;
+    border-radius: 12px; box-shadow: 0 0 40px rgba(0,0,0,0.6); cursor: zoom-out; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
+
+<!-- نافذة عرض الصورة بحجم كامل -->
+<div id="img-full-modal" onclick="closeImgFull()">
+  <button type="button" class="img-full-close" onclick="event.stopPropagation(); closeImgFull()">✕</button>
+  <div class="img-full-wrap">
+    <img id="img-full-img" src="" alt="الصورة الشخصية">
+  </div>
+  <div id="img-full-name" class="img-full-name"></div>
+</div>
 
 <!-- LOADING SCREEN -->
 <div id="loading-screen">
@@ -3077,6 +3108,46 @@
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
     });
   }
+  /* ── دوال عرض الصورة بحجم كامل ── */
+  window.openImgFull = function (src, name) {
+    if (!src) { showToast('ℹ️', 'الصورة', 'لا توجد صورة لعرضها'); return; }
+    var modal = document.getElementById('img-full-modal');
+    var img = document.getElementById('img-full-img');
+    var nameEl = document.getElementById('img-full-name');
+    if (!modal || !img) return;
+    img.src = src;
+    if (nameEl) nameEl.textContent = name || '';
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeImgFull = function () {
+    var modal = document.getElementById('img-full-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+  // إغلاق النافذة عند الضغط على مفتاح Esc
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeImgFull(); }
+  });
+
+  /* أي Image Avatar تُنقر تفتح بحجم كامل (يتم استخراج الرابط من src أو من خلفية CSS) */
+  document.addEventListener('click', function (e) {
+    var avatar = e.target.closest('.am-avatar');
+    if (!avatar) return;
+    // لا نفعل أي شيء لو النقر كان على زر dentro من نفس العنصر (مثل أزرار التغيير/الحذف)
+    if (e.target.tagName === 'BUTTON') return;
+    var imgEl = avatar.querySelector('img');
+    var src = '';
+    if (imgEl && imgEl.src) { src = imgEl.src; }
+    else {
+      var bg = window.getComputedStyle(avatar).backgroundImage || '';
+      var m = bg.match(/url\((["']?)(.*?)\1\)/);
+      if (m) src = m[2];
+    }
+    if (src) { openImgFull(src, 'صورة الملف الشخصي'); }
+  }, true);
+
   /* ── حيل صارمة: منع الأوتوفيل (readonly) + تثبيت تركيز الكيبورد عند تغيير اللغة ── */
   (function () {
     var SEL = 'input.login-field, textarea.login-field';
@@ -3909,10 +3980,11 @@
       </div>
       <!-- صورة العضو: معاينة + تغيير/حذف (تُطبَّق عند الحفظ) -->
       <div class="am-photo-row">
-        <span class="am-avatar am-avatar-lg" id="am-photo"><i id="am-photo-letter">؟</i></span>
+        <span class="am-avatar am-avatar-lg" id="am-photo" onclick="openImgFull(amPhotoURL || '', 'صورة الملف الشخصي')"><i id="am-photo-letter">؟</i></span>
         <div class="am-photo-actions">
           <input type="file" id="am-photo-file" accept="image/*" hidden onchange="amPickPhoto(this)">
           <button type="button" class="am-back" id="am-photo-btn" onclick="document.getElementById('am-photo-file').click()">📷 تغيير الصورة</button>
+          <button type="button" class="am-back" id="am-photo-visit" onclick="amVisitProfile()">👤 زيارة الملف الشخصي</button>
           <button type="button" class="am-back am-photo-del" id="am-photo-del" onclick="amRemovePhoto()">🗑 حذف الصورة</button>
           <small class="am-photo-hint">تُحفظ الصورة مع ضغط «حفظ التغييرات»</small>
         </div>
@@ -5273,8 +5345,12 @@ function renderPostsForDay(dayId, posts) {
     let actionsHtml = '';
     if (currentUser) {
       actionsHtml += '<div class="post-actions">';
-      if (currentUser.isAdmin || (userHasPerm(currentUser, 'prep') && isOwnAuthor(post.authorId))) {
+      const canEditPost = currentUser.isAdmin || ((userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'prep')) && isOwnAuthor(post.authorId));
+      const canDelPost  = currentUser.isAdmin || ((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'prep')) && isOwnAuthor(post.authorId));
+      if (canEditPost) {
         actionsHtml += `${!post.isOffline ? `<button class="btn-edit" onclick="openEditModal('${post.id}')">✏️ تعديل</button>` : ''}`;
+      }
+      if (canDelPost) {
         actionsHtml += `<button class="btn-delete" onclick="${post.isOffline ? `deleteOfflinePostHandler(${post.id})` : `deletePost('${post.id}', ${JSON.stringify(post.mediaUrls || []).replace(/"/g,'&quot;')})`}">🗑️ حذف</button>`;
       }
       if (userHasPerm(currentUser, 'enquiry')) {
@@ -6033,7 +6109,7 @@ window.openEditModal = function(postId) {
   });
   if (!post) return;
   // التحقق من الصلاحية + الملكية: صاحب صلاحية prep يعدل منشوراته فقط
-  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'prep') && isOwnAuthor(post.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
+  if (!currentUser?.isAdmin && !((userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'prep')) && isOwnAuthor(post.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
 
   editingMediaUrls = post.mediaUrls ? [...post.mediaUrls] : []; // نسخ المصفوفة لعدم التأثير المباشر قبل الحفظ
   document.getElementById('pub-day-id').value = post.dayId;
@@ -6238,14 +6314,15 @@ if (navigator.onLine) {
 
 document.getElementById('btn-do-publish').addEventListener('click', async () => {
   const btn = document.getElementById('btn-do-publish');
-  if (!userHasPerm(currentUser, 'prep')) { showToast('⛔', 'مقيّد', 'نشر التحضير غير مفعّل لحسابك'); return; }
-  const dayId = document.getElementById('pub-day-id').value;
   const editId = document.getElementById('pub-edit-id').value;
   // وضع التعديل: يُسمح فقط بمنشوراتي (المالك/الأدمن يتجاوز هذا القيد)
   let origPost = null;
   if (editId) {
+    if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'prep'))) { showToast('⛔', 'مقيّد', 'تعديل المنشور غير مفعّل لحسابك'); return; }
     Object.values(currentPosts).forEach(arr => { const f = arr.find(x => x.id === editId); if (f) origPost = f; });
-    if (!currentUser?.isAdmin && (!origPost || !isOwnAuthor(origPost.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
+    if (!origPost || !isOwnAuthor(origPost.authorId)) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
+  } else if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'prep')) {
+    showToast('⛔', 'مقيّد', 'نشر التحضير غير مفعّل لحسابك'); return;
   }
   
   let type = document.getElementById('pub-type').value;
@@ -6506,7 +6583,7 @@ window.deletePost = async function(postId, mediaUrls) {
   // التحقق من الصلاحية + الملكية: صاحب صلاحية prep يحذف منشوراته فقط
   let post = null;
   Object.values(currentPosts).forEach(arr => { const f = arr.find(p => p.id === postId); if (f) post = f; });
-  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'prep') && post && isOwnAuthor(post.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذا المنشور'); return; }
+  if (!currentUser?.isAdmin && !((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'prep')) && post && isOwnAuthor(post.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذا المنشور'); return; }
   const okDel = await confirmDialog({
     icon: '🗑️', title: 'حذف المنشور',
     message: 'سيُحذف هذا المنشور نهائياً مع كل مرفقاته من الموقع. لا يمكن التراجع عن هذا الإجراء.',
@@ -8126,10 +8203,16 @@ window.openMaterialDetail = function(mat) {
     }
   };
 
-  if (currentUser?.isAdmin || (userHasPerm(currentUser, 'material') && isOwnAuthor(mat.authorId))) {
+  const canEditMat = currentUser?.isAdmin || ((userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'material')) && isOwnAuthor(mat.authorId));
+  const canDelMat  = currentUser?.isAdmin || ((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'material')) && isOwnAuthor(mat.authorId));
+  if (canEditMat || canDelMat) {
     adminAct.style.display = 'flex';
-    document.getElementById('material-detail-edit').onclick   = () => { closeModal('material-detail-modal'); openMaterialModal(mat); };
-    document.getElementById('material-detail-delete').onclick = () => deleteMaterial(mat.id);
+    if (canEditMat) {
+      document.getElementById('material-detail-edit').onclick   = () => { closeModal('material-detail-modal'); openMaterialModal(mat); };
+    }
+    if (canDelMat) {
+      document.getElementById('material-detail-delete').onclick = () => deleteMaterial(mat.id);
+    }
   } else {
     adminAct.style.display = 'none';
   }
@@ -8155,8 +8238,8 @@ window.openMaterialDetail = function(mat) {
 
 // ── فتح modal إضافة/تعديل ملزمة ──
 window.openMaterialModal = function(existingMat = null) {
-  if (currentUser && !userHasPerm(currentUser, 'material')) {
-    showToast('⛔', 'مقيّد', 'نشر الملازم غير مفعّل لحسابك');
+  if (currentUser && !(userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'material'))) {
+    showToast('⛔', 'مقيّد', 'نشر/تعديل الملازم غير مفعّل لحسابك');
     return;
   }
   if (!currentUser) {
@@ -8205,12 +8288,14 @@ window.openMaterialModal = function(existingMat = null) {
 // نشر/تعديل ملزمة — يُغلق الواجهة فوراً ويُكمل الرفع والنشر في الخلفية
 document.getElementById('btn-do-material')?.addEventListener('click', async () => {
   const btn      = document.getElementById('btn-do-material');
-  if (!userHasPerm(currentUser, 'material')) { showToast('⛔', 'مقيّد', 'نشر الملازم غير مفعّل لحسابك'); return; }
   const editId   = document.getElementById('mat-edit-id').value;
   // وضع التعديل: يُسمح فقط بملازمي (المالك/الأدمن يتجاوز هذا القيد)
   if (editId && !currentUser?.isAdmin) {
+    if (!(userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'material'))) { showToast('⛔', 'مقيّد', 'تعديل الملازم غير مفعّل لحسابك'); return; }
     const origMat = (Array.isArray(allMaterials) ? allMaterials : []).find(m => String(m.id) === String(editId));
     if (!origMat || !isOwnAuthor(origMat.authorId)) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذه الملزمة'); return; }
+  } else if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'material')) {
+    showToast('⛔', 'مقيّد', 'نشر الملازم غير مفعّل لحسابك'); return;
   }
   const subject  = document.getElementById('mat-subject').value;
   const types    = getMatTypeSelection(); // يمكن اختيار أكثر من نوع (✓)
@@ -8332,7 +8417,7 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
 async function deleteMaterial(id) {
   // التحقق من الصلاحية + الملكية: صاحب صلاحية material يحذف ملازمَه فقط
   const mat = (Array.isArray(allMaterials) ? allMaterials : []).find(m => String(m.id) === String(id));
-  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'material') && mat && isOwnAuthor(mat.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذه الملزمة'); return; }
+  if (!currentUser?.isAdmin && !((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'material')) && mat && isOwnAuthor(mat.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذه الملزمة'); return; }
   const okDel = await confirmDialog({
     icon: '📚', title: 'حذف الملزمة',
     message: 'سيُحذف ملف الملزمة وبياناتها نهائياً من قسم الملازم. لا يمكن التراجع عن هذا الإجراء.',
@@ -9725,7 +9810,7 @@ function renderReports() {
             <span class="report-author" onclick="openReportAuthorProfile(event, '${encodeURIComponent(String(r.authorId || ''))}', '${encodeURIComponent(String(r.author || ''))}')" title="عرض الملف الشخصي">${reportAuthorHtml(r)}</span>
             <span class="report-foot-actions">
               <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" data-rc-coll="reports" style="display:none">0</span></button>
-              ${(currentUser?.isAdmin || (userHasPerm(currentUser, 'report') && isOwnAuthor(r.authorId))) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button><button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+              ${(currentUser?.isAdmin || ((userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'report')) && isOwnAuthor(r.authorId))) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button>` : ''}${(currentUser?.isAdmin || ((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'report')) && isOwnAuthor(r.authorId))) ? `<button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
             </span>
           </div>
         </div>`;
@@ -11740,7 +11825,7 @@ window.openReportModal = function() {
 window.editReport = function(id) {
   const rep = reportsData.find(r => String(r.id) === String(id));
   if (!rep) { showToast('⚠️', 'خطأ', 'لم يُعثر على البلاغ'); return; }
-  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'report') && isOwnAuthor(rep.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا البلاغ'); return; }
+  if (!currentUser?.isAdmin && !((userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'report')) && isOwnAuthor(rep.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا البلاغ'); return; }
 
   resetReportModal();
   editingReport = rep;
@@ -11906,7 +11991,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
 window.deleteReport = async function(id) {
   // التحقق من الصلاحية + الملكية: صاحب صلاحية report يحذف بلاغاته فقط
   const rep = reportsData.find(r => String(r.id) === String(id));
-  if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'report') && rep && isOwnAuthor(rep.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذا البلاغ'); return; }
+  if (!currentUser?.isAdmin && !((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'report')) && rep && isOwnAuthor(rep.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية حذف هذا البلاغ'); return; }
   const okDel = await confirmDialog({
     icon: '📣', title: 'حذف البلاغ',
     message: 'سيُحذف هذا البلاغ نهائياً ولن يظهر لأحد. لا يمكن التراجع عن هذا الإجراء.',
@@ -12060,7 +12145,7 @@ window.confirmDialog = function(opts = {}) {
 // زر ☰ في شريط الجدول ← لوحة إحصاءات (مسجّلون/نشطون) ← إدارة الأعضاء (عرض وتعديل كل الحسابات)
 let amUsers = [];      // آخر قائمة محملة من مجموعة users
 let amLoadedAt = 0;    // وقت آخر جلب (كاش دقيقة)
-let amCurrent = null;  // العضو المفتوح في نموذج التعديل
+var amCurrent = null;  // العضو المفتوح في نموذج التعديل
 let amPhotoURL = '';    // صورة مختارة في نموذج التعديل (تُحفظ مع زر الحفظ)
 let amPhotoChanged = false; // هل تم اختيار صورة جديدة أو حذفها؟
 
@@ -12267,7 +12352,9 @@ function amEsc(s) {
 const AM_PERMS = [
   { key: 'prep',     ico: '📝', label: 'نشر التحضير' },
   { key: 'report',   ico: '📨', label: 'نشر البلاغ' },
-  { key: 'material', ico: '📚', label: 'نشر الملازم (وتعديلها وحذفها)' },
+  { key: 'material', ico: '📚', label: 'نشر الملازم' },
+  { key: 'edit-post',  ico: '✏️', label: 'تعديل المنشورات (الجدول، البلاغ، الملازم)' },
+  { key: 'delete-post', ico: '🗑️', label: 'حذف المنشورات (الجدول، البلاغ، الملازم)' },
   { key: 'comment',  ico: '💬', label: 'التعليق على البلاغ' },
   { key: 'enquiry',  ico: '❓', label: 'الاستفسار (دردشة التحضير)' },
   { key: 'support',  ico: '🎧', label: 'الرد على دعم الطلاب' },
@@ -12278,7 +12365,8 @@ const AM_PERMS = [
 // صلاحيات الحساب الجديد: تعديل الملف الشخصي فقط — الباقي يمنحه صاحب الموقع لاحقاً
 const NEW_USER_PERMS = {
   prep: false, report: false, material: false, comment: false, enquiry: false,
-  support: false, verify: false, profile: true, vote: false
+  support: false, verify: false, profile: true, vote: false,
+  'edit-post': false, 'delete-post': false
 };
 // الافتراضي عند عدم وجود حقل perms في المستند — متسق مع NEW_USER_PERMS:
 // القاعدة: بدون علامة صح صريحة في الصلاحيات ⇒ لا يستطيع تنفيذ العملية، إلا المالك دائماً
@@ -12510,6 +12598,32 @@ window.amEdit = function (id) {
   const box = document.querySelector('#am-modal .modal-box');
   if (box) box.scrollTop = 0;
 };
+window.amVisitProfile = function () {
+  // جلب البيانات مباشرة من عناصر النموذج الظاهرة على الشاشة
+  const nameInput = document.getElementById('am-f-user');
+  const metaEl = document.getElementById('am-meta');
+  
+  let uid = '';
+  let name = '';
+  
+  if (nameInput) {
+    name = nameInput.value.trim();
+    uid = name;
+  }
+  
+  // محاولة جلب المعرّف من am-meta (يحتوي على #المعرّف)
+  if (metaEl) {
+    const metaText = metaEl.textContent || '';
+    const match = metaText.match(/#([^\s·]+)/);
+    if (match) {
+      uid = match[1];
+    }
+  }
+  
+  if (!uid) { showToast('⚠️', 'تنبيه', 'لا يوجد معرّف لهذا الحساب'); return; }
+  accOpenProfile(uid, name || '');
+};
+
 window.amCloseEdit = function () {
   amCurrent = null;
   const lv = document.getElementById('am-list-view'), ev = document.getElementById('am-edit-view');
