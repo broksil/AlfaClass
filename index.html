@@ -11978,7 +11978,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
       showToast('✅', 'تم التعديل', 'حُدِّث البلاغ لجميع المستخدمين فوراً');
     } else {
       // نشر بلاغ جديد
-      await addDoc(collection(db, 'reports'), {
+      const newRepRef = await addDoc(collection(db, 'reports'), {
         type, title, body,
         images: imageUrls,
         files: fileItems,
@@ -11990,6 +11990,7 @@ document.getElementById('btn-do-report')?.addEventListener('click', async () => 
         authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
         createdAt: Date.now()
       });
+      tgSync('/publish', newRepRef.id, 'report'); // إرسال البلاغ لتلكرام (القناة + المشتركين)
       pubProgressDone(); // العدّاد يبلغ 100
       setTimeout(() => { bgPublishFinish('✅ تم النشر بنجاح', 'ok'); pubProgressStop(); }, 700);
       showToast('✅', 'تم النشر', 'ظهر البلاغ لجميع المستخدمين فوراً');
@@ -12016,6 +12017,7 @@ window.deleteReport = async function(id) {
   if (!okDel) return;
   try {
     await deleteDoc(doc(db, 'reports', id));
+    tgSync('/delete', id, 'report'); // حذف البلاغ من تلكرام أيضاً
     showToast('🗑️', 'حذف', 'تم حذف البلاغ');
   } catch (e) {
     showToast('❌', 'خطأ', 'فشل حذف البلاغ');
