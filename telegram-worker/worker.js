@@ -6,6 +6,7 @@
 // ── ثوابت المشروع ──────────────────────────────────────────────────────────
 const PROJECT_ID = 'alfaclass-120e3';
 const SITE_URL   = 'https://broksil.github.io/AlfaClass/';
+const BOT_LINK   = 'http://t.me/AlfaaClassbot/ALFA';
 const BATCH_SIZE = 15; // عدد المشتركين في كل دفعة (آمن لحدود Cloudflare Subrequests)
 
 // أسماء أيام الأسبوع بالعربية
@@ -45,6 +46,18 @@ export default {
       if (url.pathname === '/check-scheduled' || url.pathname === '/trigger-scheduled') {
         const force = url.searchParams.get('force') === '1' || url.pathname === '/trigger-scheduled';
         const res = await checkAndSendTomorrowPreps(env, { force });
+        // إذا كان اليوم خميس، نتحقق أيضاً من كليشة الأسبوع القادم كضمان إضافي
+        const baghdad = getBaghdadInfo();
+        if (baghdad.todayDayOfWeek === 4) {
+          checkAndSendWeeklySchedule(env, { force }).catch(() => {});
+        }
+        return reply(res, 200, cors);
+      }
+
+      // فحص وإرسال كليشة تحاضير وإمتحانات الأسبوع القادم (ليلة كل خميس)
+      if (url.pathname === '/check-weekly' || url.pathname === '/trigger-weekly') {
+        const force = url.searchParams.get('force') === '1' || url.pathname === '/trigger-weekly';
+        const res = await checkAndSendWeeklySchedule(env, { force });
         return reply(res, 200, cors);
       }
 
@@ -56,6 +69,10 @@ export default {
         const sentKey = `scheduled_sent:${targetDate}`;
         const alreadySent = env.KV ? await env.KV.get(sentKey) : null;
 
+        const nextWeekDays = getNextAcademicWeekDays(baghdad.year, baghdad.month, baghdad.day, baghdad.todayDayOfWeek);
+        const weeklyKey = nextWeekDays[0] ? `weekly_sent:${nextWeekDays[0].dateStr}` : null;
+        const weeklyAlreadySent = (env.KV && weeklyKey) ? await env.KV.get(weeklyKey) : null;
+
         return reply({
           ok: true,
           name: 'alfaclass-bot',
@@ -65,6 +82,9 @@ export default {
           target_date: targetDate,
           target_label: baghdad.primaryTarget.dateLabel,
           scheduled_sent: !!alreadySent,
+          is_thursday: baghdad.todayDayOfWeek === 4,
+          next_week_start: nextWeekDays[0] ? nextWeekDays[0].dateStr : null,
+          weekly_scheduled_sent: !!weeklyAlreadySent,
         }, 200, cors);
       }
 
@@ -76,9 +96,29 @@ export default {
     }
   },
 
-  // النشر المجدول التلقائي (Cron Trigger)
+  // النشر المجدول التلقائي (Cron Trigger — يعمل في الساعة 18:00 UTC = 21:00 بتوقيت بغداد)
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(checkAndSendTomorrowPreps(env, { isCron: true }));
+    ctx.waitUntil((async () => {
+      const baghdad = getBaghdadInfo();
+      // ليلة كل خميس (اليوم 4) بـ 9:00 مساءً: إرسال كليشة تحاضير وإمتحانات الأسبوع القادم
+      if (baghdad.todayDayOfWeek === 4) {
+        const weeklyRes = await checkAndSendWeeklySchedule(env, { isCron: true }).catch((e) => {
+          console.error('[WeeklyCron] خطأ في إرسال جدول الأسبوع:', e.message);
+          return null;
+        });
+        // إذا لم تتوفر تحاضير للأسبوع القادم بالكامل، نفحص تحاضير اليوم القادم كاحتياط
+        if (!weeklyRes || !weeklyRes.sent) {
+          await checkAndSendTomorrowPreps(env, { isCron: true }).catch((e) => {
+            console.error('[DailyCron] خطأ في إرسال التحاضير اليومية:', e.message);
+          });
+        }
+      } else {
+        // في بقية أيام الأسبوع: إرسال التحاضير اليومية لليوم الدراسي القادم
+        await checkAndSendTomorrowPreps(env, { isCron: true }).catch((e) => {
+          console.error('[DailyCron] خطأ في إرسال التحاضير اليومية:', e.message);
+        });
+      }
+    })());
   },
 };
 
@@ -186,11 +226,9 @@ const isGone = (j) =>
 // دالة حذف رسائل آمنة تدعم الحذف الجماعي مع Fallback فردي مضمون
 async function deleteChatMessages(env, st, chatId, ids) {
   if (!ids || !ids.length) return;
-  // 1) تجربة الحذف الجماعي deleteMessages أولاً
   const r = await tg(env, st, 'deleteMessages', { chat_id: chatId, message_ids: ids });
   if (r && r.ok) return;
 
-  // 2) احتياطي: إذا فشل الحذف الجماعي (مثل المحادثات الخاصة أو اختلاف الصلاحيات)، نحذف الرسائل واحدة تلو الأخرى
   for (const mid of ids) {
     if (mid) await tg(env, st, 'deleteMessage', { chat_id: chatId, message_id: mid }).catch(() => {});
   }
@@ -1051,7 +1089,6 @@ async function publish(req, env) {
       const res = await sendToChat(env, st, env.CHANNEL_ID, spec, false);
       if (res.ids && res.ids.length && env.KV) {
         const chData = JSON.stringify([[env.CHANNEL_ID, res.ids]]);
-        // حفظ تحت المعرفين (kid و postId) لضمان إمكانية الحذف لاحقاً
         await env.KV.put(`msgs:${kid}:ch`, chData, { expirationTtl: 30 * DAY });
         await env.KV.put(`msgs:${postId}:ch`, chData, { expirationTtl: 30 * DAY });
         textOnly = res.imgFailed;
@@ -1089,7 +1126,6 @@ async function publish(req, env) {
       await env.KV.put(`msgs:${kid}:${batchIndex}`, sentData, { expirationTtl: 30 * DAY });
       await env.KV.put(`msgs:${postId}:${batchIndex}`, sentData, { expirationTtl: 30 * DAY });
     }
-    // تنظيف المشتركين الذين قاموا بحظر البوت
     for (const badId of gone.slice(0, 5)) {
       await env.KV.delete(`sub:${badId}`).catch(() => {});
     }
@@ -1099,7 +1135,6 @@ async function publish(req, env) {
       await env.KV.put(`pub:${postId}`, '1', { expirationTtl: 30 * DAY });
       await env.KV.delete(`job:${kid}`).catch(() => {});
       await env.KV.delete(`job:${postId}`).catch(() => {});
-      // فحص إرسال تحاضير الغد المجمعة إن حان وقتها
       checkAndSendTomorrowPreps(env).catch(() => {});
     }
   }
@@ -1124,7 +1159,6 @@ async function remove(req, env) {
   const kid      = isReport ? 'R' + postId : postId;
   const st       = { retries: 0 };
 
-  // فحص كلا المفتاحين (مع بادئة R وبدونها) لضمان العثور على الرسائل أياً كان نوعها
   const keysToCheck = [...new Set([kid, postId, 'R' + postId])];
 
   if (env.KV) {
@@ -1207,43 +1241,52 @@ function getBaghdadInfo() {
     const dow = dt.getUTCDay();
     const dateStr = `${ty}-${tm}-${td}`;
     const dateLabel = `${AR_DAYS[dow]} ${dt.getUTCDate()} / ${dt.getUTCMonth() + 1}`;
-    return { dateStr, dateLabel, dayOfWeek: dow, isToday: offset === 0, offset };
+    return { dateStr, dateLabel, dayOfWeek: dow, offset };
   }
 
-  // ── تحديد اليوم الدراسي المستهدف ──
-  // إذا كان الوقت قبل الظهر (0 إلى 11 صباحاً): الطلاب يبحثون عن تحاضير اليوم الدراسي الحالي!
-  // إذا كان الوقت من بعد الظهر (12 فأكثر): يبحثون عن اليوم الدراسي القادم!
-  // في العراق: يوم الجمعة (5) عطلة رسمية. في الخميس مساءً اليوم القادم هو السبت (+2) أو الأحد (+3).
+  // حساب يوم الغد بدقة حصراً (بدون أي رجوع لليوم السابق):
+  // في الأيام العادية: الغد هو دائماً (+1)
+  // في ليلة الخميس: الجمعة عطلة رسمية، فيكون اليوم الدراسي التالي هو السبت (+2)
+  // في ليلة الجمعة: الغد هو السبت (+1)
   let targetOffset = 1;
-  if (currentHour < 12) {
-    targetOffset = 0; // اليوم الحالي
-  } else if (todayDayOfWeek === 4) { // الخميس مساءً
-    targetOffset = 2; // السبت
-  } else if (todayDayOfWeek === 5) { // الجمعة
-    targetOffset = 1; // السبت
+  if (todayDayOfWeek === 4) {
+    targetOffset = 2; // السبت (لأن الجمعة عطلة)
   }
 
-  const primaryTarget = makeDateInfo(targetOffset);
-
-  // قائمة الأيام البديلة بالترتيب في حال عدم وجود تحاضير في اليوم الأساسي
-  const candidateDates = [primaryTarget];
-  if (todayDayOfWeek === 4) { // الخميس
-    candidateDates.push(makeDateInfo(3)); // الأحد
-    candidateDates.push(makeDateInfo(1)); // الجمعة (إن وجدت استثناءات)
-  } else if (todayDayOfWeek === 5) { // الجمعة
-    candidateDates.push(makeDateInfo(2)); // الأحد
-  } else if (targetOffset === 1) {
-    candidateDates.push(makeDateInfo(2)); // بعد الغد
-    candidateDates.push(makeDateInfo(0)); // اليوم
-  }
+  const tomorrowTarget = makeDateInfo(targetOffset);
 
   return {
     baghdadNow: now,
+    year: y,
+    month: m,
+    day: d,
+    todayDayOfWeek,
     currentHour,
     currentMinute,
-    primaryTarget,
-    candidateDates,
+    tomorrowTarget,
+    primaryTarget: tomorrowTarget,
   };
+}
+
+// ── حساب أيام الأسبوع الدراسي القادم (السبت إلى الخميس) ──
+function getNextAcademicWeekDays(y, m, d, dow) {
+  let daysToSat = (6 - dow + 7) % 7;
+  if (daysToSat === 0) daysToSat = 7; // إذا كان اليوم سبتاً، يبدأ الأسبوع القادم بعد 7 أيام
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const dt = new Date(Date.UTC(y, m - 1, d + daysToSat + i));
+    if (dt.getUTCDay() === 5) continue; // تخطي الجمعة (عطلة رسمية)
+    const ty = dt.getUTCFullYear();
+    const tm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const td = String(dt.getUTCDate()).padStart(2, '0');
+    days.push({
+      dateStr: `${ty}-${tm}-${td}`,
+      dayNum: dt.getUTCDate(),
+      monthNum: dt.getUTCMonth() + 1,
+      dayOfWeek: dt.getUTCDay(),
+    });
+  }
+  return days;
 }
 
 // ── جلب تحاضير يوم محدد من Firestore ──
@@ -1310,26 +1353,22 @@ async function fetchPrepsForDay(token, dayId) {
     } catch (err2) {}
   }
 
-  // ترتيب التحاضير محلياً حسب اسم المادة
   preps.sort((a, b) => String(a.subject || '').localeCompare(String(b.subject || ''), 'ar'));
   return preps;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  التحقق الذكي والإرسال المجدول لتحاضير الغد
-//  - يفحص توقيت بغداد والأيام الدراسية بدقة
-//  - يبحث في الأيام المرشحة للعثور على التحاضير المسجلة
-//  - يرسل للقناة والمشتركين مع علامة إرسال تمنع التكرار
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function checkAndSendTomorrowPreps(env, options = {}) {
   const force  = !!options.force;
   const isCron = !!options.isCron;
   const info   = getBaghdadInfo();
+  const target = info.tomorrowTarget;
 
-  console.log(`[ScheduledCheck] وقت بغداد: ${info.currentHour}:${String(info.currentMinute).padStart(2, '0')} | اليوم الأساسي: ${info.primaryTarget.dateStr} | force: ${force}`);
+  console.log(`[ScheduledCheck] وقت بغداد: ${info.currentHour}:${String(info.currentMinute).padStart(2, '0')} | تاريخ الغد: ${target.dateStr} (${target.dateLabel}) | force: ${force}`);
 
-  // إذا لم يكن طلباً إجبارياً ولم يكن كرون: نتحقق أن الوقت بعد 8:30 مساءً (20:30+) أو فجراً
   if (!force && !isCron) {
     const isEveningTime = info.currentHour >= 20 || info.currentHour <= 5;
     if (!isEveningTime) {
@@ -1343,7 +1382,21 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
     }
   }
 
-  // جلب توكن الأدمن من Firebase Service Account
+  // التحقق: هل أُرسلت رسالة تحاضير الغد لهذا التاريخ سابقاً؟
+  const sentKey = `scheduled_sent:${target.dateStr}`;
+  const alreadySent = env.KV ? await env.KV.get(sentKey) : null;
+  if (alreadySent && !force) {
+    console.log(`[ScheduledCheck] تم إرسال تحاضير الغد (${target.dateStr}) سابقاً، تم التخطي.`);
+    return {
+      ok:           true,
+      sent:         false,
+      already_sent: true,
+      target_date:  target.dateStr,
+      date_label:   target.dateLabel,
+      message:      'تم إرسال رسالة تحاضير الغد سابقاً لهذا اليوم بنجاح',
+    };
+  }
+
   let token;
   try {
     token = await googleToken(env);
@@ -1352,41 +1405,22 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
     return { ok: false, error: 'google_token_failed: ' + err.message };
   }
 
-  // البحث عن تحاضير في الأيام المرشحة
-  let preps = [];
-  let chosenDateInfo = null;
+  // البحث حصراً عن تحاضير يوم الغد فقط (دون أي رجوع لليوم السابق أبداً)
+  const preps = await fetchPrepsForDay(token, target.dateStr);
 
-  for (const cand of info.candidateDates) {
-    const sentKey = `scheduled_sent:${cand.dateStr}`;
-    const alreadySent = env.KV ? await env.KV.get(sentKey) : null;
-    if (alreadySent && !force) {
-      console.log(`[ScheduledCheck] تم إرسال تحاضير (${cand.dateStr}) سابقاً، الانتقال للمرشح التالي إن وجد.`);
-      continue;
-    }
-
-    const found = await fetchPrepsForDay(token, cand.dateStr);
-    if (found && found.length > 0) {
-      preps = found;
-      chosenDateInfo = cand;
-      break;
-    }
-  }
-
-  if (!preps.length || !chosenDateInfo) {
-    console.log(`[ScheduledCheck] لا توجد تحاضير مسجلة للأيام الدراسية القادمة.`);
+  if (!preps || !preps.length) {
+    console.log(`[ScheduledCheck] لا توجد تحاضير مسجلة ليوم الغد (${target.dateStr}). تم الإلغاء وعدم الإرسال.`);
     return {
       ok:          true,
       sent:        false,
       reason:      'no_preps_found',
-      target_date: info.primaryTarget.dateStr,
-      date_label:  info.primaryTarget.dateLabel,
-      message:     `لا توجد تحاضير مسجلة ليوم الغد (${info.primaryTarget.dateStr}) حتى الآن. سيتم الإرسال فور توفرها.`,
+      target_date: target.dateStr,
+      date_label:  target.dateLabel,
+      message:     `لا توجد تحاضير مسجلة ليوم الغد (${target.dateStr}). لن يتم إرسال أي رسالة لليوم السابق.`,
     };
   }
 
-  // ── صياغة رسالة المجدول بالترتيب الدقيق للأسطر والتباعد ──
   const prepItems = [];
-
   for (const p of preps) {
     const type    = esc(String(p.type    || '').trim().slice(0, 60));
     const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
@@ -1406,9 +1440,8 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
     }
   }
 
-  const titlePrefix = chosenDateInfo.isToday ? 'تحاضير اليوم' : 'تحاضير يوم غد';
   const messageBlocks = [];
-  messageBlocks.push(`<u>${titlePrefix} ${chosenDateInfo.dateLabel} عدنا</u>`);
+  messageBlocks.push(`<u>تحاضير يوم غد ${target.dateLabel} عدنا</u>`);
   if (prepItems.length) {
     messageBlocks.push(prepItems.join('\n\n'));
   }
@@ -1420,7 +1453,6 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
   const st = { retries: 0 };
   let channelSuccess = false;
 
-  // 1) إرسال للقناة الرئيسية
   if (env.CHANNEL_ID) {
     try {
       const chRes = await tg(env, st, 'sendMessage', {
@@ -1435,12 +1467,10 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
     }
   }
 
-  // 2) إرسال لجميع المشتركين والكروبات في KV بحزم آمنة (5 محادثات معاً لتفادي تجاوز الحدود)
   const subs = await listSubs(env);
   console.log(`[ScheduledCheck] جاري الإرسال لـ ${subs.length} مشترك/كروب/قناة...`);
 
   let sentCount = 0;
-  // نحدد سقفاً آمناً للدفعة الواحدة للـ Cron لمنع استهلاك Subrequests
   const targetSubs = subs.slice(0, 40);
 
   for (let i = 0; i < targetSubs.length; i += 5) {
@@ -1460,7 +1490,6 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
   }
 
   // حفظ علامة الإرسال في KV لمدة 48 ساعة حتى لا تتكرر
-  const sentKey = `scheduled_sent:${chosenDateInfo.dateStr}`;
   if (env.KV) {
     await env.KV.put(sentKey, '1', { expirationTtl: 86400 * 2 });
   }
@@ -1470,9 +1499,193 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
   return {
     ok:               true,
     sent:             true,
-    target_date:      chosenDateInfo.dateStr,
-    date_label:       chosenDateInfo.dateLabel,
+    target_date:      target.dateStr,
+    date_label:       target.dateLabel,
     preps_count:      preps.length,
+    subscribers_sent: sentCount,
+    channel_success:  channelSuccess,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  النشر المجدول الأسبوعي (ليلة كل خميس الساعة 9:00 مساءً بتوقيت بغداد)
+//  تحاضير وإمتحانات الإسبوع القادم بالنمط المطلوب تماماً
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function checkAndSendWeeklySchedule(env, options = {}) {
+  const force  = !!options.force;
+  const isCron = !!options.isCron;
+  const info   = getBaghdadInfo();
+
+  console.log(`[WeeklySchedule] وقت بغداد: ${info.currentHour}:${String(info.currentMinute).padStart(2, '0')} | اليوم: ${AR_DAYS[info.todayDayOfWeek]} (${info.todayDayOfWeek}) | force: ${force}`);
+
+  // التحقق: إذا لم يكن طلباً إجبارياً، نتأكد أن اليوم هو الخميس والساعة بعد 8:30 مساءً (20:30+) أو فجراً
+  if (!force && !isCron) {
+    if (info.todayDayOfWeek !== 4) {
+      return {
+        ok: false,
+        sent: false,
+        reason: 'not_thursday',
+        message: 'النشر المجدول الأسبوعي مخصص لليلة كل خميس فقط (أو أرسل force=1 لتجربته الآن)',
+      };
+    }
+    const isEvening = info.currentHour >= 20 || info.currentHour <= 4;
+    if (!isEvening) {
+      return {
+        ok: false,
+        sent: false,
+        reason: 'not_evening_yet',
+        message: 'موعد إرسال كليشة الأسبوع القادم يبدأ من الساعة 9:00 مساءً بتوقيت بغداد',
+      };
+    }
+  }
+
+  // حساب أيام الأسبوع الدراسي القادم (السبت، الأحد، الاثنين، الثلاثاء، الأربعاء، الخميس)
+  const nextWeekDays = getNextAcademicWeekDays(info.year, info.month, info.day, info.todayDayOfWeek);
+  const weekStartKey = nextWeekDays[0] ? nextWeekDays[0].dateStr : 'week';
+  const sentKey = `weekly_sent:${weekStartKey}`;
+
+  // منع التكرار خلال نفس الأسبوع إلا عند الإجبار (force)
+  const alreadySent = env.KV ? await env.KV.get(sentKey) : null;
+  if (alreadySent && !force) {
+    console.log(`[WeeklySchedule] تم إرسال كليشة الأسبوع (${weekStartKey}) سابقاً.`);
+    return {
+      ok: true,
+      sent: false,
+      already_sent: true,
+      week_start: weekStartKey,
+      message: 'تم إرسال كليشة الأسبوع القادم مسبقاً لهذا الأسبوع بنجاح',
+    };
+  }
+
+  // جلب توكن الأدمن من Firebase Service Account
+  let token;
+  try {
+    token = await googleToken(env);
+  } catch (err) {
+    console.error('[WeeklySchedule] فشل جلب توكن Firebase:', err.message);
+    return { ok: false, error: 'google_token_failed: ' + err.message };
+  }
+
+  // جلب التحاضير لكل يوم من أيام الأسبوع القادم
+  const daysWithPreps = [];
+  let totalPrepsCount = 0;
+
+  for (const day of nextWeekDays) {
+    const preps = await fetchPrepsForDay(token, day.dateStr);
+    if (preps && preps.length > 0) {
+      daysWithPreps.push({ day, preps });
+      totalPrepsCount += preps.length;
+    }
+  }
+
+  if (daysWithPreps.length === 0) {
+    console.log('[WeeklySchedule] لا توجد تحاضير مسجلة للأسبوع القادم حتى الآن.');
+    return {
+      ok: true,
+      sent: false,
+      reason: 'no_preps_next_week',
+      week_start: weekStartKey,
+      message: 'لا توجد تحاضير أو امتحانات مسجلة للأسبوع القادم حتى الآن.',
+    };
+  }
+
+  // ── بناء الكليشة بالنمط المطلوب تماماً ──
+  const lines = [];
+  lines.push('<u>تحاضير وإمتحانات الإسبوع القادم :</u>\n');
+
+  for (const item of daysWithPreps) {
+    const dayName = AR_DAYS[item.day.dayOfWeek];
+    const dayLabel = `• ${dayName} ${item.day.dayNum} / ${item.day.monthNum}`;
+    lines.push(`<blockquote>${dayLabel}</blockquote>`);
+
+    const dayItems = [];
+    for (const p of item.preps) {
+      const subject = esc(String(p.subject || p.title || 'مادة').trim().slice(0, 100));
+      const type    = esc(String(p.type    || '').trim().slice(0, 60));
+      const note    = esc(String(p.note    || '').trim().slice(0, 800));
+
+      let content = '';
+      if (note && type && type !== 'تحضير') {
+        const lowerNote = note.toLowerCase();
+        const lowerType = type.toLowerCase();
+        if (lowerNote.includes(lowerType)) {
+          content = note;
+        } else {
+          content = `${type} — ${note}`;
+        }
+      } else if (note) {
+        content = note;
+      } else if (type) {
+        content = type;
+      } else {
+        content = 'تحضير';
+      }
+
+      dayItems.push(`- ${subject} : ${content}`);
+    }
+
+    lines.push(dayItems.join('\n\n'));
+    lines.push(''); // سطر فارغ بين الأيام
+  }
+
+  lines.push(`الفاكلاس رابط <a href="${esc(BOT_LINK)}">${esc(BOT_LINK)}</a>`);
+
+  let weeklyMessage = lines.join('\n').trim();
+  if (weeklyMessage.length > 3900) weeklyMessage = weeklyMessage.slice(0, 3900) + '…';
+
+  const st = { retries: 0 };
+  let channelSuccess = false;
+
+  // 1) إرسال للقناة الرئيسية
+  if (env.CHANNEL_ID) {
+    try {
+      const chRes = await tg(env, st, 'sendMessage', {
+        chat_id:    env.CHANNEL_ID,
+        text:       weeklyMessage,
+        parse_mode: 'HTML',
+      });
+      channelSuccess = chRes.ok;
+      console.log(`[WeeklySchedule] إرسال للقناة ${env.CHANNEL_ID}:`, chRes.ok ? '✅' : chRes.description);
+    } catch (e) {
+      console.warn('[WeeklySchedule] خطأ إرسال القناة:', e.message);
+    }
+  }
+
+  // 2) إرسال لجميع المشتركين والكروبات في KV
+  const subs = await listSubs(env);
+  const targetSubs = subs.slice(0, 40);
+  let sentCount = 0;
+
+  for (let i = 0; i < targetSubs.length; i += 5) {
+    const chunk = targetSubs.slice(i, i + 5);
+    await Promise.all(chunk.map((chatId) =>
+      tg(env, st, 'sendMessage', {
+        chat_id:    chatId,
+        text:       weeklyMessage,
+        parse_mode: 'HTML',
+      }).then(async (res) => {
+        if (res.ok) sentCount++;
+        if (isGone(res) && env.KV) {
+          await env.KV.delete(`sub:${chatId}`).catch(() => {});
+        }
+      }).catch(() => {})
+    ));
+  }
+
+  // حفظ علامة الإرسال في KV لمدة 6 أيام حتى لا تتكرر
+  if (env.KV) {
+    await env.KV.put(sentKey, '1', { expirationTtl: 86400 * 6 });
+  }
+
+  console.log(`[WeeklySchedule] ✅ تم إرسال جدول الأسبوع القادم بنجاح! ${totalPrepsCount} تحضير لـ ${sentCount} مشترك.`);
+
+  return {
+    ok:               true,
+    sent:             true,
+    week_start:       weekStartKey,
+    days_count:       daysWithPreps.length,
+    preps_count:      totalPrepsCount,
     subscribers_sent: sentCount,
     channel_success:  channelSuccess,
   };
