@@ -818,6 +818,15 @@ async function fetchPost(postId, idToken, preferredColl = null, env = null) {
         }
       } catch (e) {}
     }
+
+    // 3) احتياطي عام: القراءة المباشرة من Firestore REST API (إذا كانت القواعد تسمح بالقراءة العامة)
+    try {
+      const r = await fetch(`${FS}/${c}/${postId}`);
+      if (r.status === 200) {
+        const j = await r.json().catch(() => ({}));
+        return { status: 200, data: decodeFields(j.fields || {}), coll: c };
+      }
+    } catch (e) {}
   }
 
   return { status: 404 };
@@ -885,13 +894,17 @@ function buildPrepMessage(p, postId) {
 function buildReportMessage(p, postId) {
   const postUrl = `${SITE_URL}#report-${postId}`;
   const title   = esc(String(p.title || p.subject || 'بلاغ').trim().slice(0, 150));
-  const body    = esc(String(p.body  || p.note    || '').trim().slice(0, 800));
+  const body    = esc(String(p.body  || p.note    || '').trim().slice(0, 1500));
+  const author  = esc(String(p.author || '').trim().slice(0, 60));
 
   const parts = [];
   parts.push(`<u>📢  ${title}</u>`);
 
   if (body) {
     parts.push(`<blockquote>${body}</blockquote>`);
+  }
+  if (author) {
+    parts.push(`👤 <b>الناشر:</b> ${author}`);
   }
   parts.push(`<a href="${esc(postUrl)}">ألفاكلاس</a>`);
 
@@ -960,7 +973,8 @@ function buildSpec(p, kind, postId) {
   if (text.length > 3800) text = text.slice(0, 3800) + '…';
 
   const captionFits = text.length <= 1024;
-  const caption     = captionFits ? text : (text.split('\n')[0] || '📚');
+  const defaultIcon = kind === 'report' ? '📢' : (kind === 'classroom' ? '🧑🏻‍🏫' : '📚');
+  const caption     = captionFits ? text : (text.split('\n')[0] || defaultIcon);
   const needsText   = images.length === 0 || !captionFits;
   const cpr         = images.length > 0 && !captionFits ? 2 : 1;
 
@@ -1099,7 +1113,7 @@ async function listSubs(env) {
 
 async function publish(req, env) {
   const body = await req.json().catch(() => ({}));
-  const { postId, idToken } = body;
+  const { postId, idToken, data } = body;
   let kind = body.kind;
   const offset = Number(body.offset) || 0;
 
@@ -1111,8 +1125,11 @@ async function publish(req, env) {
   else if (kind === 'classroom') prefColl = 'class_announcements';
   else if (kind === 'post') prefColl = 'posts';
 
-  // جلب بيانات المنشور من Firestore مع البحث الذكي التلقائي
-  const got = await fetchPost(postId, idToken, prefColl, env);
+  // جلب بيانات المنشور من Firestore مع البحث الذكي التلقائي أو الاعتماد على البيانات المرسلة مباشرة
+  let got = await fetchPost(postId, idToken, prefColl, env);
+  if (got.status !== 200 && data && typeof data === 'object') {
+    got = { status: 200, data, coll: prefColl || 'reports' };
+  }
   if (got.status === 404) throw new HttpError(404, 'post_not_found');
   if (got.status !== 200) throw new HttpError(got.status, got.error || 'firestore_error');
 
@@ -1211,7 +1228,7 @@ async function publish(req, env) {
 
 async function editPost(req, env) {
   const body = await req.json().catch(() => ({}));
-  const { postId, idToken } = body;
+  const { postId, idToken, data } = body;
   let kind = body.kind;
   const offset = Number(body.offset) || 0;
 
@@ -1222,7 +1239,10 @@ async function editPost(req, env) {
   else if (kind === 'classroom') prefColl = 'class_announcements';
   else if (kind === 'post') prefColl = 'posts';
 
-  const got = await fetchPost(postId, idToken, prefColl, env);
+  let got = await fetchPost(postId, idToken, prefColl, env);
+  if (got.status !== 200 && data && typeof data === 'object') {
+    got = { status: 200, data, coll: prefColl || 'reports' };
+  }
   if (got.status === 404) throw new HttpError(404, 'post_not_found');
   if (got.status !== 200) throw new HttpError(got.status, got.error || 'firestore_error');
 
