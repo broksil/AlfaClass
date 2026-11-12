@@ -40,7 +40,13 @@ export default {
       if (url.pathname === '/user-profile' && req.method === 'GET') return reply(await getUserProfile(url, env), 200, cors);
       if (url.pathname === '/verified-users' && req.method === 'GET') return reply(await getVerifiedUsers(env), 200, cors);
       if (url.pathname === '/publish'  && req.method === 'POST') return reply(await publish(req, env), 200, cors);
+      if (url.pathname === '/edit'     && req.method === 'POST') return reply(await editPost(req, env), 200, cors);
       if (url.pathname === '/delete'   && req.method === 'POST') return reply(await remove(req, env), 200, cors);
+      if (url.pathname === '/sync-scheduled') {
+        const targetDate = url.searchParams.get('date');
+        const res = await syncScheduledTomorrowMessage(env, targetDate);
+        return reply(res, 200, cors);
+      }
 
       // فحص وإرسال تحاضير الغد (تلقائياً أو يدوياً)
       if (url.pathname === '/check-scheduled' || url.pathname === '/trigger-scheduled') {
@@ -1013,6 +1019,50 @@ async function sendToChat(env, st, chatId, spec, textOnly) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  تعديل رسالة مرسلة مسبقاً (Edit-or-Replace الذكي والآمن)
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function editChatMessage(env, st, chatId, ids, spec) {
+  if (!Array.isArray(ids) || !ids.length) {
+    return await sendToChat(env, st, chatId, spec, false);
+  }
+
+  // 1) إذا كانت الرسالة نصية فقط والجديد أيضاً نص فقط
+  if (ids.length === 1 && (!spec.images || spec.images.length === 0)) {
+    try {
+      const res = await tg(env, st, 'editMessageText', {
+        chat_id:    chatId,
+        message_id: ids[0],
+        text:       spec.text,
+        parse_mode: 'HTML',
+      });
+      if (res.ok) return { ids, ok: true };
+      if (String(res.description || '').includes('message is not modified')) return { ids, ok: true };
+    } catch (e) {}
+  }
+
+  // 2) إذا كانت الرسالة صورة واحدة والجديد أيضاً صورة واحدة والـ caption مناسب
+  if (ids.length === 1 && spec.images && spec.images.length === 1 && spec.captionFits) {
+    try {
+      const res = await tg(env, st, 'editMessageCaption', {
+        chat_id:    chatId,
+        message_id: ids[0],
+        caption:    spec.caption,
+        parse_mode: 'HTML',
+      });
+      if (res.ok) return { ids, ok: true };
+      if (String(res.description || '').includes('message is not modified')) return { ids, ok: true };
+    } catch (e) {}
+  }
+
+  // 3) في حال تغيّر نوع الوسائط أو فشل التعديل المباشر: حذف القديم وإرسال الجديد (Fallback مضمون)
+  try {
+    await deleteChatMessages(env, st, chatId, ids);
+  } catch (e) {}
+  return await sendToChat(env, st, chatId, spec, false);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  قائمة المشتركين (Private + Groups + Channels)
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -1136,6 +1186,14 @@ async function publish(req, env) {
       await env.KV.delete(`job:${kid}`).catch(() => {});
       await env.KV.delete(`job:${postId}`).catch(() => {});
       checkAndSendTomorrowPreps(env).catch(() => {});
+      const targetDayId = got.data && (got.data.dayId || got.data.date);
+      if (targetDayId) {
+        syncScheduledTomorrowMessage(env, targetDayId).catch(() => {});
+        syncScheduledWeeklyMessage(env, targetDayId).catch(() => {});
+      } else {
+        syncScheduledTomorrowMessage(env).catch(() => {});
+        syncScheduledWeeklyMessage(env).catch(() => {});
+      }
     }
   }
 
@@ -1148,11 +1206,117 @@ async function publish(req, env) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  تعديل المنشور في تلكرام (Live Edit) — للقناة وللمشتركين بدفعات
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function editPost(req, env) {
+  const body = await req.json().catch(() => ({}));
+  const { postId, idToken } = body;
+  let kind = body.kind;
+  const offset = Number(body.offset) || 0;
+
+  checkPostId(postId);
+
+  let prefColl = null;
+  if (kind === 'report') prefColl = 'reports';
+  else if (kind === 'classroom') prefColl = 'class_announcements';
+  else if (kind === 'post') prefColl = 'posts';
+
+  const got = await fetchPost(postId, idToken, prefColl, env);
+  if (got.status === 404) throw new HttpError(404, 'post_not_found');
+  if (got.status !== 200) throw new HttpError(got.status, got.error || 'firestore_error');
+
+  if (!kind || (got.coll === 'reports' && kind !== 'report') || (got.coll === 'class_announcements' && kind !== 'classroom')) {
+    if (got.coll === 'reports') kind = 'report';
+    else if (got.coll === 'class_announcements') kind = 'classroom';
+    else kind = 'post';
+  }
+
+  const isReport = kind === 'report' || kind === 'classroom';
+  const kid      = isReport ? 'R' + postId : postId;
+  const st       = { retries: 0 };
+  const DAY      = 86400;
+
+  const spec = buildSpec(got.data, kind, postId);
+
+  // 1) في أول دفعة (offset === 0): تعديل رسالة القناة الرئيسية
+  if (offset === 0 && env.CHANNEL_ID) {
+    const chKey = `msgs:${kid}:ch`;
+    let chRec = env.KV ? await env.KV.get(chKey, 'json') : null;
+    if (!chRec) chRec = env.KV ? await env.KV.get(`msgs:${postId}:ch`, 'json') : null;
+
+    if (chRec && Array.isArray(chRec) && chRec.length) {
+      const [chatId, ids] = chRec[0];
+      const editRes = await editChatMessage(env, st, chatId, ids, spec);
+      if (editRes && editRes.ids && editRes.ids.length && env.KV) {
+        const newChData = JSON.stringify([[chatId, editRes.ids]]);
+        await env.KV.put(chKey, newChData, { expirationTtl: 30 * DAY });
+        await env.KV.put(`msgs:${postId}:ch`, newChData, { expirationTtl: 30 * DAY });
+      }
+    } else {
+      const res = await sendToChat(env, st, env.CHANNEL_ID, spec, false);
+      if (res.ids && res.ids.length && env.KV) {
+        const chData = JSON.stringify([[env.CHANNEL_ID, res.ids]]);
+        await env.KV.put(chKey, chData, { expirationTtl: 30 * DAY });
+        await env.KV.put(`msgs:${postId}:ch`, chData, { expirationTtl: 30 * DAY });
+      }
+    }
+  }
+
+  // 2) تعديل رسائل المشتركين بالدفعة الحالية
+  const batchIndex = Math.floor(offset / BATCH_SIZE);
+  const bKey = `msgs:${kid}:${batchIndex}`;
+  let bRec = env.KV ? await env.KV.get(bKey, 'json') : null;
+  if (!bRec) bRec = env.KV ? await env.KV.get(`msgs:${postId}:${batchIndex}`, 'json') : null;
+
+  if (bRec && Array.isArray(bRec) && bRec.length) {
+    const updatedBatch = [];
+    for (let i = 0; i < bRec.length; i += 5) {
+      const chunk = bRec.slice(i, i + 5);
+      const results = await Promise.all(
+        chunk.map(([chatId, ids]) => editChatMessage(env, st, chatId, ids, spec))
+      );
+      results.forEach((r, idx) => {
+        if (r && r.ids && r.ids.length) updatedBatch.push([chunk[idx][0], r.ids]);
+      });
+    }
+    if (updatedBatch.length && env.KV) {
+      const bData = JSON.stringify(updatedBatch);
+      await env.KV.put(bKey, bData, { expirationTtl: 30 * DAY });
+      await env.KV.put(`msgs:${postId}:${batchIndex}`, bData, { expirationTtl: 30 * DAY });
+    }
+  }
+
+  const subs = await listSubs(env);
+  const isDone = (offset + BATCH_SIZE) >= subs.length;
+
+  // 3) عند اكتمال تعديل المنشور: تحديث الرسالة المجمعة (تحاضير الغد والجدول الأسبوعي) فوراً
+  if (isDone) {
+    const dayId = got.data && (got.data.dayId || got.data.date);
+    if (dayId) {
+      syncScheduledTomorrowMessage(env, dayId).catch(() => {});
+      syncScheduledWeeklyMessage(env, dayId).catch(() => {});
+    } else {
+      syncScheduledTomorrowMessage(env).catch(() => {});
+      syncScheduledWeeklyMessage(env).catch(() => {});
+    }
+  }
+
+  return {
+    done: isDone,
+    next: offset + BATCH_SIZE,
+    total: subs.length,
+    edited: true,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  حذف المنشور من تلكرام (Delete) — مضمون 100% مع دعم fallback والحذف الفردي
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function remove(req, env) {
-  const { postId, kind } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
+  const { postId, kind, dayId } = body;
   checkPostId(postId);
 
   const isReport = kind === 'report' || kind === 'classroom';
@@ -1201,6 +1365,10 @@ async function remove(req, env) {
       if (!foundAny && batchNo > 2) break;
     }
   }
+
+  // 3) تحديث الرسائل المجمعة (تحاضير الغد / جدول الأسبوع) لإزالة المنشور المحذوف فوراً
+  syncScheduledTomorrowMessage(env, dayId).catch(() => {});
+  syncScheduledWeeklyMessage(env, dayId).catch(() => {});
 
   return { done: true, ok: true };
 }
@@ -1270,12 +1438,51 @@ function getBaghdadInfo() {
 
 // ── حساب أيام الأسبوع الدراسي القادم (السبت إلى الخميس) ──
 function getNextAcademicWeekDays(y, m, d, dow) {
+  if (y === undefined) {
+    const info = getBaghdadInfo();
+    y = info.year; m = info.month; d = info.day; dow = info.todayDayOfWeek;
+  }
   let daysToSat = (6 - dow + 7) % 7;
   if (daysToSat === 0) daysToSat = 7; // إذا كان اليوم سبتاً، يبدأ الأسبوع القادم بعد 7 أيام
   const days = [];
   for (let i = 0; i < 7; i++) {
     const dt = new Date(Date.UTC(y, m - 1, d + daysToSat + i));
     if (dt.getUTCDay() === 5) continue; // تخطي الجمعة (عطلة رسمية)
+    const ty = dt.getUTCFullYear();
+    const tm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const td = String(dt.getUTCDate()).padStart(2, '0');
+    days.push({
+      dateStr: `${ty}-${tm}-${td}`,
+      dayNum: dt.getUTCDate(),
+      monthNum: dt.getUTCMonth() + 1,
+      dayOfWeek: dt.getUTCDay(),
+    });
+  }
+  return days;
+}
+
+// ── إيجاد تاريخ السبت لأي أسبوع دراسي يحتوي على التاريخ المحدد ──
+function getWeekStartForDate(dateStr) {
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = dt.getUTCDay(); // 0=Sun .. 6=Sat
+  const daysSinceSat = (dow + 1) % 7;
+  const satDt = new Date(Date.UTC(y, m - 1, d - daysSinceSat));
+  const sy = satDt.getUTCFullYear();
+  const sm = String(satDt.getUTCMonth() + 1).padStart(2, '0');
+  const sd = String(satDt.getUTCDate()).padStart(2, '0');
+  return `${sy}-${sm}-${sd}`;
+}
+
+// ── توليد أيام الأسبوع الدراسي (السبت إلى الخميس) لسبت محدد ──
+function getAcademicWeekDaysForStart(satDateStr) {
+  if (!satDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(satDateStr)) return [];
+  const [y, m, d] = satDateStr.split('-').map(Number);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const dt = new Date(Date.UTC(y, m - 1, d + i));
+    if (dt.getUTCDay() === 5) continue; // تخطي الجمعة
     const ty = dt.getUTCFullYear();
     const tm = String(dt.getUTCMonth() + 1).padStart(2, '0');
     const td = String(dt.getUTCDate()).padStart(2, '0');
@@ -1420,35 +1627,7 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
     };
   }
 
-  const prepItems = [];
-  for (const p of preps) {
-    const type    = esc(String(p.type    || '').trim().slice(0, 60));
-    const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
-    const note    = esc(String(p.note    || '').trim().slice(0, 400));
-
-    let itemTitle = '';
-    if (type && subject) {
-      itemTitle = `${type} — ${subject}`;
-    } else {
-      itemTitle = type || subject || 'تحضير';
-    }
-
-    if (note) {
-      prepItems.push(`📚 ${itemTitle}\n<blockquote>${note}</blockquote>`);
-    } else {
-      prepItems.push(`📚 ${itemTitle}`);
-    }
-  }
-
-  const messageBlocks = [];
-  messageBlocks.push(`<u>تحاضير يوم غد ${target.dateLabel} عدنا</u>`);
-  if (prepItems.length) {
-    messageBlocks.push(prepItems.join('\n\n'));
-  }
-  messageBlocks.push(`<a href="${esc(BOT_LINK)}">الفاكلاس</a>`);
-
-  let scheduledText = messageBlocks.join('\n\n');
-  if (scheduledText.length > 3800) scheduledText = scheduledText.slice(0, 3800) + '…';
+  const scheduledText = buildTomorrowScheduledText(preps, target.dateLabel);
 
   const st = { retries: 0 };
   let channelSuccess = false;
@@ -1461,6 +1640,15 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
         parse_mode: 'HTML',
       });
       channelSuccess = chRes.ok;
+      if (chRes.ok && chRes.result && chRes.result.message_id && env.KV) {
+        await env.KV.put(`scheduled_msg:${target.dateStr}`, JSON.stringify({
+          channelId: env.CHANNEL_ID,
+          msgId:     chRes.result.message_id,
+          dateStr:   target.dateStr,
+          dateLabel: target.dateLabel,
+          sentAt:    Date.now(),
+        }), { expirationTtl: 86400 * 2 });
+      }
       console.log(`[ScheduledCheck] إرسال للقناة ${env.CHANNEL_ID}:`, chRes.ok ? '✅' : chRes.description);
     } catch (e) {
       console.warn('[ScheduledCheck] خطأ إرسال القناة:', e.message);
@@ -1598,44 +1786,7 @@ async function checkAndSendWeeklySchedule(env, options = {}) {
     return true; // بقية الأيام (الأحد إلى الخميس) تُعرض دائماً
   });
 
-  // ── بناء الكليشة بالنمط المطلوب تماماً ──
-  const blocks = [];
-  blocks.push('<u>تحاضير وإمتحانات الإسبوع القادم :</u>');
-
-  for (const item of scheduleDays) {
-    const dayName = AR_DAYS[item.day.dayOfWeek];
-    const dayLabel = `• ${dayName} ${item.day.dayNum} / ${item.day.monthNum}`;
-    const dayLines = [`<blockquote>${dayLabel}</blockquote>`];
-
-    if (item.preps && item.preps.length > 0) {
-      const dayItems = [];
-      for (const p of item.preps) {
-        const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
-        const type    = esc(String(p.type    || '').trim().slice(0, 60));
-        const note    = esc(String(p.note    || '').trim().slice(0, 800));
-
-        let itemTitle = '';
-        if (type && subject) {
-          itemTitle = `${type} — ${subject}`;
-        } else {
-          itemTitle = type || subject || 'تحضير';
-        }
-
-        const noteText = note || itemTitle;
-        dayItems.push(`<tg-spoiler>-</tg-spoiler>  📚 ${itemTitle} :\n[ ${noteText} ]`);
-      }
-      dayLines.push(dayItems.join('\n\n'));
-    } else {
-      dayLines.push('<tg-spoiler>-</tg-spoiler> لا يوجد تحضير حالياً');
-    }
-
-    blocks.push(dayLines.join('\n'));
-  }
-
-  blocks.push(`<a href="${esc(BOT_LINK)}">الفاكلاس</a>`);
-
-  let weeklyMessage = blocks.join('\n\n').trim();
-  if (weeklyMessage.length > 3900) weeklyMessage = weeklyMessage.slice(0, 3900) + '…';
+  const weeklyMessage = buildWeeklyScheduleText(scheduleDays);
 
   const st = { retries: 0 };
   let channelSuccess = false;
@@ -1649,6 +1800,14 @@ async function checkAndSendWeeklySchedule(env, options = {}) {
         parse_mode: 'HTML',
       });
       channelSuccess = chRes.ok;
+      if (chRes.ok && chRes.result && chRes.result.message_id && env.KV) {
+        await env.KV.put(`weekly_msg:${weekStartKey}`, JSON.stringify({
+          channelId: env.CHANNEL_ID,
+          msgId:     chRes.result.message_id,
+          weekStart: weekStartKey,
+          sentAt:    Date.now(),
+        }), { expirationTtl: 86400 * 7 });
+      }
       console.log(`[WeeklySchedule] إرسال للقناة ${env.CHANNEL_ID}:`, chRes.ok ? '✅' : chRes.description);
     } catch (e) {
       console.warn('[WeeklySchedule] خطأ إرسال القناة:', e.message);
@@ -1693,3 +1852,245 @@ async function checkAndSendWeeklySchedule(env, options = {}) {
     channel_success:  channelSuccess,
   };
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  بناء نصوص الرسائل المجدولة والتحديث المباشر Live Sync
+// ══════════════════════════════════════════════════════════════════════════════
+
+function buildTomorrowScheduledText(preps, dateLabel) {
+  const prepItems = [];
+  for (const p of preps) {
+    const type    = esc(String(p.type    || '').trim().slice(0, 60));
+    const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
+    const note    = esc(String(p.note    || '').trim().slice(0, 400));
+
+    let itemTitle = '';
+    if (type && subject) {
+      itemTitle = `${type} — ${subject}`;
+    } else {
+      itemTitle = type || subject || 'تحضير';
+    }
+
+    if (note) {
+      prepItems.push(`📚 ${itemTitle}\n<blockquote>${note}</blockquote>`);
+    } else {
+      prepItems.push(`📚 ${itemTitle}`);
+    }
+  }
+
+  const messageBlocks = [];
+  messageBlocks.push(`<u>تحاضير يوم غد ${dateLabel} عندنا</u>`);
+  if (prepItems.length) {
+    messageBlocks.push(prepItems.join('\n\n'));
+  }
+  messageBlocks.push(`<a href="${esc(BOT_LINK)}">الفاكلاس</a>`);
+
+  let scheduledText = messageBlocks.join('\n\n');
+  if (scheduledText.length > 3800) scheduledText = scheduledText.slice(0, 3800) + '…';
+  return scheduledText;
+}
+
+function buildWeeklyScheduleText(scheduleDays) {
+  const blocks = [];
+  blocks.push('<u>تحاضير وإمتحانات الإسبوع القادم :</u>');
+
+  for (const item of scheduleDays) {
+    const dayName = AR_DAYS[item.day.dayOfWeek];
+    const dayLabel = `• ${dayName} ${item.day.dayNum} / ${item.day.monthNum}`;
+    const dayLines = [`<blockquote>${dayLabel}</blockquote>`];
+
+    if (item.preps && item.preps.length > 0) {
+      const dayItems = [];
+      for (const p of item.preps) {
+        const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
+        const type    = esc(String(p.type    || '').trim().slice(0, 60));
+        const note    = esc(String(p.note    || '').trim().slice(0, 800));
+
+        let itemTitle = '';
+        if (type && subject) {
+          itemTitle = `${type} — ${subject}`;
+        } else {
+          itemTitle = type || subject || 'تحضير';
+        }
+
+        const noteText = note || itemTitle;
+        dayItems.push(`<tg-spoiler>-</tg-spoiler>  📚 ${itemTitle} :\n[ ${noteText} ]`);
+      }
+      dayLines.push(dayItems.join('\n\n'));
+    } else {
+      dayLines.push('<tg-spoiler>-</tg-spoiler> لا يوجد تحضير حالياً');
+    }
+
+    blocks.push(dayLines.join('\n'));
+  }
+
+  blocks.push(`<a href="${esc(BOT_LINK)}">الفاكلاس</a>`);
+
+  let weeklyMessage = blocks.join('\n\n').trim();
+  if (weeklyMessage.length > 3900) weeklyMessage = weeklyMessage.slice(0, 3900) + '…';
+  return weeklyMessage;
+}
+
+async function syncScheduledTomorrowMessage(env, targetDate) {
+  if (!env.KV) return { ok: false, error: 'no_kv' };
+
+  const info = getBaghdadInfo();
+  const dateStr = targetDate || info.tomorrowTarget.dateStr;
+
+  const raw = await env.KV.get(`scheduled_msg:${dateStr}`);
+  if (!raw) {
+    return { ok: true, synced: false, reason: 'not_sent_yet' };
+  }
+
+  let saved;
+  try {
+    saved = JSON.parse(raw);
+  } catch (e) {
+    return { ok: false, error: 'invalid_saved_json' };
+  }
+
+  if (!saved || !saved.channelId || !saved.msgId) {
+    return { ok: false, error: 'missing_message_coords' };
+  }
+
+  let token;
+  try {
+    token = await googleToken(env);
+  } catch (err) {
+    return { ok: false, error: 'google_token_failed: ' + err.message };
+  }
+
+  const preps = await fetchPrepsForDay(token, dateStr);
+  const st = { retries: 0 };
+
+  // إذا تم حذف جميع تحاضير الغد: نحذف الرسالة المجدولة من القناة تلقائياً
+  if (!preps || !preps.length) {
+    try {
+      await tg(env, st, 'deleteMessage', {
+        chat_id:    saved.channelId,
+        message_id: saved.msgId,
+      });
+      await env.KV.delete(`scheduled_msg:${dateStr}`);
+      console.log(`[LiveSync] تم حذف رسالة تحاضير الغد المجدولة (${dateStr}) لأن جميع التحاضير حُذفت.`);
+      return { ok: true, synced: true, action: 'deleted_empty_msg' };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // إذا لا زالت هناك تحاضير: نقوم بتحديث الرسالة القائمة عبر editMessageText
+  const dateLabel = saved.dateLabel || arabicDateFromDayId(dateStr);
+  const newText = buildTomorrowScheduledText(preps, dateLabel);
+
+  try {
+    const res = await tg(env, st, 'editMessageText', {
+      chat_id:    saved.channelId,
+      message_id: saved.msgId,
+      text:       newText,
+      parse_mode: 'HTML',
+    });
+    if (res.ok || String(res.description || '').includes('message is not modified')) {
+      console.log(`[LiveSync] تم تحديث رسالة تحاضير الغد المجدولة بنجاح (${dateStr}).`);
+      return { ok: true, synced: true, message_id: saved.msgId };
+    }
+    return { ok: false, error: res.description };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function syncScheduledWeeklyMessage(env, targetDayId) {
+  if (!env.KV) return { ok: false, error: 'no_kv' };
+
+  let weekStartKey = '';
+  let weekDays = [];
+
+  // إذا تم تمرير تاريخ تحضير محدد، نحدد السبت الخاص بأسبوع ذلك التحضير
+  if (targetDayId) {
+    weekStartKey = getWeekStartForDate(targetDayId);
+    if (weekStartKey) {
+      weekDays = getAcademicWeekDaysForStart(weekStartKey);
+    }
+  }
+
+  // إذا لم يتم تحديد تاريخ أو لم نجد أسبوعه، نستخدم الأسبوع الدراسي القادم تلقائياً
+  if (!weekStartKey || !weekDays.length) {
+    weekDays = getNextAcademicWeekDays();
+    weekStartKey = weekDays[0]?.dateStr || '';
+  }
+
+  if (!weekStartKey) return { ok: true, synced: false, reason: 'no_week_start' };
+
+  const raw = await env.KV.get(`weekly_msg:${weekStartKey}`);
+  if (!raw) {
+    return { ok: true, synced: false, reason: 'not_sent_yet' };
+  }
+
+  let saved;
+  try {
+    saved = JSON.parse(raw);
+  } catch (e) {
+    return { ok: false, error: 'invalid_saved_json' };
+  }
+
+  if (!saved || !saved.channelId || !saved.msgId) {
+    return { ok: false, error: 'missing_message_coords' };
+  }
+
+  let token;
+  try {
+    token = await googleToken(env);
+  } catch (err) {
+    return { ok: false, error: 'google_token_failed: ' + err.message };
+  }
+
+  const allWeekDays = [];
+  let totalPrepsCount = 0;
+
+  for (const day of weekDays) {
+    const preps = await fetchPrepsForDay(token, day.dateStr);
+    const count = (preps && preps.length) || 0;
+    totalPrepsCount += count;
+    allWeekDays.push({ day, preps: preps || [], count });
+  }
+
+  const st = { retries: 0 };
+
+  if (totalPrepsCount === 0) {
+    try {
+      await tg(env, st, 'deleteMessage', {
+        chat_id:    saved.channelId,
+        message_id: saved.msgId,
+      });
+      await env.KV.delete(`weekly_msg:${weekStartKey}`);
+      console.log(`[LiveSync] تم حذف كليشة الأسبوع (${weekStartKey}) لأن جميع التحاضير حُذفت.`);
+      return { ok: true, synced: true, action: 'deleted_empty_msg' };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  const scheduleDays = allWeekDays.filter(item => {
+    if (item.day.dayOfWeek === 6) return item.count > 0;
+    return true;
+  });
+
+  const newWeeklyText = buildWeeklyScheduleText(scheduleDays);
+
+  try {
+    const res = await tg(env, st, 'editMessageText', {
+      chat_id:    saved.channelId,
+      message_id: saved.msgId,
+      text:       newWeeklyText,
+      parse_mode: 'HTML',
+    });
+    if (res.ok || String(res.description || '').includes('message is not modified')) {
+      console.log(`[LiveSync] تم تحديث كليشة الأسبوع القادم بنجاح (${weekStartKey}).`);
+      return { ok: true, synced: true, message_id: saved.msgId };
+    }
+    return { ok: false, error: res.description };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
