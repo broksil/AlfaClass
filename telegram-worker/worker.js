@@ -1445,7 +1445,7 @@ async function checkAndSendTomorrowPreps(env, options = {}) {
   if (prepItems.length) {
     messageBlocks.push(prepItems.join('\n\n'));
   }
-  messageBlocks.push(`<a href="${esc(SITE_URL)}">ألفاكلاس</a>`);
+  messageBlocks.push(`<a href="${esc(BOT_LINK)}">الفاكلاس</a>`);
 
   let scheduledText = messageBlocks.join('\n\n');
   if (scheduledText.length > 3800) scheduledText = scheduledText.slice(0, 3800) + '…';
@@ -1568,18 +1568,18 @@ async function checkAndSendWeeklySchedule(env, options = {}) {
   }
 
   // جلب التحاضير لكل يوم من أيام الأسبوع القادم
-  const daysWithPreps = [];
+  const allWeekDays = [];
   let totalPrepsCount = 0;
 
   for (const day of nextWeekDays) {
     const preps = await fetchPrepsForDay(token, day.dateStr);
-    if (preps && preps.length > 0) {
-      daysWithPreps.push({ day, preps });
-      totalPrepsCount += preps.length;
-    }
+    const count = (preps && preps.length) || 0;
+    totalPrepsCount += count;
+    allWeekDays.push({ day, preps: preps || [], count });
   }
 
-  if (daysWithPreps.length === 0) {
+  // إذا لم تكن هناك أي تحاضير مسجلة في الأسبوع بالكامل
+  if (totalPrepsCount === 0 && !force) {
     console.log('[WeeklySchedule] لا توجد تحاضير مسجلة للأسبوع القادم حتى الآن.');
     return {
       ok: true,
@@ -1590,48 +1590,51 @@ async function checkAndSendWeeklySchedule(env, options = {}) {
     };
   }
 
-  // ── بناء الكليشة بالنمط المطلوب تماماً ──
-  const lines = [];
-  lines.push('<u>تحاضير وإمتحانات الإسبوع القادم :</u>\n');
+  // تحديد الأيام المعروضة: الأيام الدراسية (الأحد إلى الخميس)، ويوم السبت يُعرض إذا كانت فيه تحاضير أو طُلب الإجبار
+  const scheduleDays = allWeekDays.filter(item => {
+    if (item.day.dayOfWeek === 6) {
+      return item.count > 0; // السبت يُعرض فقط إن كان فيه تحضير
+    }
+    return true; // بقية الأيام (الأحد إلى الخميس) تُعرض دائماً
+  });
 
-  for (const item of daysWithPreps) {
+  // ── بناء الكليشة بالنمط المطلوب تماماً ──
+  const blocks = [];
+  blocks.push('<u>تحاضير وإمتحانات الإسبوع القادم :</u>');
+
+  for (const item of scheduleDays) {
     const dayName = AR_DAYS[item.day.dayOfWeek];
     const dayLabel = `• ${dayName} ${item.day.dayNum} / ${item.day.monthNum}`;
-    lines.push(`<blockquote>${dayLabel}</blockquote>`);
+    const dayLines = [`<blockquote>${dayLabel}</blockquote>`];
 
-    const dayItems = [];
-    for (const p of item.preps) {
-      const subject = esc(String(p.subject || p.title || 'مادة').trim().slice(0, 100));
-      const type    = esc(String(p.type    || '').trim().slice(0, 60));
-      const note    = esc(String(p.note    || '').trim().slice(0, 800));
+    if (item.preps && item.preps.length > 0) {
+      const dayItems = [];
+      for (const p of item.preps) {
+        const subject = esc(String(p.subject || p.title || '').trim().slice(0, 100));
+        const type    = esc(String(p.type    || '').trim().slice(0, 60));
+        const note    = esc(String(p.note    || '').trim().slice(0, 800));
 
-      let content = '';
-      if (note && type && type !== 'تحضير') {
-        const lowerNote = note.toLowerCase();
-        const lowerType = type.toLowerCase();
-        if (lowerNote.includes(lowerType)) {
-          content = note;
+        let itemTitle = '';
+        if (type && subject) {
+          itemTitle = `${type} — ${subject}`;
         } else {
-          content = `${type} — ${note}`;
+          itemTitle = type || subject || 'تحضير';
         }
-      } else if (note) {
-        content = note;
-      } else if (type) {
-        content = type;
-      } else {
-        content = 'تحضير';
-      }
 
-      dayItems.push(`- ${subject} : ${content}`);
+        const noteText = note || itemTitle;
+        dayItems.push(`<tg-spoiler>-</tg-spoiler>  📚 ${itemTitle} :\n[ ${noteText} ]`);
+      }
+      dayLines.push(dayItems.join('\n\n'));
+    } else {
+      dayLines.push('<tg-spoiler>-</tg-spoiler> لا يوجد تحضير حالياً');
     }
 
-    lines.push(dayItems.join('\n\n'));
-    lines.push(''); // سطر فارغ بين الأيام
+    blocks.push(dayLines.join('\n'));
   }
 
-  lines.push(`الفاكلاس رابط <a href="${esc(BOT_LINK)}">${esc(BOT_LINK)}</a>`);
+  blocks.push(`<a href="${esc(BOT_LINK)}">الفاكلاس</a>`);
 
-  let weeklyMessage = lines.join('\n').trim();
+  let weeklyMessage = blocks.join('\n\n').trim();
   if (weeklyMessage.length > 3900) weeklyMessage = weeklyMessage.slice(0, 3900) + '…';
 
   const st = { retries: 0 };
@@ -1684,7 +1687,7 @@ async function checkAndSendWeeklySchedule(env, options = {}) {
     ok:               true,
     sent:             true,
     week_start:       weekStartKey,
-    days_count:       daysWithPreps.length,
+    days_count:       scheduleDays.length,
     preps_count:      totalPrepsCount,
     subscribers_sent: sentCount,
     channel_success:  channelSuccess,
