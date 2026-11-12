@@ -67,6 +67,45 @@ export default {
         return reply(res, 200, cors);
       }
 
+      // فحص محتوى KV (للتشخيص فقط)
+      if (url.pathname === '/kv-debug' && req.method === 'GET') {
+        if (!env.KV) return reply({ ok: false, error: 'no_kv' }, 200, cors);
+        const result = {};
+        // قراءة مفاتيح weekly_msg
+        try {
+          const list = await env.KV.list({ prefix: 'weekly_msg:' });
+          result.weekly_msg_keys = list.keys.map(k => k.name);
+          for (const k of list.keys) {
+            const val = await env.KV.get(k.name);
+            result[k.name] = val ? JSON.parse(val) : null;
+          }
+        } catch(e) { result.weekly_error = e.message; }
+        // قراءة مفاتيح scheduled_msg
+        try {
+          const list2 = await env.KV.list({ prefix: 'scheduled_msg:' });
+          result.scheduled_msg_keys = list2.keys.map(k => k.name);
+          for (const k of list2.keys) {
+            const val = await env.KV.get(k.name);
+            result[k.name] = val ? JSON.parse(val) : null;
+          }
+        } catch(e) { result.scheduled_error = e.message; }
+        return reply(result, 200, cors);
+      }
+
+      // مزامنة يدوية لكليشة أسبوع محدد (للتجربة والإصلاح)
+      if (url.pathname === '/sync-weekly') {
+        const dayId = url.searchParams.get('dayId') || '';
+        const res = await syncScheduledWeeklyMessage(env, dayId);
+        return reply(res, 200, cors);
+      }
+
+      // مزامنة يدوية لرسالة تحاضير الغد (للتجربة والإصلاح)
+      if (url.pathname === '/sync-tomorrow') {
+        const date = url.searchParams.get('date') || '';
+        const res = await syncScheduledTomorrowMessage(env, date);
+        return reply(res, 200, cors);
+      }
+
       // فحص الحالة وعدد المشتركين (GET / أو /status)
       if (url.pathname === '/' || url.pathname === '/status') {
         const subs = await listSubs(env);
@@ -895,16 +934,12 @@ function buildReportMessage(p, postId) {
   const postUrl = `${SITE_URL}#report-${postId}`;
   const title   = esc(String(p.title || p.subject || 'بلاغ').trim().slice(0, 150));
   const body    = esc(String(p.body  || p.note    || '').trim().slice(0, 1500));
-  const author  = esc(String(p.author || '').trim().slice(0, 60));
 
   const parts = [];
   parts.push(`<u>📢  ${title}</u>`);
 
   if (body) {
     parts.push(`<blockquote>${body}</blockquote>`);
-  }
-  if (author) {
-    parts.push(`👤 <b>الناشر:</b> ${author}`);
   }
   parts.push(`<a href="${esc(postUrl)}">ألفاكلاس</a>`);
 
@@ -1204,13 +1239,11 @@ async function publish(req, env) {
       await env.KV.delete(`job:${postId}`).catch(() => {});
       checkAndSendTomorrowPreps(env).catch(() => {});
       const targetDayId = got.data && (got.data.dayId || got.data.date);
-      if (targetDayId) {
-        syncScheduledTomorrowMessage(env, targetDayId).catch(() => {});
-        syncScheduledWeeklyMessage(env, targetDayId).catch(() => {});
-      } else {
-        syncScheduledTomorrowMessage(env).catch(() => {});
-        syncScheduledWeeklyMessage(env).catch(() => {});
-      }
+      // await ضروري — Cloudflare Worker يقتل العمليات الخلفية بعد إرسال الرد
+      await Promise.allSettled([
+        syncScheduledTomorrowMessage(env, targetDayId || null),
+        syncScheduledWeeklyMessage(env, targetDayId || null),
+      ]);
     }
   }
 
@@ -1311,15 +1344,13 @@ async function editPost(req, env) {
   const isDone = (offset + BATCH_SIZE) >= subs.length;
 
   // 3) عند اكتمال تعديل المنشور: تحديث الرسالة المجمعة (تحاضير الغد والجدول الأسبوعي) فوراً
+  // ملاحظة مهمة: await ضروري — Cloudflare Worker يقتل العمليات الخلفية بعد إرسال الرد
   if (isDone) {
     const dayId = got.data && (got.data.dayId || got.data.date);
-    if (dayId) {
-      syncScheduledTomorrowMessage(env, dayId).catch(() => {});
-      syncScheduledWeeklyMessage(env, dayId).catch(() => {});
-    } else {
-      syncScheduledTomorrowMessage(env).catch(() => {});
-      syncScheduledWeeklyMessage(env).catch(() => {});
-    }
+    await Promise.allSettled([
+      syncScheduledTomorrowMessage(env, dayId || null),
+      syncScheduledWeeklyMessage(env, dayId || null),
+    ]);
   }
 
   return {
@@ -1387,8 +1418,12 @@ async function remove(req, env) {
   }
 
   // 3) تحديث الرسائل المجمعة (تحاضير الغد / جدول الأسبوع) لإزالة المنشور المحذوف فوراً
-  syncScheduledTomorrowMessage(env, dayId).catch(() => {});
-  syncScheduledWeeklyMessage(env, dayId).catch(() => {});
+  // ملاحظة مهمة: يجب استخدام await وليس fire-and-forget لأن Cloudflare Worker يُنهي
+  // العمليات الخلفية فور إرسال الرد — await يضمن اكتمال التحديث قبل الإجابة
+  await Promise.allSettled([
+    syncScheduledTomorrowMessage(env, dayId),
+    syncScheduledWeeklyMessage(env, dayId),
+  ]);
 
   return { done: true, ok: true };
 }
@@ -1955,11 +1990,34 @@ async function syncScheduledTomorrowMessage(env, targetDate) {
   if (!env.KV) return { ok: false, error: 'no_kv' };
 
   const info = getBaghdadInfo();
-  const dateStr = targetDate || info.tomorrowTarget.dateStr;
+  let dateStr = targetDate || info.tomorrowTarget.dateStr;
 
-  const raw = await env.KV.get(`scheduled_msg:${dateStr}`);
+  // ── البحث عن المفتاح في KV ──
+  let raw = await env.KV.get(`scheduled_msg:${dateStr}`);
+
+  // إذا ما وُجد المفتاح بالتاريخ المحدد: نبحث في جميع مفاتيح scheduled_msg الموجودة
+  if (!raw && targetDate) {
+    try {
+      const allKeys = await env.KV.list({ prefix: 'scheduled_msg:' });
+      if (allKeys && allKeys.keys && allKeys.keys.length > 0) {
+        for (const k of allKeys.keys) {
+          const kDate = k.name.replace('scheduled_msg:', '');
+          if (kDate === targetDate) {
+            raw = await env.KV.get(k.name);
+            dateStr = kDate;
+            console.log(`[LiveSync] وُجد مفتاح تحاضير الغد عبر البحث الشامل: ${k.name}`);
+            break;
+          }
+        }
+      }
+    } catch(e) {
+      console.warn('[syncScheduledTomorrowMessage] خطأ في البحث الشامل:', e.message);
+    }
+  }
+
   if (!raw) {
-    return { ok: true, synced: false, reason: 'not_sent_yet' };
+    console.log(`[LiveSync] لا توجد رسالة تحاضير الغد محفوظة للتاريخ: ${dateStr}`);
+    return { ok: true, synced: false, reason: 'not_sent_yet', searched_date: dateStr };
   }
 
   let saved;
@@ -2025,7 +2083,7 @@ async function syncScheduledWeeklyMessage(env, targetDayId) {
   let weekStartKey = '';
   let weekDays = [];
 
-  // إذا تم تمرير تاريخ تحضير محدد، نحدد السبت الخاص بأسبوع ذلك التحضير
+  // ── 1) إذا تم تمرير dayId: نحسب السبت الخاص بأسبوعه ──
   if (targetDayId) {
     weekStartKey = getWeekStartForDate(targetDayId);
     if (weekStartKey) {
@@ -2033,7 +2091,7 @@ async function syncScheduledWeeklyMessage(env, targetDayId) {
     }
   }
 
-  // إذا لم يتم تحديد تاريخ أو لم نجد أسبوعه، نستخدم الأسبوع الدراسي القادم تلقائياً
+  // ── 2) إذا لم يتم تحديد تاريخ: نستخدم الأسبوع الدراسي القادم ──
   if (!weekStartKey || !weekDays.length) {
     weekDays = getNextAcademicWeekDays();
     weekStartKey = weekDays[0]?.dateStr || '';
@@ -2041,9 +2099,39 @@ async function syncScheduledWeeklyMessage(env, targetDayId) {
 
   if (!weekStartKey) return { ok: true, synced: false, reason: 'no_week_start' };
 
-  const raw = await env.KV.get(`weekly_msg:${weekStartKey}`);
+  // ── 3) البحث عن المفتاح في KV — مع Fallback ذكي لجميع المفاتيح المحفوظة ──
+  let raw = await env.KV.get(`weekly_msg:${weekStartKey}`);
+
+  // إذا ما وُجد المفتاح بالحساب المباشر، نبحث في جميع مفاتيح weekly_msg الموجودة
   if (!raw) {
-    return { ok: true, synced: false, reason: 'not_sent_yet' };
+    try {
+      const allKeys = await env.KV.list({ prefix: 'weekly_msg:' });
+      if (allKeys && allKeys.keys && allKeys.keys.length > 0) {
+        // نبحث عن أقرب مفتاح لتاريخ التحضير
+        for (const k of allKeys.keys) {
+          const kDate = k.name.replace('weekly_msg:', '');
+          // إذا كان dayId بين هذا السبت والخميس القادم (6 أيام)
+          if (targetDayId && kDate <= targetDayId) {
+            const kDays = getAcademicWeekDaysForStart(kDate);
+            const found = kDays.some(d => d.dateStr === targetDayId);
+            if (found) {
+              weekStartKey = kDate;
+              weekDays = kDays;
+              raw = await env.KV.get(k.name);
+              console.log(`[LiveSync] وُجد مفتاح كليشة بديل: ${k.name}`);
+              break;
+            }
+          }
+        }
+      }
+    } catch(e) {
+      console.warn('[syncScheduledWeeklyMessage] خطأ في البحث الشامل:', e.message);
+    }
+  }
+
+  if (!raw) {
+    console.log(`[LiveSync] لا توجد كليشة أسبوع محفوظة للمفتاح: weekly_msg:${weekStartKey}`);
+    return { ok: true, synced: false, reason: 'not_sent_yet', searched_key: weekStartKey };
   }
 
   let saved;
