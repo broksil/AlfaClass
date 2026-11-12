@@ -5345,8 +5345,8 @@ function renderPostsForDay(dayId, posts) {
     let actionsHtml = '';
     if (currentUser) {
       actionsHtml += '<div class="post-actions">';
-      const canEditPost = currentUser.isAdmin || ((userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'prep')) && isOwnAuthor(post.authorId));
-      const canDelPost  = currentUser.isAdmin || ((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'prep')) && isOwnAuthor(post.authorId));
+      const canEditPost = currentUser.isAdmin || userHasPerm(currentUser, 'edit-post') || (userHasPerm(currentUser, 'prep') && isOwnAuthor(post.authorId));
+      const canDelPost  = currentUser.isAdmin || userHasPerm(currentUser, 'delete-post') || (userHasPerm(currentUser, 'prep') && isOwnAuthor(post.authorId));
       if (canEditPost) {
         actionsHtml += `${!post.isOffline ? `<button class="btn-edit" onclick="openEditModal('${post.id}')">✏️ تعديل</button>` : ''}`;
       }
@@ -6327,12 +6327,12 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
   if (!currentUser) { showToast('⚠️', 'تنبيه', 'يجب تسجيل الدخول أولاً'); return; }
   if (!dayId) { showToast('⚠️', 'خطأ', 'لم يتم تحديد اليوم'); return; }
 
-  // وضع التعديل: يُسمح فقط بمنشوراتي (المالك/الأدمن يتجاوز هذا القيد)
+  // وضع التعديل: يُسمح بتعديل أي منشور لمن يملك صلاحية edit-post أو المالك/الأدمن، وللناشر نفسه بصلاحية prep
   let origPost = null;
   if (editId) {
     if (!currentUser?.isAdmin && !(userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'prep'))) { showToast('⛔', 'مقيّد', 'تعديل المنشور غير مفعّل لحسابك'); return; }
     Object.values(currentPosts).forEach(arr => { const f = arr.find(x => x.id === editId); if (f) origPost = f; });
-    if (!origPost || !isOwnAuthor(origPost.authorId)) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
+    if (!origPost || (!currentUser?.isAdmin && !userHasPerm(currentUser, 'edit-post') && !isOwnAuthor(origPost.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذا المنشور'); return; }
   } else if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'prep')) {
     showToast('⛔', 'مقيّد', 'نشر التحضير غير مفعّل لحسابك'); return;
   }
@@ -6358,12 +6358,13 @@ document.getElementById('btn-do-publish').addEventListener('click', async () => 
     pubImages, pubFiles, pubVoice,
     poll: pollRes.poll,
     existingMediaUrls: editingMediaUrls, // توافق خلفي مع المنشورات القديمة
-    author: currentUser.name,
-    authorColor: currentUser.color,
-    authorIcon: currentUser.icon || '',
+    author: (editId && origPost && origPost.author) ? origPost.author : currentUser.name,
+    authorColor: (editId && origPost && origPost.authorColor) ? origPost.authorColor : currentUser.color,
+    authorIcon: (editId && origPost && origPost.authorIcon) ? origPost.authorIcon : (currentUser.icon || ''),
     authorId: (origPost && origPost.authorId) || currentUser.userId || currentUser.code || '',
-    authorPhoto: (accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || '',
-    createdAt: Date.now(),
+    authorPhoto: (editId && origPost && origPost.authorPhoto) ? origPost.authorPhoto : ((accProfile && accProfile.photoURL) || currentUser.icon || localStorage.getItem('accAvatar') || ''),
+    createdAt: (origPost && origPost.createdAt) ? (origPost.createdAt.toDate ? origPost.createdAt.toDate().getTime() : (origPost.createdAt instanceof Date ? origPost.createdAt.getTime() : (Number(origPost.createdAt) || Date.now()))) : Date.now(),
+    ...(editId ? { editedAt: Date.now(), editedBy: currentUser.name || '' } : {}),
     clientSig: editId ? '' : `sig-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   };
 
@@ -8309,7 +8310,7 @@ document.getElementById('btn-do-material')?.addEventListener('click', async () =
   if (editId && !currentUser?.isAdmin) {
     if (!(userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'material'))) { showToast('⛔', 'مقيّد', 'تعديل الملازم غير مفعّل لحسابك'); return; }
     const origMat = (Array.isArray(allMaterials) ? allMaterials : []).find(m => String(m.id) === String(editId));
-    if (!origMat || !isOwnAuthor(origMat.authorId)) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذه الملزمة'); return; }
+    if (!origMat || (!userHasPerm(currentUser, 'edit-post') && !isOwnAuthor(origMat.authorId))) { showToast('⛔', 'مقيّد', 'لا تملك صلاحية تعديل هذه الملزمة'); return; }
   } else if (!currentUser?.isAdmin && !userHasPerm(currentUser, 'material')) {
     showToast('⛔', 'مقيّد', 'نشر الملازم غير مفعّل لحسابك'); return;
   }
@@ -9826,7 +9827,7 @@ function renderReports() {
             <span class="report-author" onclick="openReportAuthorProfile(event, '${encodeURIComponent(String(r.authorId || ''))}', '${encodeURIComponent(String(r.author || ''))}')" title="عرض الملف الشخصي">${reportAuthorHtml(r)}</span>
             <span class="report-foot-actions">
               <button class="report-cm-toggle" onclick="openReportComments('${r.id}')">💬 تعليقات<span class="rc-count-chip" data-rc-id="${sanitizeText(r.id)}" data-rc-coll="reports" style="display:none">0</span></button>
-              ${(currentUser?.isAdmin || ((userHasPerm(currentUser, 'edit-post') || userHasPerm(currentUser, 'report')) && isOwnAuthor(r.authorId))) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button>` : ''}${(currentUser?.isAdmin || ((userHasPerm(currentUser, 'delete-post') || userHasPerm(currentUser, 'report')) && isOwnAuthor(r.authorId))) ? `<button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
+              ${(currentUser?.isAdmin || userHasPerm(currentUser, 'edit-post') || (userHasPerm(currentUser, 'report') && isOwnAuthor(r.authorId))) ? `<button class="report-edit" onclick="editReport('${r.id}')">✏️ تعديل</button>` : ''}${(currentUser?.isAdmin || userHasPerm(currentUser, 'delete-post') || (userHasPerm(currentUser, 'report') && isOwnAuthor(r.authorId))) ? `<button class="report-del" onclick="deleteReport('${r.id}')">🗑️ حذف</button>` : ''}
             </span>
           </div>
         </div>`;
@@ -12371,8 +12372,8 @@ const AM_PERMS = [
   { key: 'prep',     ico: '📝', label: 'نشر التحضير' },
   { key: 'report',   ico: '📨', label: 'نشر البلاغ' },
   { key: 'material', ico: '📚', label: 'نشر الملازم' },
-  { key: 'edit-post',  ico: '✏️', label: 'تعديل المنشورات (الجدول، البلاغ، الملازم)' },
-  { key: 'delete-post', ico: '🗑️', label: 'حذف المنشورات (الجدول، البلاغ، الملازم)' },
+  { key: 'edit-post',  ico: '✏️', label: 'تعديل جميع المنشورات (الجدول، البلاغ، الملازم)' },
+  { key: 'delete-post', ico: '🗑️', label: 'حذف جميع المنشورات (الجدول، البلاغ، الملازم)' },
   { key: 'comment',  ico: '💬', label: 'التعليق على البلاغ' },
   { key: 'enquiry',  ico: '❓', label: 'الاستفسار (دردشة التحضير)' },
   { key: 'support',  ico: '🎧', label: 'الرد على دعم الطلاب' },
